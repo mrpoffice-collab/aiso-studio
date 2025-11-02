@@ -1,10 +1,10 @@
-import { neon, neonConfig } from '@neondatabase/serverless';
+import postgres from 'postgres';
 
-// Configure Neon for production
-neonConfig.fetchConnectionCache = true;
-
-// Get the Neon database connection
-const sql = neon(process.env.DATABASE_URL!);
+// Create PostgreSQL connection for Neon
+const sql = postgres(process.env.DATABASE_URL!, {
+  ssl: 'require',
+  max: 10,
+});
 
 // Helper function to execute queries
 export async function query<T = any>(
@@ -12,19 +12,7 @@ export async function query<T = any>(
   params: any[] = []
 ): Promise<T[]> {
   try {
-    // Build the query with parameters replaced
-    let query = queryText;
-    params.forEach((param, index) => {
-      const placeholder = `$${index + 1}`;
-      const value = typeof param === 'string' ? `'${param.replace(/'/g, "''")}'` :
-                    param === null ? 'NULL' :
-                    Array.isArray(param) ? `ARRAY[${param.map(v => typeof v === 'string' ? `'${v.replace(/'/g, "''")}'` : v).join(',')}]` :
-                    typeof param === 'object' ? `'${JSON.stringify(param).replace(/'/g, "''")}'` :
-                    param;
-      query = query.replace(placeholder, value.toString());
-    });
-
-    const result = await sql(query);
+    const result = await sql.unsafe(queryText, params);
     return result as T[];
   } catch (error) {
     console.error('Database query error:', error);
