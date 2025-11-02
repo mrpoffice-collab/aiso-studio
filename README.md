@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Content Command Studio
+
+A B2B SaaS platform for marketing agencies to automate content strategy creation and blog post generation with AI-powered fact-checking.
+
+## Features
+
+- **Strategy Builder**: Generate 12-topic content calendars tailored to client needs
+- **Content Generator**: AI-powered blog post creation using OpenAI GPT-4
+- **Fact-Checking**: Automated fact verification using Claude AI
+- **Content Editor**: Markdown-based editor with live preview
+- **Image Sourcing**: Integrated Pexels API for royalty-free images
+- **Export Options**: Markdown, HTML, and clipboard export
+
+## Tech Stack
+
+- **Frontend**: Next.js 14 (App Router), React, Tailwind CSS, shadcn/ui
+- **Backend**: Next.js API Routes, Node.js
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Clerk
+- **AI APIs**: OpenAI (content generation), Claude (strategy & fact-checking)
+- **Deployment**: Vercel
+- **Payments**: Stripe (post-MVP)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 18+ and npm
+- Supabase account and project
+- Clerk account and application
+- OpenAI API key
+- Anthropic (Claude) API key
+- Brave Search API key (optional, for fact-checking)
+- Pexels API key (optional, for images)
+
+### Installation
+
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Set up Supabase**
+   - Create a new Supabase project at https://supabase.com
+   - Go to Project Settings > API to get your URL and keys
+   - Go to SQL Editor and run the schema from `supabase-schema.sql`
+
+3. **Set up Clerk**
+   - Create a new application at https://clerk.com
+   - Go to API Keys to get your publishable and secret keys
+   - Configure your redirect URLs in the Clerk dashboard
+
+4. **Configure environment variables**
+   - Copy `.env.local.example` to `.env.local`
+   - Fill in all required environment variables with your API keys
+
+5. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+6. **Open your browser**
+   Navigate to http://localhost:3000
+
+## Project Structure
+
+```
+content-command-studio/
+├── app/                      # Next.js app directory
+│   ├── api/                  # API routes
+│   ├── dashboard/            # Dashboard pages
+│   ├── sign-in/              # Auth pages
+│   └── layout.tsx
+├── components/               # React components
+├── lib/                      # Utility functions
+│   ├── supabase.ts          # Database client
+│   ├── openai.ts            # OpenAI integration
+│   ├── claude.ts            # Claude integration
+│   └── utils.ts
+├── types/                    # TypeScript types
+└── supabase-schema.sql      # Database schema
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Rate Limits (MVP)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- 10 strategy generations per day per user
+- 25 content generations per day per user
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Cost Estimates
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Per operation:
+- Strategy generation: ~$0.10
+- Content generation: ~$0.30
+- Fact-checking: ~$0.10
+- Total per post: ~$0.40
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The easiest way to deploy is to use the [Vercel Platform](https://vercel.com/new) from the creators of Next.js.
