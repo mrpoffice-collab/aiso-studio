@@ -307,13 +307,19 @@ export function generateAllSchemas(
   // Extract and generate FAQ schema
   const faqs = extractFAQs(content);
   if (faqs.length > 0) {
-    result.faq = generateFAQSchema(faqs);
+    const faqSchema = generateFAQSchema(faqs);
+    if (faqSchema) {
+      result.faq = faqSchema;
+    }
   }
 
   // Extract and generate HowTo schema
   const steps = extractHowToSteps(content);
   if (steps.length >= 2) {
-    result.howTo = generateHowToSchema(title, steps, metaDescription);
+    const howToSchema = generateHowToSchema(title, steps, metaDescription);
+    if (howToSchema) {
+      result.howTo = howToSchema;
+    }
   }
 
   // Generate LocalBusiness schema if local context provided
