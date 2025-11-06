@@ -32,7 +32,7 @@ export default function EditTopicModal({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const outline = outlineText.split('\n').map(line => line.trim()).filter(Boolean);
+      const outline = outlineText.split('\n').map((line: string) => line.trim()).filter(Boolean);
       await onSave({
         title,
         keyword,
