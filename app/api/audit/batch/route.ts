@@ -71,6 +71,8 @@ export async function POST(request: NextRequest) {
     let totalCost = 0;
 
     for (const url of urls) {
+      let title = '';
+
       try {
         console.log(`Auditing: ${url}`);
 
@@ -94,7 +96,7 @@ export async function POST(request: NextRequest) {
         const $ = cheerio.load(html);
 
         // Extract title and meta
-        const title = $('title').text() || $('h1').first().text();
+        title = $('title').text() || $('h1').first().text();
         const metaDescription = $('meta[name="description"]').attr('content');
 
         // Extract publish date
