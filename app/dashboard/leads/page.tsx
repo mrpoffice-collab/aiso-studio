@@ -10,6 +10,10 @@ interface LeadResult {
   city: string;
   state: string;
   overallScore: number;
+  contentScore?: number;
+  seoScore?: number;
+  designScore?: number;
+  speedScore?: number;
   technicalSEO: number;
   onPageSEO: number;
   contentMarketing: number;
