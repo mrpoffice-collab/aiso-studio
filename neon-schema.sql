@@ -27,6 +27,10 @@ CREATE TABLE strategies (
   frequency text NOT NULL,
   content_length text NOT NULL,
   keywords text[] DEFAULT '{}',
+  content_type text DEFAULT 'national' CHECK (content_type IN ('national', 'local', 'hybrid')),
+  city text,
+  state text,
+  service_area text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -39,6 +43,7 @@ CREATE TABLE topics (
   keyword text,
   outline jsonb DEFAULT '[]',
   seo_intent text,
+  aeo_focus text CHECK (aeo_focus IN ('definition', 'how-to', 'comparison', 'guide', 'faq', 'list', 'tutorial')),
   word_count integer,
   position integer NOT NULL,
   status text DEFAULT 'pending' CHECK (status IN ('pending', 'generating', 'completed', 'failed')),
@@ -57,6 +62,9 @@ CREATE TABLE posts (
   word_count integer NOT NULL,
   status text DEFAULT 'draft' CHECK (status IN ('draft', 'approved', 'published')),
   fact_checks jsonb DEFAULT '[]',
+  aeo_score integer,
+  geo_score integer,
+  aiso_score integer,
   featured_image_url text,
   image_attribution jsonb,
   published_at timestamp with time zone,
@@ -79,7 +87,7 @@ CREATE TABLE fact_checks (
 CREATE TABLE usage_logs (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id uuid REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-  operation_type text NOT NULL CHECK (operation_type IN ('strategy_generation', 'content_generation', 'fact_checking', 'image_search')),
+  operation_type text NOT NULL CHECK (operation_type IN ('strategy_generation', 'content_generation', 'fact_checking', 'image_search', 'mou_generation', 'content_audit', 'content_rewrite')),
   cost_usd decimal(10, 4),
   tokens_used integer,
   metadata jsonb DEFAULT '{}',
@@ -88,6 +96,8 @@ CREATE TABLE usage_logs (
 
 -- Indexes for better query performance
 CREATE INDEX idx_strategies_user_id ON strategies(user_id);
+CREATE INDEX idx_strategies_content_type ON strategies(content_type);
+CREATE INDEX idx_strategies_city_state ON strategies(city, state) WHERE content_type IN ('local', 'hybrid');
 CREATE INDEX idx_topics_strategy_id ON topics(strategy_id);
 CREATE INDEX idx_topics_status ON topics(status);
 CREATE INDEX idx_posts_topic_id ON posts(topic_id);
