@@ -617,7 +617,7 @@ async function scoreWebsite(domain: string): Promise<{
     // Internal Linking (10 points)
     const internalLinks = $('a').filter((i, el) => {
       const href = $(el).attr('href');
-      return href && (href.startsWith('/') || href.includes(domain));
+      return !!(href && (href.startsWith('/') || href.includes(domain)));
     }).length;
 
     if (internalLinks < 3) {
