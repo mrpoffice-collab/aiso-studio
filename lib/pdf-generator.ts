@@ -101,7 +101,7 @@ export function generateBatchAuditPDF(
   doc.text('Scoring Scale', 14, yPosition);
   yPosition += 8;
 
-  const scaleData = [
+  const scaleData: Array<{ range: string; label: string; color: [number, number, number] }> = [
     { range: '90-100', label: 'Excellent', color: [34, 197, 94] }, // green-500
     { range: '80-89', label: 'Good', color: [59, 130, 246] }, // blue-500
     { range: '70-79', label: 'Fair', color: [234, 179, 8] }, // yellow-500
