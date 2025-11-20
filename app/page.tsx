@@ -121,13 +121,13 @@ export default async function Home() {
                   <svg className="w-6 h-6 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-slate-700"><strong>Recalibrated scoring</strong> (90-100 = Excellent, 80-89 = Good)</span>
+                  <span className="text-slate-700"><strong>100-point AISO scoring</strong> across 5 dimensions</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-6 h-6 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-slate-700"><strong>Iterative rewrites</strong> with side-by-side comparison</span>
+                  <span className="text-slate-700"><strong>Iterative rewrites</strong> with improvement tracking</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-6 h-6 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
