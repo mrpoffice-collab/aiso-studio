@@ -130,7 +130,7 @@ function AuditPageContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            url: currentUrl,
+            url: urlInput || 'Manual input',
             title: auditResult.title || null,
             originalContent: auditResult.content,
             originalScore: originalScore,
