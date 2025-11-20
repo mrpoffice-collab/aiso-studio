@@ -33,8 +33,15 @@ export const db = {
 
   async createUser(data: { clerk_id: string; email: string; name?: string }) {
     const result = await query(
-      `INSERT INTO users (clerk_id, email, name)
-       VALUES ($1, $2, $3)
+      `INSERT INTO users (
+        clerk_id, email, name,
+        subscription_tier, subscription_status,
+        article_limit, articles_used_this_month,
+        strategies_limit, strategies_used,
+        seats_limit, seats_used,
+        trial_ends_at
+       )
+       VALUES ($1, $2, $3, 'trial', 'trialing', 10, 0, 1, 0, 1, 1, CURRENT_TIMESTAMP + INTERVAL '7 days')
        RETURNING *`,
       [data.clerk_id, data.email, data.name || null]
     );
