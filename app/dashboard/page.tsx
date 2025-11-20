@@ -1,5 +1,5 @@
 import { currentUser } from '@clerk/nextjs/server';
-import { UserButton } from '@clerk/nextjs';
+import UserDropdown from '@/components/UserDropdown';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { syncUser } from '@/lib/user';
@@ -86,7 +86,7 @@ export default async function DashboardPage() {
               </Link>
             </nav>
           </div>
-          <UserButton afterSignOutUrl="/" />
+          <UserDropdown />
         </div>
       </header>
 
