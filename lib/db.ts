@@ -917,4 +917,67 @@ export const db = {
     `;
     return result[0] || null;
   },
+
+  // Content Audits
+  async createContentAudit(data: {
+    user_id: number;
+    url: string;
+    title?: string;
+    original_content: string;
+    original_score: number;
+    original_breakdown?: any;
+    improved_content?: string;
+    improved_score?: number;
+    improved_breakdown?: any;
+    iterations?: number;
+    cost_usd?: number;
+  }) {
+    const result = await query(
+      `INSERT INTO content_audits (
+        user_id, url, title, original_content, original_score, original_breakdown,
+        improved_content, improved_score, improved_breakdown, iterations, cost_usd
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *`,
+      [
+        data.user_id,
+        data.url,
+        data.title || null,
+        data.original_content,
+        data.original_score,
+        data.original_breakdown ? JSON.stringify(data.original_breakdown) : null,
+        data.improved_content || null,
+        data.improved_score || null,
+        data.improved_breakdown ? JSON.stringify(data.improved_breakdown) : null,
+        data.iterations || 0,
+        data.cost_usd || 0,
+      ]
+    );
+    return result[0];
+  },
+
+  async getContentAuditsByUserId(userId: number, limit = 50) {
+    return await query(
+      `SELECT * FROM content_audits
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [userId, limit]
+    );
+  },
+
+  async getContentAuditById(id: number) {
+    const result = await query(
+      'SELECT * FROM content_audits WHERE id = $1',
+      [id]
+    );
+    return result[0] || null;
+  },
+
+  async deleteContentAudit(id: number) {
+    const result = await query(
+      'DELETE FROM content_audits WHERE id = $1 RETURNING *',
+      [id]
+    );
+    return result[0] || null;
+  },
 };

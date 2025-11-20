@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Content Command Studio",
-  description: "Automate content strategy creation and blog post generation with AI-powered fact-checking",
+  title: "AISO Studio",
+  description: "AI-powered content optimization for ChatGPT, Perplexity, and Google SGE",
 };
 
 export default function RootLayout({

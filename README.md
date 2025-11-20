@@ -1,6 +1,6 @@
-# Content Command Studio
+# AISO Studio
 
-A B2B SaaS platform for marketing agencies to automate content strategy creation and blog post generation with AI-powered fact-checking.
+AI-powered content optimization platform for marketing agencies. Create content that ranks on ChatGPT, Perplexity, and Google SGE with the AISO framework (AEO, Intent, SEO, Optimization).
 
 ## Features
 

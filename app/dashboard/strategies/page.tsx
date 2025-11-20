@@ -26,7 +26,7 @@ export default async function StrategiesPage() {
         <div className="container mx-auto flex h-20 items-center justify-between px-6">
           <div className="flex items-center gap-12">
             <Link href="/dashboard" className="text-2xl font-bold bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
-              Content Command Studio
+              AISO Studio
             </Link>
             <nav className="flex gap-8">
               <Link href="/dashboard" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">

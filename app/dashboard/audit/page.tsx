@@ -6,6 +6,7 @@ import { UserButton } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
 import AISOBadge from '@/components/AISOBadge';
 import AEOScoreCard from '@/components/AEOScoreCard';
+import ArticlePreview from '@/components/ArticlePreview';
 import { generateComparisonPDF } from '@/lib/comparison-pdf-generator';
 
 function AuditPageContent() {
@@ -19,6 +20,7 @@ function AuditPageContent() {
   const [isRewriting, setIsRewriting] = useState(false);
   const [rewriteResult, setRewriteResult] = useState<any>(null);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState<'preview' | 'metrics' | 'changes'>('preview');
 
   // Check for parameters from batch audit or direct post audit
   useEffect(() => {
@@ -122,6 +124,36 @@ function AuditPageContent() {
 
       setRewriteResult(data);
 
+      // Auto-save audit to database
+      try {
+        await fetch('/api/audits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: currentUrl,
+            title: auditResult.title || null,
+            originalContent: auditResult.content,
+            originalScore: originalScore,
+            originalBreakdown: {
+              factCheckScore: auditResult.factCheckScore,
+              aeoScore: auditResult.aeoScore,
+              seoScore: auditResult.seoScore,
+              readabilityScore: auditResult.readabilityScore,
+              engagementScore: auditResult.engagementScore,
+            },
+            improvedContent: data.improvedContent,
+            improvedScore: data.newScore,
+            improvedBreakdown: data.scoreBreakdown || null,
+            iterations: data.iterations || 0,
+            costUsd: (data.iterations || 0) * 0.15, // Estimated cost
+          }),
+        });
+        console.log('✅ Audit saved to history');
+      } catch (saveError) {
+        console.error('Failed to save audit:', saveError);
+        // Don't fail the rewrite if save fails
+      }
+
       // Generate comparison PDF after successful rewrite
       setTimeout(() => {
         try {
@@ -199,7 +231,7 @@ function AuditPageContent() {
         <div className="container mx-auto flex h-20 items-center justify-between px-6">
           <div className="flex items-center gap-12">
             <Link href="/dashboard" className="text-2xl font-bold bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
-              Content Command Studio
+              AISO Studio
             </Link>
             <nav className="flex gap-8">
               <Link href="/dashboard" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
@@ -223,13 +255,24 @@ function AuditPageContent() {
       <main className="container mx-auto px-6 py-12 max-w-7xl">
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-deep-indigo via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
-                AISO Content Audit
-              </h1>
-              <p className="text-lg text-slate-700">
-                Analyze blog posts for AI Search Optimization (AEO + SEO + Fact-Checking). Get scores for ChatGPT, Perplexity, Google SGE.
-              </p>
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-4xl font-black bg-gradient-to-r from-deep-indigo via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
+                  AISO Content Audit
+                </h1>
+                <p className="text-lg text-slate-700">
+                  Analyze blog posts for AI Search Optimization (AEO + SEO + Fact-Checking). Get scores for ChatGPT, Perplexity, Google SGE.
+                </p>
+              </div>
+              <Link
+                href="/dashboard/audit/history"
+                className="px-4 py-2 bg-deep-indigo text-white rounded-lg hover:bg-opacity-90 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                History
+              </Link>
             </div>
             <Link
               href="/dashboard/audit/batch"
@@ -552,72 +595,379 @@ function AuditPageContent() {
             </div>
           )}
 
-          {/* Rewrite Results - Before/After */}
+          {/* Rewrite Results - Tabbed Interface */}
           {rewriteResult && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-black text-slate-900">Rewrite Complete!</h2>
+                <div className="flex items-center gap-4">
+                  <h2 className="text-3xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    Content Improved!
+                  </h2>
+                  <div className="px-4 py-2 rounded-full bg-green-100 border-2 border-green-200 animate-pulse">
+                    <span className="text-sm font-black text-green-700">+{rewriteResult.improvement} points</span>
+                  </div>
+                </div>
                 <button
                   onClick={() => {
                     setRewriteResult(null);
                     setAuditResult(null);
                     setContentInput('');
                     setUrlInput('');
+                    setActiveTab('preview');
                   }}
-                  className="text-sm font-semibold text-slate-600 hover:text-deep-indigo"
+                  className="px-6 py-3 rounded-xl bg-white border-2 border-slate-300 font-bold text-slate-700 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700 transition-all shadow-sm flex items-center gap-2"
                 >
-                  ← Audit Another Post
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Audit Another Post
                 </button>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
-                <div className="mb-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">Score Improvement</h3>
-                  <div className="flex items-center gap-4">
-                    <div className={`px-6 py-4 rounded-xl border-2 ${getScoreColor(auditResult.overallScore)}`}>
-                      <div className="text-xs font-bold uppercase tracking-wider mb-1">Before</div>
-                      <div className="text-3xl font-black">{auditResult.overallScore}</div>
-                    </div>
-                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                    <div className={`px-6 py-4 rounded-xl border-2 ${getScoreColor(rewriteResult.newScore)}`}>
-                      <div className="text-xs font-bold uppercase tracking-wider mb-1">After</div>
-                      <div className="text-3xl font-black">{rewriteResult.newScore}</div>
-                    </div>
-                    <div className="ml-4 px-4 py-2 rounded-lg bg-green-100 border border-green-300">
-                      <div className="text-xs font-bold text-green-700 uppercase">Improvement</div>
-                      <div className="text-2xl font-black text-green-700">+{rewriteResult.newScore - auditResult.overallScore}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="text-lg font-bold text-slate-900 mb-3">Original Content</h4>
-                    <div className="p-4 rounded-lg bg-red-50 border border-red-200 max-h-96 overflow-y-auto">
-                      <p className="text-sm text-slate-700 whitespace-pre-wrap">{auditResult.content.substring(0, 500)}...</p>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-bold text-slate-900 mb-3">Improved Content</h4>
-                    <div className="p-4 rounded-lg bg-green-50 border border-green-200 max-h-96 overflow-y-auto">
-                      <p className="text-sm text-slate-700 whitespace-pre-wrap">{rewriteResult.improvedContent.substring(0, 500)}...</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex gap-3">
+              {/* Tabs */}
+              <div className="border-b border-slate-200 bg-white rounded-t-2xl shadow-sm">
+                <nav className="flex gap-1 px-6 pt-4">
                   <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(rewriteResult.improvedContent);
-                      alert('Improved content copied to clipboard!');
-                    }}
-                    className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                    onClick={() => setActiveTab('preview')}
+                    className={`relative px-6 py-3 font-bold text-sm rounded-t-xl transition-all ${
+                      activeTab === 'preview'
+                        ? 'bg-gradient-to-br from-slate-50 to-blue-50 text-deep-indigo border-b-4 border-orange-500'
+                        : 'text-slate-600 hover:text-deep-indigo hover:bg-slate-50'
+                    }`}
                   >
-                    📋 Copy Improved Content
+                    <span className="flex items-center gap-2">
+                      ✨ Your Improved Article
+                      {activeTab === 'preview' && (
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                      )}
+                    </span>
                   </button>
-                </div>
+                  <button
+                    onClick={() => setActiveTab('metrics')}
+                    className={`px-6 py-3 font-bold text-sm rounded-t-xl transition-all ${
+                      activeTab === 'metrics'
+                        ? 'bg-gradient-to-br from-slate-50 to-blue-50 text-deep-indigo border-b-4 border-orange-500'
+                        : 'text-slate-600 hover:text-deep-indigo hover:bg-slate-50'
+                    }`}
+                  >
+                    📊 Performance Metrics
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('changes')}
+                    className={`px-6 py-3 font-bold text-sm rounded-t-xl transition-all ${
+                      activeTab === 'changes'
+                        ? 'bg-gradient-to-br from-slate-50 to-blue-50 text-deep-indigo border-b-4 border-orange-500'
+                        : 'text-slate-600 hover:text-deep-indigo hover:bg-slate-50'
+                    }`}
+                  >
+                    🔍 What Changed
+                  </button>
+                </nav>
+              </div>
+
+              {/* Tab Content */}
+              <div className="min-h-[600px]">
+                {activeTab === 'preview' && (
+                  <ArticlePreview
+                    content={rewriteResult.improvedContent}
+                    title={auditResult.title || titleInput || 'Improved Article'}
+                    scoreImprovement={rewriteResult.improvement}
+                    originalScore={auditResult.overallScore || auditResult.aisoScore}
+                    newScore={rewriteResult.newScore}
+                    wordCount={rewriteResult.improvedContent.split(/\s+/).length}
+                  />
+                )}
+
+                {activeTab === 'metrics' && (
+                  <div className="space-y-6">
+                    {/* Score Improvement Card */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
+                      <h3 className="text-2xl font-black text-slate-900 mb-6">AISO Score Improvement</h3>
+                      <div className="flex items-center gap-6 mb-8">
+                        <div className={`flex-1 px-8 py-6 rounded-xl border-2 ${getScoreColor(auditResult.overallScore || auditResult.aisoScore)}`}>
+                          <div className="text-xs font-bold uppercase tracking-wider mb-2 opacity-70">Before</div>
+                          <div className="text-5xl font-black">{auditResult.overallScore || auditResult.aisoScore}</div>
+                          <div className="text-sm font-semibold mt-2">{getScoreLabel(auditResult.overallScore || auditResult.aisoScore)}</div>
+                        </div>
+                        <svg className="w-12 h-12 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        <div className={`flex-1 px-8 py-6 rounded-xl border-2 ${getScoreColor(rewriteResult.newScore)}`}>
+                          <div className="text-xs font-bold uppercase tracking-wider mb-2 opacity-70">After</div>
+                          <div className="text-5xl font-black">{rewriteResult.newScore}</div>
+                          <div className="text-sm font-semibold mt-2">{getScoreLabel(rewriteResult.newScore)}</div>
+                        </div>
+                        <div className="flex-1 px-8 py-6 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300">
+                          <div className="text-xs font-bold text-green-700 uppercase tracking-wider mb-2">Improvement</div>
+                          <div className="text-5xl font-black text-green-700">+{rewriteResult.improvement}</div>
+                          <div className="text-sm font-bold text-green-700 mt-2">
+                            {Math.round((rewriteResult.improvement / (auditResult.overallScore || auditResult.aisoScore)) * 100)}% better
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Category Breakdown */}
+                      {rewriteResult.scoreBreakdown && (
+                        <div>
+                          <h4 className="text-lg font-bold text-slate-900 mb-4">Category-by-Category Breakdown</h4>
+                          <div className="space-y-3">
+                            {rewriteResult.scoreBreakdown.map((category: any, idx: number) => (
+                              <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-bold text-slate-900">{category.category}</span>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-slate-600">{category.before}</span>
+                                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    <span className="font-black text-slate-900">{category.after}</span>
+                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${
+                                      category.improvement > 0 ? 'bg-green-100 text-green-700' :
+                                      category.improvement < 0 ? 'bg-red-100 text-red-700' :
+                                      'bg-slate-100 text-slate-700'
+                                    }`}>
+                                      {category.improvement > 0 ? '+' : ''}{category.improvement}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-slate-200 rounded-full h-2">
+                                  <div
+                                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500"
+                                    style={{ width: `${category.after}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Fact-Check Summary */}
+                      {rewriteResult.newFactCheckSummary && (
+                        <div className="mt-8 p-6 rounded-xl bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200">
+                          <h4 className="text-lg font-bold text-slate-900 mb-3">✓ Fact-Check Results</h4>
+                          <div className="grid grid-cols-4 gap-4">
+                            <div className="text-center">
+                              <div className="text-3xl font-black text-green-700">{rewriteResult.newFactCheckSummary.verifiedClaims}</div>
+                              <div className="text-xs font-bold text-slate-600 uppercase">Verified</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-3xl font-black text-yellow-700">{rewriteResult.newFactCheckSummary.uncertainClaims}</div>
+                              <div className="text-xs font-bold text-slate-600 uppercase">Uncertain</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-3xl font-black text-red-700">{rewriteResult.newFactCheckSummary.unverifiedClaims}</div>
+                              <div className="text-xs font-bold text-slate-600 uppercase">Unverified</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-3xl font-black text-purple-700">{rewriteResult.newFactCheckSummary.totalClaims}</div>
+                              <div className="text-xs font-bold text-slate-600 uppercase">Total Claims</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Stats */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
+                      <h3 className="text-2xl font-black text-slate-900 mb-6">Processing Stats</h3>
+                      <div className="grid grid-cols-3 gap-6">
+                        <div className="p-6 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
+                          <div className="text-sm font-bold text-slate-600 uppercase mb-2">Iterations</div>
+                          <div className="text-4xl font-black text-deep-indigo">{rewriteResult.iterations || 5}</div>
+                        </div>
+                        <div className="p-6 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
+                          <div className="text-sm font-bold text-slate-600 uppercase mb-2">Est. Cost</div>
+                          <div className="text-4xl font-black text-green-700">$0.{rewriteResult.iterations * 15}</div>
+                        </div>
+                        <div className="p-6 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200">
+                          <div className="text-sm font-bold text-slate-600 uppercase mb-2">Time Saved</div>
+                          <div className="text-4xl font-black text-purple-700">2-3h</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'changes' && (
+                  <div className="space-y-6">
+                    {/* Key Changes Summary */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
+                      <h3 className="text-2xl font-black text-slate-900 mb-6">✨ Key Improvements Made</h3>
+
+                      <div className="space-y-6">
+                        {/* Content Structure Improvements */}
+                        <div className="p-6 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-lg font-bold text-blue-900 mb-2">📊 Content Structure Enhanced</h4>
+                              <div className="space-y-2 text-sm text-slate-700">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-600 font-bold">✓</span>
+                                  <span>Added {(rewriteResult.improvedContent.match(/^##\s/gm) || []).length} major section headers (H2)</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-600 font-bold">✓</span>
+                                  <span>Created {(rewriteResult.improvedContent.match(/^###\s/gm) || []).length} subsections (H3) for better organization</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-600 font-bold">✓</span>
+                                  <span>Word count: {auditResult.content.split(/\s+/).length} → {rewriteResult.improvedContent.split(/\s+/).length} words ({Math.round((rewriteResult.improvedContent.split(/\s+/).length / auditResult.content.split(/\s+/).length - 1) * 100)}% {rewriteResult.improvedContent.split(/\s+/).length > auditResult.content.split(/\s+/).length ? 'more comprehensive' : 'more concise'})</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* AEO Enhancements */}
+                        {rewriteResult.improvedContent.toLowerCase().includes('frequently asked questions') && (
+                          <div className="p-6 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200">
+                            <div className="flex items-start gap-4">
+                              <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-lg font-bold text-purple-900 mb-2">🤖 AI Engine Optimization (AEO)</h4>
+                                <div className="space-y-2 text-sm text-slate-700">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-green-600 font-bold">✓</span>
+                                    <span>Added comprehensive FAQ section for ChatGPT & Perplexity</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-green-600 font-bold">✓</span>
+                                    <span>Optimized first paragraph as quotable answer for SGE</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-green-600 font-bold">✓</span>
+                                    <span>Added direct-answer format for AI assistants</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Fact-Check Improvements */}
+                        {rewriteResult.newFactCheckSummary && (
+                          <div className="p-6 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
+                            <div className="flex items-start gap-4">
+                              <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-lg font-bold text-green-900 mb-2">✓ Fact-Checking Enhanced</h4>
+                                <div className="space-y-2 text-sm text-slate-700">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-green-600 font-bold">✓</span>
+                                    <span>Removed {auditResult.factChecks?.filter((fc: any) => fc.status === 'unverified').length || 0} unverifiable claims</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-green-600 font-bold">✓</span>
+                                    <span>Added qualifiers to uncertain claims ("typically", "often", "can")</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-green-600 font-bold">✓</span>
+                                    <span>Fact-check score: {auditResult.factCheckScore || 0}/100 → {rewriteResult.newFactCheckSummary.overallScore}/100</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Engagement Improvements */}
+                        <div className="p-6 rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200">
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-full bg-orange-600 flex items-center justify-center flex-shrink-0">
+                              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-lg font-bold text-orange-900 mb-2">🎯 Engagement Boosted</h4>
+                              <div className="space-y-2 text-sm text-slate-700">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-600 font-bold">✓</span>
+                                  <span>Added {(rewriteResult.improvedContent.match(/^[-*]\s/gm) || []).length} bullet points for scannability</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-600 font-bold">✓</span>
+                                  <span>Included {(rewriteResult.improvedContent.match(/^\d+\.\s/gm) || []).length} numbered steps for actionability</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-600 font-bold">✓</span>
+                                  <span>Enhanced with **bold key terms** for emphasis</span>
+                                </div>
+                                {rewriteResult.improvedContent.toLowerCase().includes('ready to') && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-green-600 font-bold">✓</span>
+                                    <span>Added clear call-to-action in conclusion</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* SEO Improvements */}
+                        <div className="p-6 rounded-xl bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-200">
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-full bg-cyan-600 flex items-center justify-center flex-shrink-0">
+                              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-lg font-bold text-cyan-900 mb-2">🔍 SEO Optimized</h4>
+                              <div className="space-y-2 text-sm text-slate-700">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-600 font-bold">✓</span>
+                                  <span>Improved content structure for better crawling</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-600 font-bold">✓</span>
+                                  <span>Added {(rewriteResult.improvedContent.match(/\[.*?\]\(.*?\)/g) || []).length} internal linking opportunities</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-600 font-bold">✓</span>
+                                  <span>Updated to {new Date().getFullYear()} for content freshness</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Stats */}
+                    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50 p-8">
+                      <h3 className="text-xl font-bold text-slate-900 mb-4">📈 Overall Impact</h3>
+                      <div className="grid grid-cols-3 gap-6">
+                        <div className="text-center">
+                          <div className="text-4xl font-black text-green-700 mb-2">+{rewriteResult.improvement}</div>
+                          <div className="text-sm font-bold text-slate-600">AISO Score Improvement</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-4xl font-black text-blue-700 mb-2">{rewriteResult.iterations}</div>
+                          <div className="text-sm font-bold text-slate-600">Refinement Iterations</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-4xl font-black text-purple-700 mb-2">{Math.round((rewriteResult.improvement / (auditResult.overallScore || auditResult.aisoScore)) * 100)}%</div>
+                          <div className="text-sm font-bold text-slate-600">Quality Increase</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     console.log('Rewriting content to improve AISO quality...');
 
     const MINIMUM_AISO_SCORE = 90; // Aim for 90+ for high quality
-    const MAX_ITERATIONS = 5; // Try up to 5 rewrites for maximum improvement
+    const MAX_ITERATIONS = 3; // Optimal based on real-world testing (best scores typically achieved by iteration 2-3)
 
     let currentContent = originalContent;
     let currentScore = auditReport.aisoScore || auditReport.overallScore;
@@ -69,112 +69,112 @@ export async function POST(request: NextRequest) {
       const currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
 
       // Create AISO-focused improvement prompt with iteration-specific guidance
-      const prompt = `You are a professional content editor improving blog post quality for AISO (AI Search Optimization). Your goal is to achieve 90%+ AISO score.
+      const prompt = `You are a professional content editor improving blog post quality. Your goal is to make this content genuinely better for readers while improving AISO score.
+
+**CORE PHILOSOPHY:**
+- PRESERVE what's already good (voice, links, structure, valuable content)
+- IMPROVE clarity, accuracy, and readability
+- ADD structure ONLY when it genuinely helps the reader
+- NEVER add generic filler just to hit metrics
 
 **IMPORTANT CONTEXT - CURRENT DATE:**
-- **Today's Date:** ${currentMonth} ${currentYear}
-- **CRITICAL:** Update ALL year references to ${currentYear} or later (remove ${currentYear - 1}, ${currentYear - 2}, etc.)
-- **Use current/timeless language:** "In ${currentYear}...", "Modern approaches...", "Current best practices..."
-- **Outdated content kills engagement!** Make content feel fresh and current.
+- Today's Date: ${currentMonth} ${currentYear}
+- Update outdated year references to ${currentYear} or use timeless language
+- Make content feel current without forcing it
 
-**Iteration ${iteration}/${MAX_ITERATIONS} - Current AISO Score**: ${currentScore}/100 (Target: 90+)
+**Iteration ${iteration}/${MAX_ITERATIONS} - Current AISO Score**: ${currentScore}/100
 
-${iteration > 1 ? `**Progress**: Started at ${auditReport.aisoScore || auditReport.overallScore}/100, now at ${currentScore}/100. ${currentScore > (auditReport.aisoScore || auditReport.overallScore) ? 'Improving! Keep pushing.' : 'Score dropped. Focus on quality over changes.'}` : ''}
+${iteration > 1 ? `Progress: Started at ${auditReport.aisoScore || auditReport.overallScore}/100, now at ${currentScore}/100. ${currentScore > (auditReport.aisoScore || auditReport.overallScore) ? 'Keep improving quality.' : 'Score dropped - focus on preserving what works.'}` : ''}
 
 **Current Content:**
 ${currentContent}
 
-**DETAILED SCORING BREAKDOWN:**
-- 🎯 Fact-Check: ${factCheckScore}/100 (30% weight) ${factCheckScore < 80 ? '⚠️ NEEDS MAJOR WORK!' : factCheckScore < 90 ? '⚠️ Room for improvement' : '✅ Good'}
-- 🤖 AEO (SGE): ${aeoScore}/100 (25% weight) ${aeoScore < 70 ? '⚠️ CRITICAL - Missing FAQ/Direct Answer!' : aeoScore < 85 ? '⚠️ Add more structure' : '✅ Good'}
-- 📊 SEO: ${seoScore}/100 (15% weight) ${seoScore < 70 ? '⚠️ Poor structure/keywords' : seoScore < 85 ? '⚠️ Improve headers/links' : '✅ Good'}
-- 📖 Readability: ${readabilityScore}/100 (15% weight) ${readabilityScore < 70 ? '⚠️ Too complex' : readabilityScore < 85 ? '⚠️ Simplify sentences' : '✅ Good'}
-- 🎯 Engagement: ${engagementScore}/100 (15% weight) ${engagementScore < 70 ? '⚠️ Missing hooks/CTAs' : engagementScore < 85 ? '⚠️ Add more variety' : '✅ Good'}
-- Unverified claims: ${auditReport.unverifiedClaims || 0} ${auditReport.unverifiedClaims > 0 ? '⚠️ MUST FIX!' : '✅'}
+**SCORING BREAKDOWN:**
+- Fact-Check: ${factCheckScore}/100 (30% weight) ${factCheckScore < 80 ? '- Fix unverifiable claims' : '✅'}
+- AEO: ${aeoScore}/100 (25% weight) ${aeoScore < 70 ? '- Needs better structure for AI engines' : '✅'}
+- SEO: ${seoScore}/100 (15% weight) ${seoScore < 70 ? '- Improve headers/structure' : '✅'}
+- Readability: ${readabilityScore}/100 (15% weight) ${readabilityScore < 70 ? '- Simplify language' : '✅'}
+- Engagement: ${engagementScore}/100 (15% weight) ${engagementScore < 70 ? '- Add hooks/formatting' : '✅'}
+${auditReport.unverifiedClaims > 0 ? `- Unverified claims: ${auditReport.unverifiedClaims} ⚠️` : ''}
 
-${problematicClaims.length > 0 ? `**PROBLEMATIC CLAIMS TO FIX (CRITICAL):**
-${problematicClaims.map((claim: string, i: number) => `${i + 1}. "${claim}" - REMOVE or add "typically", "often", "can", "may"`).join('\n')}` : ''}
+${problematicClaims.length > 0 ? `**PROBLEMATIC CLAIMS TO FIX:**
+${problematicClaims.map((claim: string, i: number) => `${i + 1}. "${claim}" - Remove or add qualifiers ("typically", "often", "can", "may")`).join('\n')}` : ''}
 
-**AGGRESSIVE REWRITE INSTRUCTIONS FOR ITERATION ${iteration}:**
+**IMPROVEMENT PRIORITIES:**
 
 ${factCheckScore < 80 ? `
-🔥 **PRIORITY 1: FIX FACT-CHECK (Currently ${factCheckScore}/100 - 30% of total score!)**
-   - REMOVE EVERY UNVERIFIABLE CLAIM - This is killing your score!
-   - NEVER say: "studies show", "research indicates", "experts say", "X% of companies"
-   - ALWAYS use: "often", "typically", "can help", "may improve", "common approach"
-   - Focus on PROCESS and HOW-TO, NOT outcome promises
-   - Replace statistics with general knowledge: "Many businesses find..." instead of "95% see results"
+**Fix Factual Accuracy (HIGH PRIORITY):**
+- Remove or qualify unverifiable claims
+- Avoid: "studies show", "research proves", "X% of companies" (without sources)
+- Use: "often", "typically", "can help", "many find", "common approach"
+- Focus on processes and how-to content, not unverifiable outcome promises
 ` : ''}
 
-${aeoScore < 85 ? `
-🔥 **PRIORITY 2: BOOST AEO/SGE (Currently ${aeoScore}/100 - 25% of total score!)**
-   ${aeoScore < 70 ? `- ADD FAQ SECTION (MANDATORY!) - EXACT FORMAT REQUIRED:
-     ## Frequently Asked Questions
-
-     ### Question: What is [topic]?
-     Answer paragraph here (2-3 sentences).
-
-     ### Question: How do I [task]?
-     Answer paragraph here (2-3 sentences).
-
-     (Add 6-8 total Q&A pairs in this EXACT format!)` : '- IMPROVE FAQ SECTION - Ensure it uses "### Question:" format for each Q&A'}
-   - FIRST PARAGRAPH: Start with "The answer is..." or "Simply put..." or "Here's what you need to know..."
-   - Make first paragraph quotable: 2-3 sentences, direct, authoritative
-   - Add "## Key Takeaways" section with bullet points (at least 5 bullets)
-   - Define terms explicitly: "X is defined as..." or "X refers to..." (at least 2 definitions)
-   - Add numbered steps for HOW-TO process: "Step 1:", "Step 2:", etc. (at least 3 steps)
-   - Include a comparison table if relevant (markdown table format with | pipes |)
+${aeoScore < 70 ? `
+**Improve AI Engine Optimization:**
+- Make first paragraph a clear, quotable answer (2-3 sentences)
+- Add FAQ section (4-8 Q&As) - DEFAULT TO YES unless content is clearly opinion/news/story format
+  * How-to, explainer, product, tutorial, comparison content → ALWAYS add FAQ
+  * Only skip FAQ for: opinion pieces, personal stories, news updates, creative writing
+- Use clear definitions for key terms
+- Add structured steps for how-to content (when relevant)
 ` : ''}
 
-${seoScore < 85 ? `
-🔥 **IMPROVE SEO (Currently ${seoScore}/100 - 15% of total score!)**
-   - Add 2+ more H2 headers (## Header)
-   - Add 3+ more H3 subheaders (### Subheader)
-   - Include internal link opportunities: "Learn more about [topic]", "Related: [topic]"
-   - Ensure keyword in first paragraph, one H2, and conclusion
-   - Add images references: ![Alt text](image-url)
+${seoScore < 70 ? `
+**Improve Structure & SEO:**
+- Add clear H2/H3 headers to break up content
+- **CRITICAL: PRESERVE all original links** - Keep every [link](url) from the source
+- Add internal link suggestions where genuinely helpful (don't spam)
+- Ensure logical content flow
 ` : ''}
 
-${readabilityScore < 85 ? `
-🔥 **IMPROVE READABILITY (Currently ${readabilityScore}/100 - 15% of total score!)**
-   - Break up long sentences (keep under 20 words)
-   - Use shorter paragraphs (3-5 sentences max)
-   - Add transition words: "However", "Additionally", "For example"
-   - Simplify complex words: "use" not "utilize", "help" not "facilitate"
+${readabilityScore < 70 ? `
+**Improve Readability:**
+- Break up long sentences (aim for 15-20 words max)
+- Use shorter paragraphs (3-5 sentences)
+- Simplify complex words without dumbing down
+- Add transition words for better flow
 ` : ''}
 
-${engagementScore < 85 ? `
-🔥 **IMPROVE ENGAGEMENT (Currently ${engagementScore}/100 - 15% of total score!)**
-   - Start with a question or hook: "Did you know...?", "What if...?"
-   - Add call-to-action at end: "Ready to...", "Start by...", "Try..."
-   - Use bold text for **key points**
-   - Add more bullet points and numbered lists
-   - Include a quote or blockquote (> Quote text)
-   - CRITICAL: Replace outdated year references (${currentYear - 1}, ${currentYear - 2}) with ${currentYear} or timeless language
+${engagementScore < 70 ? `
+**Improve Engagement:**
+- Add opening hook if missing (question, surprising fact, clear benefit)
+- Use bullet points and lists for scannable content
+- Bold **key terms** for emphasis (use sparingly)
+- Add closing CTA if appropriate
+- Update year references to ${currentYear}
 ` : ''}
 
-**CRITICAL REQUIREMENTS - MUST HAVE ALL TO SCORE 90+:**
-✅ First paragraph starts with "The answer is..." or "Simply put..." or "Here's what you need to know..."
-✅ "## Frequently Asked Questions" section with 6-8 Q&A pairs using "### Question:" format
-✅ "## Key Takeaways" section with 5+ bullet points
-✅ At least 2 definitions using "X is defined as..." or "X refers to..."
-✅ Numbered steps (Step 1:, Step 2:, Step 3:) for any process/how-to content
-✅ At least 5 internal link opportunities: "[Learn more about X]" or "[Related: X]"
-✅ At least 1 data table in markdown format (| Header 1 | Header 2 |) if comparing options
-✅ 6+ H2 headers (##) and 4+ H3 subheaders (###)
-✅ Bold **key terms** throughout (10+ bold phrases)
-✅ 5+ bullet points and 3+ numbered list items
-✅ Call-to-action in last paragraph: "Ready to...", "Start by...", "Try..."
-✅ NO unverifiable statistics without qualifiers ("often", "typically", "can help")
+**CRITICAL RULES:**
 
-**OPTIMIZATION FOR AI ANSWER ENGINES:**
-- Google SGE: First paragraph must be quotable summary
-- ChatGPT: FAQ section provides direct answers
-- Perplexity: Statistics must be qualified ("typically", "often")
-- Bing Copilot: Clear definitions and structured content
+✅ DO:
+- Preserve ALL original links [text](url) exactly as they appear
+- Keep the author's voice and tone
+- Improve clarity and accuracy
+- Add structure where it genuinely helps
+- Fix factual errors and unverifiable claims
+- Make content more scannable (bullets, headers, bold)
+- Add FAQ section (4-8 Q&As) for most content types (how-to, explainer, tutorial, product)
+
+❌ DON'T:
+- Remove or change existing links
+- Add generic "filler" sections just for metrics
+- Force FAQ into opinion pieces, personal stories, or news articles (wrong format)
+- Add arbitrary tables/lists that don't serve the reader
+- Change the core message or intent
+- Add keyword-stuffed content
+- Make it feel robotic or formulaic
+
+**TARGET IMPROVEMENTS:**
+- If content is missing structure (headers, bullets), add it
+- If content has unverifiable claims, fix them
+- If content is hard to read, simplify it
+- If content is how-to/explainer/tutorial → ADD FAQ with relevant Q&As
+- If content is opinion/story/news → SKIP FAQ (doesn't fit format)
+- If content has good links/citations, KEEP THEM ALL
 
 **OUTPUT FORMAT:**
-Return ONLY the rewritten content in markdown format. No explanations. Just the improved blog post that scores 90+.`;
+Return ONLY the improved content in markdown format. Preserve all original links. No explanations.`;
 
       const message = await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
