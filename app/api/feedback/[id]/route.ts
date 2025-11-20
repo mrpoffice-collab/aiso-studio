@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -12,9 +12,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const item = await db.query(
       `SELECT * FROM feedback_items WHERE id = $1`,
-      [params.id]
+      [id]
     );
 
     if (item.length === 0) {
@@ -30,7 +32,7 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -38,6 +40,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const { title, description, type, priority, status, screenshots } = body;
 
@@ -71,7 +74,7 @@ export async function PATCH(
     }
 
     updates.push(`updated_at = NOW()`);
-    values.push(params.id);
+    values.push(id);
 
     const result = await db.query(
       `UPDATE feedback_items
@@ -94,7 +97,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -102,9 +105,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
+
     await db.query(
       `DELETE FROM feedback_items WHERE id = $1`,
-      [params.id]
+      [id]
     );
 
     return NextResponse.json({ success: true });

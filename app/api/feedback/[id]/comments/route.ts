@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -12,13 +12,15 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const comments = await db.query(
       `SELECT fc.*, u.email as user_email
        FROM feedback_comments fc
        JOIN users u ON fc.user_id = u.id
        WHERE fc.item_id = $1
        ORDER BY fc.created_at ASC`,
-      [params.id]
+      [id]
     );
 
     return NextResponse.json({ comments });
@@ -30,7 +32,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -43,6 +45,7 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const { comment } = body;
 
@@ -57,7 +60,7 @@ export async function POST(
       `INSERT INTO feedback_comments (item_id, user_id, comment)
        VALUES ($1, $2, $3)
        RETURNING *`,
-      [params.id, dbUser.id, comment]
+      [id, dbUser.id, comment]
     );
 
     return NextResponse.json({ comment: result[0] }, { status: 201 });
