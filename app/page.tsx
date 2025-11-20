@@ -219,119 +219,174 @@ export default async function Home() {
         {/* Pricing Section */}
         <section className="container mx-auto px-6 py-20">
           <h2 className="text-center text-4xl font-black text-slate-900 mb-4">
-            Simple, Pay-As-You-Go Pricing
+            Simple, Transparent Pricing
           </h2>
           <p className="text-center text-xl text-slate-600 mb-16 max-w-2xl mx-auto">
-            No monthly fees. No subscriptions. Just pay for what you use.
+            Start with a 7-day free trial. Scale as you grow. Cancel anytime.
           </p>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {/* Starter */}
             <div className="rounded-2xl border-2 border-slate-200 bg-white p-8 shadow-lg hover:shadow-xl transition-shadow">
               <h3 className="text-2xl font-black text-slate-900 mb-2">Starter</h3>
-              <p className="text-slate-600 mb-6">Perfect for trying out the platform</p>
+              <p className="text-slate-600 mb-6">Perfect for solo creators</p>
               <div className="mb-6">
-                <span className="text-5xl font-black text-slate-900">$0</span>
-                <span className="text-slate-600 ml-2">to start</span>
+                <span className="text-5xl font-black text-slate-900">$39</span>
+                <span className="text-slate-600">/month</span>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-slate-700">3 free content audits</span>
+                  <span className="text-sm text-slate-700"><strong>25 articles</strong> per month</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-slate-700">1 free strategy generation</span>
+                  <span className="text-sm text-slate-700">Unlimited strategies</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-slate-700">PDF report generation</span>
+                  <span className="text-sm text-slate-700">1 seat</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-slate-700">Email support</span>
                 </li>
               </ul>
               <Link
                 href="/sign-up"
                 className="block w-full text-center rounded-lg border-2 border-slate-300 bg-white px-6 py-3 font-bold text-slate-700 hover:bg-slate-50 transition-all"
               >
-                Get Started
+                Start Free Trial
               </Link>
             </div>
 
-            {/* Growth (Recommended) */}
+            {/* Professional */}
+            <div className="rounded-2xl border-2 border-slate-200 bg-white p-8 shadow-lg hover:shadow-xl transition-shadow">
+              <h3 className="text-2xl font-black text-slate-900 mb-2">Professional</h3>
+              <p className="text-slate-600 mb-6">For growing content teams</p>
+              <div className="mb-6">
+                <span className="text-5xl font-black text-slate-900">$99</span>
+                <span className="text-slate-600">/month</span>
+              </div>
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-slate-700"><strong>75 articles</strong> per month</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-slate-700">Unlimited strategies</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-slate-700">3 seats</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-slate-700">Priority email support</span>
+                </li>
+              </ul>
+              <Link
+                href="/sign-up"
+                className="block w-full text-center rounded-lg border-2 border-slate-300 bg-white px-6 py-3 font-bold text-slate-700 hover:bg-slate-50 transition-all"
+              >
+                Start Free Trial
+              </Link>
+            </div>
+
+            {/* Agency (Recommended) */}
             <div className="rounded-2xl border-4 border-purple-400 bg-white p-8 shadow-xl relative">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-bold">
                 Recommended
               </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-2">Growth</h3>
+              <h3 className="text-2xl font-black text-slate-900 mb-2">Agency</h3>
               <p className="text-slate-600 mb-6">For agencies and power users</p>
               <div className="mb-6">
-                <span className="text-5xl font-black bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Pay</span>
-                <span className="text-slate-600 ml-2">per use</span>
+                <span className="text-5xl font-black bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">$299</span>
+                <span className="text-slate-600">/month</span>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-slate-700"><strong>$0.01</strong> per content audit</span>
+                  <span className="text-sm text-slate-700"><strong>250 articles</strong> per month</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-slate-700"><strong>$0.10</strong> per content rewrite</span>
+                  <span className="text-sm text-slate-700">Unlimited strategies</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-slate-700"><strong>$0.50</strong> per strategy generation</span>
+                  <span className="text-sm text-slate-700">10 seats</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-slate-700">Unlimited PDF exports</span>
+                  <span className="text-sm text-slate-700">Priority support + Slack</span>
                 </li>
               </ul>
               <Link
                 href="/sign-up"
                 className="block w-full text-center rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all"
               >
-                Start Growing
+                Start Free Trial
               </Link>
             </div>
 
             {/* Enterprise */}
             <div className="rounded-2xl border-2 border-slate-200 bg-white p-8 shadow-lg hover:shadow-xl transition-shadow">
               <h3 className="text-2xl font-black text-slate-900 mb-2">Enterprise</h3>
-              <p className="text-slate-600 mb-6">For large teams and agencies</p>
+              <p className="text-slate-600 mb-6">For large organizations</p>
               <div className="mb-6">
-                <span className="text-4xl font-black text-slate-900">Custom</span>
+                <span className="text-5xl font-black text-slate-900">$799</span>
+                <span className="text-slate-600">/month</span>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-slate-700">Volume discounts</span>
+                  <span className="text-sm text-slate-700"><strong>1,000 articles</strong> per month</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-slate-700">White-label branding</span>
+                  <span className="text-sm text-slate-700">Unlimited strategies</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-slate-700">Dedicated support</span>
+                  <span className="text-sm text-slate-700">Unlimited seats</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-slate-700">Dedicated account manager</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -341,16 +396,16 @@ export default async function Home() {
                 </li>
               </ul>
               <Link
-                href="mailto:contact@aiso.studio"
+                href="/sign-up"
                 className="block w-full text-center rounded-lg border-2 border-slate-300 bg-white px-6 py-3 font-bold text-slate-700 hover:bg-slate-50 transition-all"
               >
-                Contact Sales
+                Start Free Trial
               </Link>
             </div>
           </div>
 
           <p className="text-center text-sm text-slate-500 mt-12">
-            All pricing is transparent and usage-based. No hidden fees. Cancel anytime.
+            All plans include a 7-day free trial. No credit card required. Cancel anytime.
           </p>
         </section>
 
@@ -361,7 +416,7 @@ export default async function Home() {
               Ready to Fix Your Content?
             </h2>
             <p className="text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
-              Start with 3 free audits. No credit card required. See your scores in 30 seconds.
+              Start your 7-day free trial. No credit card required. See your scores in 30 seconds.
             </p>
             <Link
               href="/sign-up"
