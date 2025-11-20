@@ -49,7 +49,7 @@ export const db = {
   },
 
   // Strategies
-  async getStrategiesByUserId(userId: number) {
+  async getStrategiesByUserId(userId: number | string) {
     return await query(
       'SELECT * FROM strategies WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
@@ -131,7 +131,7 @@ export const db = {
   },
 
   // Posts
-  async getPostsByUserId(userId: number) {
+  async getPostsByUserId(userId: number | string) {
     return await query(
       'SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
