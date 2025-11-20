@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { generateComparisonPDF } from '@/lib/comparison-pdf-generator';
+import DashboardNav from '@/components/DashboardNav';
 
 // Selective Improvement Button Component
 function SelectiveImproveButton({
