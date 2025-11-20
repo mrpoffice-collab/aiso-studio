@@ -6,6 +6,9 @@ import { syncUser } from '@/lib/user';
 import { db } from '@/lib/db';
 import { logError, logInfo, AppError } from '@/lib/error-logger';
 
+// Force dynamic rendering (required for authentication)
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   try {
     logInfo('Dashboard: Starting page render');
@@ -274,12 +277,12 @@ export default async function DashboardPage() {
               >
                 Go Home
               </Link>
-              <button
-                onClick={() => window.location.reload()}
+              <Link
+                href="/dashboard"
                 className="px-6 py-3 border-2 border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all"
               >
                 Try Again
-              </button>
+              </Link>
             </div>
           </div>
         </div>
