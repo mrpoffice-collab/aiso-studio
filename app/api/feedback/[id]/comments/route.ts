@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
+import { db, query } from '@/lib/db';
 
 export async function GET(
   request: Request,
@@ -14,7 +14,7 @@ export async function GET(
 
     const { id } = await params;
 
-    const comments = await db.query(
+    const comments = await query(
       `SELECT fc.*, u.email as user_email
        FROM feedback_comments fc
        JOIN users u ON fc.user_id = u.id
@@ -56,7 +56,7 @@ export async function POST(
       );
     }
 
-    const result = await db.query(
+    const result = await query(
       `INSERT INTO feedback_comments (item_id, user_id, comment)
        VALUES ($1, $2, $3)
        RETURNING *`,

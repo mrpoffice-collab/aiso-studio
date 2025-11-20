@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
+import { db, query } from '@/lib/db';
 
 export async function GET(
   request: Request,
@@ -14,7 +14,7 @@ export async function GET(
 
     const { id } = await params;
 
-    const item = await db.query(
+    const item = await query(
       `SELECT * FROM feedback_items WHERE id = $1`,
       [id]
     );
@@ -76,7 +76,7 @@ export async function PATCH(
     updates.push(`updated_at = NOW()`);
     values.push(id);
 
-    const result = await db.query(
+    const result = await query(
       `UPDATE feedback_items
        SET ${updates.join(', ')}
        WHERE id = $${paramCount}
@@ -107,7 +107,7 @@ export async function DELETE(
 
     const { id } = await params;
 
-    await db.query(
+    await query(
       `DELETE FROM feedback_items WHERE id = $1`,
       [id]
     );

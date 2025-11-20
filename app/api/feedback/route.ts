@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
+import { db, query } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -9,7 +9,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const items = await db.query(
+    const items = await query(
       `SELECT
         fi.*,
         COUNT(fc.id) as comment_count
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await db.query(
+    const result = await query(
       `INSERT INTO feedback_items (user_id, title, description, type, priority, screenshots)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
