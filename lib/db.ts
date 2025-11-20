@@ -1053,7 +1053,40 @@ export const db = {
        WHERE id = $1`,
       [userId]
     );
-    return result[0] || null;
+
+    const user = result[0];
+
+    // If user exists but subscription fields are null, initialize them
+    if (user && !user.subscription_tier) {
+      await query(
+        `UPDATE users
+         SET subscription_tier = 'trial',
+             subscription_status = 'trialing',
+             article_limit = 10,
+             articles_used_this_month = 0,
+             strategies_limit = 1,
+             strategies_used = 0,
+             seats_limit = 1,
+             seats_used = 1,
+             trial_ends_at = CURRENT_TIMESTAMP + INTERVAL '7 days'
+         WHERE id = $1`,
+        [userId]
+      );
+
+      // Return initialized values
+      return {
+        subscription_tier: 'trial',
+        subscription_status: 'trialing',
+        article_limit: 10,
+        articles_used_this_month: 0,
+        strategies_limit: 1,
+        strategies_used: 0,
+        trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        billing_cycle_end: null
+      };
+    }
+
+    return user || null;
   },
 
   async incrementArticleUsage(userId: number) {
