@@ -4,6 +4,7 @@ import postgres from 'postgres';
 const sql = postgres(process.env.DATABASE_URL!, {
   ssl: 'require',
   max: 10,
+  prepare: false, // Disable prepared statements to avoid caching issues after schema changes
 });
 
 // Helper function to execute queries
