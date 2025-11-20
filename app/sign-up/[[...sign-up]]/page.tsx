@@ -1,16 +1,16 @@
-import { Suspense } from 'react';
-import SignUpWithInvite from './SignUpWithInvite';
+import { SignUp } from '@clerk/nextjs';
 
 export default function SignUpPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-slate-600">Loading...</div>
-        </div>
-      }
-    >
-      <SignUpWithInvite />
-    </Suspense>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
+      <SignUp
+        appearance={{
+          elements: {
+            rootBox: 'mx-auto',
+            card: 'shadow-xl',
+          },
+        }}
+      />
+    </div>
   );
 }

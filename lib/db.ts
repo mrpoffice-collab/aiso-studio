@@ -49,34 +49,10 @@ export const db = {
     return result[0];
   },
 
-  async getInvitationByToken(token: string) {
-    const result = await query(
-      `SELECT * FROM users
-       WHERE invitation_token = $1
-       AND invitation_expires_at > NOW()`,
-      [token]
-    );
-    return result[0] || null;
-  },
-
   async getUserByEmail(email: string) {
     const result = await query(
       'SELECT * FROM users WHERE email = $1',
       [email]
-    );
-    return result[0] || null;
-  },
-
-  async linkInvitationToClerkAccount(invitationToken: string, clerkId: string) {
-    const result = await query(
-      `UPDATE users
-       SET clerk_id = $1,
-           invitation_token = NULL,
-           invitation_expires_at = NULL,
-           updated_at = NOW()
-       WHERE invitation_token = $2
-       RETURNING *`,
-      [clerkId, invitationToken]
     );
     return result[0] || null;
   },
