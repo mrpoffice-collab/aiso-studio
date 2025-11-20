@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import DashboardNav from '@/components/DashboardNav';
 
 export default function MOUPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();

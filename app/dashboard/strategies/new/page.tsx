@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import DashboardNav from '@/components/DashboardNav';
 
 export default function NewStrategyPage() {
   const router = useRouter();
