@@ -13,9 +13,13 @@ interface InvitePageProps {
 export default async function InvitePage({ params }: InvitePageProps) {
   const { token } = await params;
 
+  console.log('[INVITE] Processing invitation request for token:', token.slice(0, 20) + '...');
+
   try {
     // Validate invitation token
+    console.log('[INVITE] Calling db.getInvitationByToken...');
     const invitation = await db.getInvitationByToken(token);
+    console.log('[INVITE] Got invitation result:', invitation ? 'Found' : 'Not found');
 
     if (!invitation) {
       return (
@@ -75,6 +79,11 @@ export default async function InvitePage({ params }: InvitePageProps) {
 
   } catch (error) {
     console.error('Error processing invitation:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      token: token.slice(0, 20) + '...'
+    });
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
