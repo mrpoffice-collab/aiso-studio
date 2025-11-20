@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { UserButton } from '@clerk/nextjs';
+import DashboardNav from '@/components/DashboardNav';
 import { useSearchParams } from 'next/navigation';
 import AISOBadge from '@/components/AISOBadge';
 import AEOScoreCard from '@/components/AEOScoreCard';
@@ -227,43 +227,20 @@ function AuditPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <header className="border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto flex h-20 items-center justify-between px-6">
-          <div className="flex items-center gap-12">
-            <Link href="/dashboard" className="text-2xl font-bold bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
-              AISO Studio
-            </Link>
-            <nav className="flex gap-8">
-              <Link href="/dashboard" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
-                Dashboard
-              </Link>
-              <Link href="/dashboard/strategies" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
-                Strategies
-              </Link>
-              <Link href="/dashboard/posts" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
-                Posts
-              </Link>
-              <Link href="/dashboard/audit" className="text-sm font-semibold text-deep-indigo border-b-2 border-sunset-orange pb-1">
-                AISO Audit
-              </Link>
-            </nav>
-          </div>
-          <UserButton afterSignOutUrl="/" />
-        </div>
-      </header>
+      <DashboardNav />
 
       <main className="container mx-auto px-6 py-12 max-w-7xl">
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-4xl font-black bg-gradient-to-r from-deep-indigo via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
-                  AISO Content Audit
-                </h1>
-                <p className="text-lg text-slate-700">
-                  Analyze blog posts for AI Search Optimization (AEO + SEO + Fact-Checking). Get scores for ChatGPT, Perplexity, Google SGE.
-                </p>
-              </div>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-4xl font-black bg-gradient-to-r from-deep-indigo via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
+                AISO Content Audit
+              </h1>
+              <p className="text-lg text-slate-700">
+                Analyze blog posts for AI Search Optimization (AEO + SEO + Fact-Checking). Get scores for ChatGPT, Perplexity, Google SGE.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
               <Link
                 href="/dashboard/audit/history"
                 className="px-4 py-2 bg-deep-indigo text-white rounded-lg hover:bg-opacity-90 transition-colors flex items-center gap-2"
@@ -273,16 +250,16 @@ function AuditPageContent() {
                 </svg>
                 History
               </Link>
+              <Link
+                href="/dashboard/audit/batch"
+                className="px-4 py-2 bg-deep-indigo text-white rounded-lg hover:bg-opacity-90 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                Batch Audit
+              </Link>
             </div>
-            <Link
-              href="/dashboard/audit/batch"
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-              </svg>
-              Batch Audit
-            </Link>
           </div>
         </div>
 

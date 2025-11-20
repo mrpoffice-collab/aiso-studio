@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import UserDropdown from '@/components/UserDropdown';
+import DashboardNav from '@/components/DashboardNav';
 
 interface LeadResult {
   domain: string;
@@ -248,40 +248,11 @@ export default function LeadsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50">
-      <header className="border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto flex h-20 items-center justify-between px-6">
-          <div className="flex items-center gap-12">
-            <Link href="/dashboard" className="text-2xl font-bold bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
-              Content Command Studio
-            </Link>
-            <nav className="flex gap-8">
-              <Link href="/dashboard" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
-                Dashboard
-              </Link>
-              <Link href="/dashboard/leads" className="text-sm font-semibold text-deep-indigo">
-                Lead Discovery
-              </Link>
-              <Link href="/dashboard/pipeline" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
-                Pipeline
-              </Link>
-              <Link href="/dashboard/strategies" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
-                Strategies
-              </Link>
-              <Link href="/dashboard/posts" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
-                Posts
-              </Link>
-              <Link href="/dashboard/audit" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
-                Content Audit
-              </Link>
-            </nav>
-          </div>
-          <UserDropdown />
-        </div>
-      </header>
+      <DashboardNav />
 
       <main className="container mx-auto px-6 py-12">
-        <div className="mb-8">
-          <h1 className="text-5xl font-black bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+        <div className="mb-8 pt-2">
+          <h1 className="text-5xl font-black bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-4 leading-tight">
             Lead Discovery Engine
           </h1>
           <p className="text-lg text-slate-700">

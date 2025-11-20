@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import DashboardNav from '@/components/DashboardNav';
 
 interface Audit {
   id: number;
@@ -57,6 +58,7 @@ export default function AuditHistory() {
 
   return (
     <div className="min-h-screen bg-warm-white">
+      <DashboardNav />
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <Link

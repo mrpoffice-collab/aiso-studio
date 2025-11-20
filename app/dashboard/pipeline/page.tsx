@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import DashboardNav from '@/components/DashboardNav';
 
 interface Lead {
   id: number;
@@ -169,9 +170,10 @@ export default function PipelinePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/30 to-slate-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <DashboardNav />
+
+      <main className="container mx-auto px-6 py-12">
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-orange-900 to-slate-900 bg-clip-text text-transparent mb-2">
             Lead Pipeline
@@ -335,7 +337,7 @@ export default function PipelinePage() {
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       {/* New Project Modal */}
       {showNewProjectModal && (
