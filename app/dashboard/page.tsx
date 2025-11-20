@@ -4,31 +4,61 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { syncUser } from '@/lib/user';
 import { db } from '@/lib/db';
+import { logError, logInfo, AppError } from '@/lib/error-logger';
 
 export default async function DashboardPage() {
-  const clerkUser = await currentUser();
+  try {
+    logInfo('Dashboard: Starting page render');
 
-  if (!clerkUser) {
-    redirect('/sign-in');
-  }
+    const clerkUser = await currentUser();
+    logInfo('Dashboard: Clerk user retrieved', { clerkId: clerkUser?.id });
 
-  // Sync user to our database
-  await syncUser();
+    if (!clerkUser) {
+      logInfo('Dashboard: No Clerk user found, redirecting to sign-in');
+      redirect('/sign-in');
+    }
 
-  // Get user from database
-  const user = await db.getUserByClerkId(clerkUser.id);
-  if (!user) {
-    redirect('/sign-in');
-  }
+    // Sync user to our database
+    logInfo('Dashboard: Syncing user to database', { clerkId: clerkUser.id });
+    await syncUser();
 
-  // Fetch stats
-  const strategies = await db.getStrategiesByUserId(user.id);
-  const strategiesCount = strategies.length;
+    // Get user from database
+    logInfo('Dashboard: Fetching user from database', { clerkId: clerkUser.id });
+    const user = await db.getUserByClerkId(clerkUser.id);
 
-  // Fetch posts
-  const posts = await db.getPostsByUserId(user.id);
-  const postsCount = posts.length;
-  const approvedPostsCount = posts.filter((p: any) => p.status === 'approved').length;
+    if (!user) {
+      logError(
+        new AppError('User not found in database after sync', {
+          clerkId: clerkUser.id,
+          route: '/dashboard',
+        })
+      );
+      redirect('/sign-in');
+    }
+
+    logInfo('Dashboard: User found', {
+      userId: user.id,
+      email: user.email,
+      idType: typeof user.id
+    });
+
+    // Fetch stats
+    logInfo('Dashboard: Fetching strategies', { userId: user.id });
+    const strategies = await db.getStrategiesByUserId(user.id);
+    const strategiesCount = strategies.length;
+    logInfo('Dashboard: Strategies fetched', { count: strategiesCount });
+
+    // Fetch posts
+    logInfo('Dashboard: Fetching posts', { userId: user.id });
+    const posts = await db.getPostsByUserId(user.id);
+    const postsCount = posts.length;
+    const approvedPostsCount = posts.filter((p: any) => p.status === 'approved').length;
+    logInfo('Dashboard: Posts fetched', {
+      total: postsCount,
+      approved: approvedPostsCount
+    });
+
+    logInfo('Dashboard: Rendering page successfully');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
@@ -197,4 +227,63 @@ export default async function DashboardPage() {
       </main>
     </div>
   );
+  } catch (error) {
+    // Log detailed error information
+    logError(
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        route: '/dashboard',
+        action: 'render_dashboard',
+      }
+    );
+
+    // Return user-friendly error page
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-12 border border-red-100">
+          <div className="text-center">
+            <div className="mb-6">
+              <span className="text-6xl">🚨</span>
+            </div>
+            <h1 className="text-3xl font-black text-red-600 mb-4">
+              Dashboard Error
+            </h1>
+            <p className="text-lg text-slate-700 mb-8">
+              We encountered an error loading your dashboard. Our team has been notified.
+            </p>
+            <div className="bg-red-50 rounded-xl p-6 mb-8 text-left">
+              <p className="text-sm font-semibold text-red-800 mb-2">Error Details:</p>
+              <p className="text-sm text-red-700 font-mono">
+                {error instanceof Error ? error.message : String(error)}
+              </p>
+              {process.env.NODE_ENV === 'development' && error instanceof Error && (
+                <details className="mt-4">
+                  <summary className="text-sm font-semibold text-red-800 cursor-pointer">
+                    Stack Trace (Development Only)
+                  </summary>
+                  <pre className="mt-2 text-xs text-red-600 overflow-auto">
+                    {error.stack}
+                  </pre>
+                </details>
+              )}
+            </div>
+            <div className="flex gap-4 justify-center">
+              <Link
+                href="/"
+                className="px-6 py-3 bg-gradient-to-r from-sunset-orange to-orange-600 text-white font-bold rounded-xl hover:shadow-lg transition-all"
+              >
+                Go Home
+              </Link>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 border-2 border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 }
