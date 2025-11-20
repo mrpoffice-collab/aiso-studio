@@ -479,7 +479,7 @@ export const db = {
     return result[0];
   },
 
-  async getLeadProjectsByUserId(userId: number) {
+  async getLeadProjectsByUserId(userId: number | string) {
     return await query(
       'SELECT * FROM lead_projects WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
@@ -593,7 +593,7 @@ export const db = {
     }
   },
 
-  async getLeadsByUserId(userId: number, filters?: {
+  async getLeadsByUserId(userId: number | string, filters?: {
     project_id?: number;
     status?: string;
     min_score?: number;
@@ -708,7 +708,7 @@ export const db = {
     );
   },
 
-  async getLeadActivitiesByUserId(userId: number, limit: number = 50) {
+  async getLeadActivitiesByUserId(userId: number | string, limit: number = 50) {
     return await query(
       'SELECT * FROM lead_activities WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2',
       [userId, limit]
@@ -962,7 +962,7 @@ export const db = {
     return result[0];
   },
 
-  async getContentAuditsByUserId(userId: number, limit = 50) {
+  async getContentAuditsByUserId(userId: number | string, limit = 50) {
     return await query(
       `SELECT * FROM content_audits
        WHERE user_id = $1
