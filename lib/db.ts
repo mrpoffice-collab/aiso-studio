@@ -1049,7 +1049,7 @@ export const db = {
     return result[0];
   },
 
-  async getUserSubscriptionInfo(userId: number) {
+  async getUserSubscriptionInfo(userId: number | string) {
     const result = await query(
       `SELECT
         subscription_tier, subscription_status,
@@ -1096,7 +1096,7 @@ export const db = {
     return user || null;
   },
 
-  async incrementArticleUsage(userId: number) {
+  async incrementArticleUsage(userId: number | string) {
     const result = await query(
       `UPDATE users
        SET articles_used_this_month = articles_used_this_month + 1
@@ -1107,7 +1107,7 @@ export const db = {
     return result[0];
   },
 
-  async resetMonthlyUsage(userId: number) {
+  async resetMonthlyUsage(userId: number | string) {
     await query(
       `UPDATE users
        SET articles_used_this_month = 0,
