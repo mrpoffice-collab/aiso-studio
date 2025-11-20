@@ -75,6 +75,12 @@ export default async function DashboardPage() {
               <Link href="/dashboard" className="text-sm font-semibold text-deep-indigo border-b-2 border-sunset-orange pb-1">
                 Dashboard
               </Link>
+              <Link href="/dashboard/leads" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
+                Leads
+              </Link>
+              <Link href="/dashboard/pipeline" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
+                Pipeline
+              </Link>
               <Link href="/dashboard/strategies" className="text-sm font-semibold text-slate-600 hover:text-deep-indigo transition-all duration-200 hover:scale-105">
                 Strategies
               </Link>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { UserButton } from '@clerk/nextjs';
+import UserDropdown from '@/components/UserDropdown';
 
 interface LeadResult {
   domain: string;
@@ -275,7 +275,7 @@ export default function LeadsPage() {
               </Link>
             </nav>
           </div>
-          <UserButton afterSignOutUrl="/" />
+          <UserDropdown />
         </div>
       </header>
 
