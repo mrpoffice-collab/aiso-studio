@@ -980,4 +980,101 @@ export const db = {
     );
     return result[0] || null;
   },
+
+  // Subscription Management
+  async getAllUsersWithSubscriptions() {
+    return await query(
+      `SELECT
+        id, clerk_id, email, name,
+        subscription_tier, subscription_status,
+        trial_ends_at, article_limit, articles_used_this_month,
+        strategies_limit, strategies_used,
+        created_at
+       FROM users
+       ORDER BY created_at DESC`
+    );
+  },
+
+  async updateUserSubscription(data: {
+    userId: string;
+    tier: string;
+    status: string;
+    articleLimit: number;
+    manualOverride?: boolean;
+    overrideReason?: string;
+    overrideBy?: string;
+  }) {
+    const strategiesLimit = data.tier === 'agency' || data.tier === 'enterprise' ? 999 :
+                           data.tier === 'professional' ? 10 :
+                           data.tier === 'starter' ? 3 : 1;
+
+    const seatsLimit = data.tier === 'enterprise' ? 10 :
+                      data.tier === 'agency' ? 3 : 1;
+
+    const result = await query(
+      `UPDATE users
+       SET subscription_tier = $1,
+           subscription_status = $2,
+           article_limit = $3,
+           strategies_limit = $4,
+           seats_limit = $5,
+           manual_override = $6,
+           override_reason = $7,
+           override_by = $8,
+           subscription_started_at = CURRENT_TIMESTAMP,
+           billing_cycle_start = CURRENT_TIMESTAMP,
+           billing_cycle_end = CURRENT_TIMESTAMP + INTERVAL '1 month',
+           trial_ends_at = NULL
+       WHERE id = $9
+       RETURNING *`,
+      [
+        data.tier,
+        data.status,
+        data.articleLimit,
+        strategiesLimit,
+        seatsLimit,
+        data.manualOverride || false,
+        data.overrideReason || null,
+        data.overrideBy || null,
+        data.userId
+      ]
+    );
+    return result[0];
+  },
+
+  async getUserSubscriptionInfo(userId: number) {
+    const result = await query(
+      `SELECT
+        subscription_tier, subscription_status,
+        article_limit, articles_used_this_month,
+        strategies_limit, strategies_used,
+        trial_ends_at, billing_cycle_end
+       FROM users
+       WHERE id = $1`,
+      [userId]
+    );
+    return result[0] || null;
+  },
+
+  async incrementArticleUsage(userId: number) {
+    const result = await query(
+      `UPDATE users
+       SET articles_used_this_month = articles_used_this_month + 1
+       WHERE id = $1
+       RETURNING articles_used_this_month, article_limit`,
+      [userId]
+    );
+    return result[0];
+  },
+
+  async resetMonthlyUsage(userId: number) {
+    await query(
+      `UPDATE users
+       SET articles_used_this_month = 0,
+           billing_cycle_start = CURRENT_TIMESTAMP,
+           billing_cycle_end = CURRENT_TIMESTAMP + INTERVAL '1 month'
+       WHERE id = $1`,
+      [userId]
+    );
+  },
 };

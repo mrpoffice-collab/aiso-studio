@@ -75,7 +75,7 @@ export default async function Home() {
         <section className="container mx-auto px-6 py-12">
           <div className="grid grid-cols-3 gap-8 max-w-4xl mx-auto">
             <div className="text-center">
-              <div className="text-4xl font-black text-purple-600 mb-2">80+</div>
+              <div className="text-4xl font-black text-purple-600 mb-2">75+</div>
               <div className="text-sm font-semibold text-slate-600">Target Score<br/>"Good Quality"</div>
             </div>
             <div className="text-center">
@@ -108,7 +108,7 @@ export default async function Home() {
                 Fix What You Have
               </h3>
               <p className="text-slate-600 mb-6 leading-relaxed">
-                Analyze existing blog posts with honest scoring. Get actionable insights on SEO, readability, and engagement. Rewrite until you hit 80+ (Good quality).
+                Analyze existing blog posts with honest scoring. Get actionable insights on SEO, readability, and engagement. Rewrite until you hit 75+ (Good quality).
               </p>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start gap-3">

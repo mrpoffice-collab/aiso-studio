@@ -45,6 +45,52 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Check subscription and usage limits
+    const subscription = await db.getUserSubscriptionInfo(user.id);
+    if (!subscription) {
+      return NextResponse.json({ error: 'Subscription info not found' }, { status: 500 });
+    }
+
+    // Check if trial expired
+    if (subscription.subscription_status === 'trialing' && subscription.trial_ends_at) {
+      if (new Date() > new Date(subscription.trial_ends_at)) {
+        return NextResponse.json(
+          {
+            error: 'Trial expired',
+            message: 'Your 7-day trial has ended. Please upgrade to continue generating content.',
+            upgrade_url: '/pricing'
+          },
+          { status: 402 }
+        );
+      }
+    }
+
+    // Check if subscription is active
+    if (!['trialing', 'active'].includes(subscription.subscription_status)) {
+      return NextResponse.json(
+        {
+          error: 'Subscription inactive',
+          message: 'Your subscription is not active. Please upgrade or renew.',
+          upgrade_url: '/pricing'
+        },
+        { status: 402 }
+      );
+    }
+
+    // Check article limit
+    if (subscription.articles_used_this_month >= subscription.article_limit) {
+      return NextResponse.json(
+        {
+          error: 'Article limit reached',
+          message: `You've used all ${subscription.article_limit} articles this month. Upgrade your plan for more.`,
+          current_usage: subscription.articles_used_this_month,
+          limit: subscription.article_limit,
+          upgrade_url: '/pricing'
+        },
+        { status: 403 }
+      );
+    }
+
     // Use topic's target_flesch_score override if set, otherwise use strategy's
     const targetFleschScore = topic.target_flesch_score ?? strategy.target_flesch_score;
 
@@ -740,6 +786,10 @@ ${finalContent.content}
         generation_cost_cents: estimatedCostCents,
         generation_time_seconds: generationTimeSeconds,
       });
+
+      // Increment article usage counter
+      await db.incrementArticleUsage(user.id);
+      console.log(`✅ Article usage incremented: ${subscription.articles_used_this_month + 1}/${subscription.article_limit}`);
 
       // Create individual fact-check records
       for (const factCheck of finalFactCheckResult.factChecks) {

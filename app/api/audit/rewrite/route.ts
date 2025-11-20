@@ -27,6 +27,52 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Check subscription and usage limits
+    const subscription = await db.getUserSubscriptionInfo(user.id);
+    if (!subscription) {
+      return NextResponse.json({ error: 'Subscription info not found' }, { status: 500 });
+    }
+
+    // Check if trial expired
+    if (subscription.subscription_status === 'trialing' && subscription.trial_ends_at) {
+      if (new Date() > new Date(subscription.trial_ends_at)) {
+        return NextResponse.json(
+          {
+            error: 'Trial expired',
+            message: 'Your 7-day trial has ended. Please upgrade to continue rewriting content.',
+            upgrade_url: '/pricing'
+          },
+          { status: 402 }
+        );
+      }
+    }
+
+    // Check if subscription is active
+    if (!['trialing', 'active'].includes(subscription.subscription_status)) {
+      return NextResponse.json(
+        {
+          error: 'Subscription inactive',
+          message: 'Your subscription is not active. Please upgrade or renew.',
+          upgrade_url: '/pricing'
+        },
+        { status: 402 }
+      );
+    }
+
+    // Check article limit (rewrites count as articles)
+    if (subscription.articles_used_this_month >= subscription.article_limit) {
+      return NextResponse.json(
+        {
+          error: 'Article limit reached',
+          message: `You've used all ${subscription.article_limit} articles this month. Upgrade your plan for more.`,
+          current_usage: subscription.articles_used_this_month,
+          limit: subscription.article_limit,
+          upgrade_url: '/pricing'
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { originalContent, auditReport } = body;
 
@@ -250,6 +296,10 @@ Return ONLY the improved content in markdown format. Preserve all original links
       auditReport.metaDescription,
       finalFactCheck.overallScore
     );
+
+    // Increment article usage counter (rewrites count as articles)
+    await db.incrementArticleUsage(user.id);
+    console.log(`✅ Rewrite usage incremented: ${subscription.articles_used_this_month + 1}/${subscription.article_limit}`);
 
     return NextResponse.json({
       success: true,
