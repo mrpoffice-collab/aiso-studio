@@ -247,7 +247,7 @@ export default function AccessibilitySummary({
                 {expandedViolation === v.id && (
                   <div className="mt-4 pt-4 border-t border-slate-200">
                     <div className="space-y-3">
-                      {v.nodes.slice(0, 3).map((node, idx) => (
+                      {v.nodes.slice(0, 3).map((node: { target: string[]; html?: string; failureSummary?: string }, idx: number) => (
                         <div key={idx} className="p-3 rounded bg-white border border-slate-200">
                           <p className="text-xs font-mono text-slate-600 mb-2 break-all">
                             {node.target.join(' > ')}
