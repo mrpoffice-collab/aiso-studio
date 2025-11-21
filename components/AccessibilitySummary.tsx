@@ -69,7 +69,7 @@ export default function AccessibilitySummary({
   const parsedAiSuggestions = parseIfString(aiSuggestions);
 
   const safeViolations = Array.isArray(parsedViolations) ? parsedViolations : [];
-  const safeWcagBreakdown = parsedWcagBreakdown && typeof parsedWcagBreakdown === 'object' ? parsedWcagBreakdown : {
+  const safeWcagBreakdown: Record<string, { violations: number; score: number }> = parsedWcagBreakdown && typeof parsedWcagBreakdown === 'object' ? parsedWcagBreakdown : {
     perceivable: { violations: 0, score: 100 },
     operable: { violations: 0, score: 100 },
     understandable: { violations: 0, score: 100 },
@@ -181,7 +181,7 @@ export default function AccessibilitySummary({
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
         <h4 className="text-lg font-bold text-slate-900 mb-4">WCAG 2.1 Principles (POUR)</h4>
         <div className="grid grid-cols-2 gap-4">
-          {Object.entries(safeWcagBreakdown).map(([principle, data]: [string, { violations: number; score: number }]) => (
+          {Object.entries(safeWcagBreakdown).map(([principle, data]) => (
             <div key={principle} className="p-4 rounded-lg bg-slate-50 border border-slate-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-slate-900 capitalize">{principle}</span>
