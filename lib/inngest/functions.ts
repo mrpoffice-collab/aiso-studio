@@ -1,5 +1,5 @@
 import { inngest } from './client';
-import { scanAccessibility, closeBrowser } from '../accessibility-scanner';
+import { scanAccessibilityFull, closeBrowser } from '../accessibility-scanner-playwright';
 import { db } from '../db';
 
 // Event types
@@ -37,7 +37,7 @@ export const accessibilityAuditFunction = inngest.createFunction(
     // Step 1: Run the accessibility scan
     const scanResult = await step.run('scan-accessibility', async () => {
       try {
-        const result = await scanAccessibility(url);
+        const result = await scanAccessibilityFull(url);
         await closeBrowser();
         return result;
       } catch (error) {
@@ -106,7 +106,7 @@ export const batchAccessibilityAuditFunction = inngest.createFunction(
 
       try {
         const scanResult = await step.run(`scan-${i}`, async () => {
-          const result = await scanAccessibility(url);
+          const result = await scanAccessibilityFull(url);
           return result;
         });
 
