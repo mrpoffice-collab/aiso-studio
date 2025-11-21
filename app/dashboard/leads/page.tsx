@@ -252,12 +252,25 @@ export default function LeadsPage() {
 
       <main className="container mx-auto px-6 py-12">
         <div className="mb-8 pt-2">
-          <h1 className="text-5xl font-black bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-4 leading-tight">
-            Lead Discovery Engine
-          </h1>
-          <p className="text-lg text-slate-700">
-            Find businesses that care enough to invest in marketing, but need help to do it right.
-          </p>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h1 className="text-5xl font-black bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-4 leading-tight">
+                Lead Discovery Engine
+              </h1>
+              <p className="text-lg text-slate-700">
+                Find businesses that care enough to invest in marketing, but need help to do it right.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/leads/batch"
+              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2 font-bold"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Batch Discovery
+            </Link>
+          </div>
         </div>
 
         {error && (

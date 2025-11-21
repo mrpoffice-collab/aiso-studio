@@ -724,6 +724,79 @@ export const db = {
     );
   },
 
+  // Batch Lead Discovery
+  async createBatchDiscovery(data: {
+    user_id: string;
+    industry: string;
+    city: string;
+    state?: string;
+    target_count: number;
+  }) {
+    const result = await sql`
+      INSERT INTO batch_lead_discovery (user_id, industry, city, state, target_count, status)
+      VALUES (${data.user_id}, ${data.industry}, ${data.city}, ${data.state || null}, ${data.target_count}, 'queued')
+      RETURNING *
+    `;
+    return result[0];
+  },
+
+  async getBatchDiscoveryById(id: string) {
+    const result = await sql`
+      SELECT * FROM batch_lead_discovery WHERE id = ${id}
+    `;
+    return result[0] || null;
+  },
+
+  async getBatchDiscoveriesByUserId(userId: string, limit: number = 20) {
+    const result = await sql`
+      SELECT * FROM batch_lead_discovery
+      WHERE user_id = ${userId}
+      ORDER BY created_at DESC
+      LIMIT ${limit}
+    `;
+    return result;
+  },
+
+  async updateBatchDiscovery(id: string, data: {
+    status?: string;
+    progress?: number;
+    businesses_searched?: number;
+    sweet_spot_found?: number;
+    total_leads_saved?: number;
+    error_message?: string;
+    started_at?: Date;
+    completed_at?: Date;
+  }) {
+    const updates: any = { updated_at: new Date() };
+
+    if (data.status !== undefined) updates.status = data.status;
+    if (data.progress !== undefined) updates.progress = data.progress;
+    if (data.businesses_searched !== undefined) updates.businesses_searched = data.businesses_searched;
+    if (data.sweet_spot_found !== undefined) updates.sweet_spot_found = data.sweet_spot_found;
+    if (data.total_leads_saved !== undefined) updates.total_leads_saved = data.total_leads_saved;
+    if (data.error_message !== undefined) updates.error_message = data.error_message;
+    if (data.started_at !== undefined) updates.started_at = data.started_at;
+    if (data.completed_at !== undefined) updates.completed_at = data.completed_at;
+
+    const result = await sql`
+      UPDATE batch_lead_discovery
+      SET ${sql(updates)}
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return result[0];
+  },
+
+  async cancelBatchDiscovery(id: string) {
+    const result = await sql`
+      UPDATE batch_lead_discovery
+      SET status = 'cancelled', updated_at = NOW()
+      WHERE id = ${id} AND status IN ('queued', 'processing')
+      RETURNING *
+    `;
+    return result[0];
+  },
+
   // Money Pages (Strategic Linking)
   async getMoneyPagesByStrategyId(strategyId: string) {
     const result = await sql`

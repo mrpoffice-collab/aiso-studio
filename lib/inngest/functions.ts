@@ -149,8 +149,163 @@ export const batchAccessibilityAuditFunction = inngest.createFunction(
   }
 );
 
+// Batch Lead Discovery - Runs large-scale lead searches in background
+export interface BatchLeadDiscoveryRequestedEvent {
+  name: 'leads/batch-discovery.requested';
+  data: {
+    batchId: string;
+    userId: string;
+  };
+}
+
+export const batchLeadDiscoveryFunction = inngest.createFunction(
+  {
+    id: 'batch-lead-discovery',
+    name: 'Run Batch Lead Discovery',
+    retries: 1,
+  },
+  { event: 'leads/batch-discovery.requested' },
+  async ({ event, step }) => {
+    const { batchId, userId } = event.data;
+
+    // Fetch the batch job details
+    const batch = await db.getBatchDiscoveryById(batchId);
+    if (!batch) {
+      throw new Error(`Batch job ${batchId} not found`);
+    }
+
+    // Mark as processing
+    await db.updateBatchDiscovery(batchId, {
+      status: 'processing',
+      started_at: new Date(),
+    });
+
+    try {
+      const { industry, city, state, target_count } = batch;
+      const searchQuery = state ? `${industry} ${city} ${state}` : `${industry} ${city}`;
+
+      let totalSearched = 0;
+      let sweetSpotFound = 0;
+      let offset = 0;
+      const maxIterations = 50; // Prevent infinite loops
+      let iteration = 0;
+
+      // Keep searching until we have enough sweet spot leads
+      while (sweetSpotFound < target_count && iteration < maxIterations) {
+        iteration++;
+
+        // Search and score businesses
+        const { businesses, scored } = await step.run(`search-batch-${iteration}`, async () => {
+          // Use the same search logic from the discover route
+          const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/leads/discover`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              industry,
+              city,
+              state,
+              limit: 20, // Search 20 at a time
+              internal: true, // Flag to skip user checks
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Discovery search failed');
+          }
+
+          const data = await response.json();
+          return {
+            businesses: data.leads || [],
+            scored: data.leads?.length || 0,
+          };
+        });
+
+        totalSearched += scored;
+
+        // Save sweet spot leads to pipeline
+        const savedCount = await step.run(`save-leads-${iteration}`, async () => {
+          let count = 0;
+          for (const lead of businesses) {
+            if (lead.opportunityRating === 'high') {
+              try {
+                // Save to pipeline
+                await db.createLead({
+                  user_id: userId,
+                  domain: lead.domain,
+                  business_name: lead.businessName,
+                  city: lead.city,
+                  state: lead.state,
+                  industry,
+                  overall_score: lead.overallScore,
+                  content_score: 0,
+                  seo_score: 0,
+                  design_score: 0,
+                  speed_score: 0,
+                  has_blog: lead.hasBlog,
+                  blog_post_count: lead.blogPostCount,
+                  status: 'new',
+                  opportunity_rating: 'high',
+                });
+                count++;
+                sweetSpotFound++;
+              } catch (error) {
+                console.error(`Failed to save lead ${lead.domain}:`, error);
+              }
+            }
+          }
+          return count;
+        });
+
+        // Update progress
+        await db.updateBatchDiscovery(batchId, {
+          progress: sweetSpotFound,
+          businesses_searched: totalSearched,
+          sweet_spot_found: sweetSpotFound,
+        });
+
+        offset += 20;
+
+        // Check if we found enough
+        if (sweetSpotFound >= target_count) {
+          break;
+        }
+
+        // If no businesses found in this batch, stop
+        if (scored === 0) {
+          break;
+        }
+      }
+
+      // Mark as completed
+      await db.updateBatchDiscovery(batchId, {
+        status: 'completed',
+        completed_at: new Date(),
+        total_leads_saved: sweetSpotFound,
+      });
+
+      // TODO: Send email notification
+
+      return {
+        success: true,
+        totalSearched,
+        sweetSpotFound,
+      };
+    } catch (error: any) {
+      // Mark as failed
+      await db.updateBatchDiscovery(batchId, {
+        status: 'failed',
+        error_message: error.message,
+        completed_at: new Date(),
+      });
+
+      throw error;
+    }
+  }
+);
+
 // Export all functions for the Inngest serve handler
 export const functions = [
   accessibilityAuditFunction,
   batchAccessibilityAuditFunction,
+  batchLeadDiscoveryFunction,
 ];

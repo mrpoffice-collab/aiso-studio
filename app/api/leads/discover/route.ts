@@ -219,6 +219,51 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * Helper: Check if domain is likely high-authority (score >75, outside sweet spot)
+ * Skip these to focus on businesses that need help
+ */
+function isLikelyHighAuthority(domain: string): boolean {
+  const lowercaseDomain = domain.toLowerCase();
+
+  // Skip big brands and franchises (they usually have great sites)
+  const bigBrands = [
+    'aspen', 'heartland', 'perfect', 'smile', 'bright', 'gentle',
+    'affordable', 'family', 'comfort', 'clear', 'lumino', 'pacific'
+  ];
+
+  // Check for franchise/chain patterns
+  if (bigBrands.some(brand => lowercaseDomain.includes(brand))) {
+    // Only skip if it looks like a franchise (has numbers or multiple locations implied)
+    if (/\d/.test(domain) || lowercaseDomain.includes('location') || lowercaseDomain.includes('group')) {
+      return true;
+    }
+  }
+
+  // Skip .org and .gov (usually well-maintained)
+  if (lowercaseDomain.endsWith('.org') || lowercaseDomain.endsWith('.gov')) {
+    return true;
+  }
+
+  // Skip domains with common high-authority patterns
+  const highAuthorityPatterns = [
+    'corp', 'inc', 'group', 'partners', 'associates',
+    'solutions', 'services', 'healthcare', 'medical',
+    'premier', 'elite', 'professional', 'advanced'
+  ];
+
+  const domainParts = lowercaseDomain.split('.');
+  const subdomain = domainParts[0];
+
+  // Skip if domain has multiple high-authority indicators
+  const matchCount = highAuthorityPatterns.filter(p => subdomain.includes(p)).length;
+  if (matchCount >= 2) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Search for businesses using Brave Search API
  */
 async function searchBusinesses(
@@ -272,30 +317,37 @@ async function searchBusinesses(
           const domain = url.hostname.replace('www.', '');
 
           // Filter out directories, social media, review sites, aggregators, etc.
+          const isDirectory =
+            domain.includes('yelp.') ||
+            domain.includes('yellowpages.') ||
+            domain.includes('facebook.') ||
+            domain.includes('linkedin.') ||
+            domain.includes('instagram.') ||
+            domain.includes('twitter.') ||
+            domain.includes('healthgrades.') ||
+            domain.includes('vitals.') ||
+            domain.includes('wikipedia.') ||
+            domain.includes('tripadvisor.') ||
+            domain.includes('google.') ||
+            domain.includes('maps.') ||
+            domain.includes('mapquest.') ||
+            domain.includes('foursquare.') ||
+            domain.includes('bbb.org') ||
+            domain.includes('angieslist.') ||
+            domain.includes('thumbtack.') ||
+            domain.includes('houzz.') ||
+            domain.includes('zillow.') ||
+            domain.includes('realtor.') ||
+            domain.includes('apartments.') ||
+            domain.includes('glassdoor.') ||
+            domain.includes('indeed.');
+
+          // Smart filtering: Skip high-authority domains likely to score >75
+          const isHighAuthority = isLikelyHighAuthority(domain);
+
           if (
-            !domain.includes('yelp.') &&
-            !domain.includes('yellowpages.') &&
-            !domain.includes('facebook.') &&
-            !domain.includes('linkedin.') &&
-            !domain.includes('instagram.') &&
-            !domain.includes('twitter.') &&
-            !domain.includes('healthgrades.') &&
-            !domain.includes('vitals.') &&
-            !domain.includes('wikipedia.') &&
-            !domain.includes('tripadvisor.') &&
-            !domain.includes('google.') &&
-            !domain.includes('maps.') &&
-            !domain.includes('mapquest.') &&
-            !domain.includes('foursquare.') &&
-            !domain.includes('bbb.org') &&
-            !domain.includes('angieslist.') &&
-            !domain.includes('thumbtack.') &&
-            !domain.includes('houzz.') &&
-            !domain.includes('zillow.') &&
-            !domain.includes('realtor.') &&
-            !domain.includes('apartments.') &&
-            !domain.includes('glassdoor.') &&
-            !domain.includes('indeed.') &&
+            !isDirectory &&
+            !isHighAuthority &&
             domain.length > 4 &&
             domains.size < limit
           ) {
@@ -304,6 +356,8 @@ async function searchBusinesses(
               name: result.title || domain.split('.')[0].charAt(0).toUpperCase() + domain.split('.')[0].slice(1),
               domain,
             });
+          } else if (isHighAuthority) {
+            console.log(`⚡ Skipping high-authority domain: ${domain}`);
           }
         } catch (e) {
           // Invalid URL, skip
