@@ -1,8 +1,9 @@
-// Full accessibility scanner using Playwright + axe-core
-// This provides comprehensive WCAG 2.1 A/AA coverage with 90+ rules
+// Full accessibility scanner using Puppeteer + axe-core
+// Uses @sparticuz/chromium for Vercel serverless compatibility
 
-import { chromium, Browser, Page } from 'playwright';
-import AxeBuilder from '@axe-core/playwright';
+import chromium from '@sparticuz/chromium';
+import puppeteer, { Browser, Page } from 'puppeteer-core';
+import { AxePuppeteer } from '@axe-core/puppeteer';
 
 export interface AccessibilityViolation {
   id: string;
@@ -46,10 +47,24 @@ let browser: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {
   if (!browser) {
-    browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+    const isLocal = process.env.NODE_ENV === 'development' || !process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+    if (isLocal) {
+      // Local development - use regular puppeteer
+      const puppeteerFull = await import('puppeteer');
+      browser = await puppeteerFull.default.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+    } else {
+      // Vercel/serverless - use @sparticuz/chromium
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      });
+    }
   }
   return browser;
 }
@@ -63,27 +78,21 @@ export async function closeBrowser(): Promise<void> {
 
 // Map axe-core tags to WCAG principles
 function getWcagPrinciple(tags: string[]): 'perceivable' | 'operable' | 'understandable' | 'robust' {
-  // WCAG principle mapping based on guidelines
   const tagStr = tags.join(',').toLowerCase();
 
-  // 1.x = Perceivable
-  if (tagStr.includes('wcag1') || tags.some(t => /^wcag2[12]?[0-9]$/.test(t) && t.startsWith('wcag21'))) {
+  if (tagStr.includes('wcag1') || tags.some(t => t.match(/^wcag21[0-9]/))) {
     return 'perceivable';
   }
-  // 2.x = Operable
-  if (tagStr.includes('wcag2') && !tagStr.includes('wcag21')) {
+  if (tagStr.includes('wcag22') || tagStr.includes('wcag24')) {
     return 'operable';
   }
-  // 3.x = Understandable
   if (tagStr.includes('wcag3')) {
     return 'understandable';
   }
-  // 4.x = Robust
   if (tagStr.includes('wcag4')) {
     return 'robust';
   }
 
-  // Fallback based on rule categories
   if (tags.some(t => ['cat.text-alternatives', 'cat.color', 'cat.sensory-and-visual-cues'].includes(t))) {
     return 'perceivable';
   }
@@ -102,18 +111,16 @@ export async function scanAccessibilityFull(url: string): Promise<AccessibilityS
   const page: Page = await browserInstance.newPage();
 
   try {
-    // Navigate to the page
     await page.goto(url, {
-      waitUntil: 'networkidle',
+      waitUntil: 'networkidle0',
       timeout: 30000
     });
 
-    // Get page info
     const pageTitle = await page.title();
     const pageLanguage = await page.evaluate(() => document.documentElement.lang || 'unknown');
 
     // Run axe-core accessibility scan
-    const axeResults = await new AxeBuilder({ page })
+    const axeResults = await new AxePuppeteer(page)
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'])
       .analyze();
 
@@ -132,13 +139,11 @@ export async function scanAccessibilityFull(url: string): Promise<AccessibilityS
       })),
     }));
 
-    // Process passes
     const passes = axeResults.passes.map(p => ({
       id: p.id,
       description: p.description,
     }));
 
-    // Count by impact
     const criticalCount = violations.filter(v => v.impact === 'critical').length;
     const seriousCount = violations.filter(v => v.impact === 'serious').length;
     const moderateCount = violations.filter(v => v.impact === 'moderate').length;
@@ -146,7 +151,6 @@ export async function scanAccessibilityFull(url: string): Promise<AccessibilityS
     const totalViolations = violations.length;
     const totalPasses = passes.length;
 
-    // Calculate WCAG breakdown
     const wcagBreakdown: WcagBreakdown = {
       perceivable: { violations: 0, score: 100 },
       operable: { violations: 0, score: 100 },
@@ -157,18 +161,14 @@ export async function scanAccessibilityFull(url: string): Promise<AccessibilityS
     violations.forEach(v => {
       const principle = getWcagPrinciple(v.wcagTags);
       wcagBreakdown[principle].violations++;
-
-      // Deduct based on impact
       const deduction = v.impact === 'critical' ? 25 : v.impact === 'serious' ? 15 : v.impact === 'moderate' ? 8 : 3;
       wcagBreakdown[principle].score = Math.max(0, wcagBreakdown[principle].score - deduction);
     });
 
-    // Calculate overall score
     const totalRules = totalViolations + totalPasses;
     let accessibilityScore = 100;
 
     if (totalRules > 0) {
-      // Weight violations by severity
       const weightedDeduction = (criticalCount * 15) + (seriousCount * 10) + (moderateCount * 5) + (minorCount * 2);
       accessibilityScore = Math.max(0, Math.round(100 - weightedDeduction));
     }
