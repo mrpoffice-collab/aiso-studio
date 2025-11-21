@@ -256,9 +256,9 @@ ${targetFleschScore && targetFleschScore >= 50 ? `⚠️ **CRITICAL:** All AEO c
    - ✅ Keep sentences short when citing data
    - ✅ Use simple words to introduce facts: "Research shows...", "Data tells us..."
    - ✅ Bold key numbers for easy scanning
-   - ✅ Use comparison tables (markdown format with | pipes |) - keep labels simple` : `- ✅ Include statistics with context: "According to [source], X% of businesses..."
+   - ⚠️  Tables: Use ONLY for genuine numerical comparisons (pricing, features with specs). Otherwise use bulleted lists` : `- ✅ Include statistics with context: "According to [source], X% of businesses..."
    - ✅ Create quotable insights in standalone sentences
-   - ✅ Use data tables when comparing options (markdown table format with | pipes |)
+   - ⚠️  Tables: Use ONLY when comparing actual data/features with numbers. Avoid generic comparison tables
    - ✅ Bold key facts for AI extraction`}
 
 3. **FAQ Section** (20 points) - MANDATORY FORMAT:
@@ -389,7 +389,7 @@ Return the content in this exact JSON structure:
 - ✅ At least 2 definitions using "X is defined as..." or "X refers to..."
 - ✅ Numbered steps (Step 1:, Step 2:, Step 3:) for any process/how-to
 - ✅ At least 5 internal link opportunities: "[Learn more about X]"
-- ✅ At least 1 data table in markdown format (| Header | Header |) if comparing
+- ⚠️  Tables: ONLY if genuinely comparing numerical data. Most content uses lists instead
 - ✅ 6+ H2 headers (##) and 4+ H3 subheaders (###)
 - ✅ Bold **key terms** throughout (10+ bold phrases)
 - ✅ 5+ bullet points and 3+ numbered list items
@@ -677,8 +677,9 @@ ${shouldAddFAQ ? `3. **Add "## Frequently Asked Questions" section** (MANDATORY)
    - "Step 1:", "Step 2:", "Step 3:"
    - For any how-to or process content
 
-6. **Add comparison table** (if relevant):
-   - Use markdown table format: | Column 1 | Column 2 |
+6. **Add comparison (if relevant)**:
+   - Use bulleted lists for most comparisons
+   - Use tables ONLY for numerical data/pricing comparisons
 
 **CONTENT TO ENHANCE:**
 ${currentContent}
@@ -1114,8 +1115,9 @@ export async function improveAEO(
    - "Step 1:", "Step 2:", "Step 3:"
    - For any how-to or process content
 
-6. **Add comparison table** (if relevant):
-   - Use markdown table format: | Column 1 | Column 2 |
+6. **Add comparison (if relevant)**:
+   - Use bulleted lists for most comparisons
+   - Use tables ONLY for numerical data/pricing comparisons
 
 **CONTENT TO ENHANCE:**
 ${content}
