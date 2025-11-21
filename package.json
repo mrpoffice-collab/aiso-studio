@@ -14,7 +14,7 @@
     "@axe-core/puppeteer": "^4.11.0",
     "@azure/cognitiveservices-websearch": "^3.0.1",
     "@clerk/nextjs": "^6.34.1",
-    "@sparticuz/chromium": "^141.0.0",
+    "@sparticuz/chromium-min": "^141.0.0",
     "@tailwindcss/typography": "^0.5.19",
     "@types/jsdom": "^27.0.0",
     "axe-core": "^4.11.0",

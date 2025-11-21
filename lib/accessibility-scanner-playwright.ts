@@ -1,7 +1,7 @@
 // Full accessibility scanner using Puppeteer + axe-core
 // Uses @sparticuz/chromium for Vercel serverless compatibility
 
-import chromium from '@sparticuz/chromium';
+import chromium from '@sparticuz/chromium-min';
 import puppeteer, { Browser, Page } from 'puppeteer-core';
 import { AxePuppeteer } from '@axe-core/puppeteer';
 
@@ -57,11 +57,13 @@ async function getBrowser(): Promise<Browser> {
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       });
     } else {
-      // Vercel/serverless - use @sparticuz/chromium
+      // Vercel/serverless - use @sparticuz/chromium-min with remote binary
       browser = await puppeteer.launch({
         args: chromium.args,
         defaultViewport: { width: 1920, height: 1080 },
-        executablePath: await chromium.executablePath(),
+        executablePath: await chromium.executablePath(
+          'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
+        ),
         headless: true,
       });
     }
