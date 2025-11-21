@@ -57,6 +57,16 @@ export default function AccessibilitySummary({
   const [expandedViolation, setExpandedViolation] = useState<string | null>(null);
   const [showAllViolations, setShowAllViolations] = useState(false);
 
+  // Ensure violations is always an array
+  const safeViolations = Array.isArray(violations) ? violations : [];
+  const safeWcagBreakdown = wcagBreakdown && typeof wcagBreakdown === 'object' ? wcagBreakdown : {
+    perceivable: { violations: 0, score: 100 },
+    operable: { violations: 0, score: 100 },
+    understandable: { violations: 0, score: 100 },
+    robust: { violations: 0, score: 100 },
+  };
+  const safeAiSuggestions = Array.isArray(aiSuggestions) ? aiSuggestions : [];
+
   const getScoreColor = (s: number) => {
     if (s >= 90) return 'text-green-700 bg-green-50 border-green-300';
     if (s >= 70) return 'text-blue-700 bg-blue-50 border-blue-300';
@@ -74,7 +84,7 @@ export default function AccessibilitySummary({
     }
   };
 
-  const displayedViolations = showAllViolations ? violations : violations.slice(0, 5);
+  const displayedViolations = showAllViolations ? safeViolations : safeViolations.slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -161,7 +171,7 @@ export default function AccessibilitySummary({
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
         <h4 className="text-lg font-bold text-slate-900 mb-4">WCAG 2.1 Principles (POUR)</h4>
         <div className="grid grid-cols-2 gap-4">
-          {Object.entries(wcagBreakdown).map(([principle, data]) => (
+          {Object.entries(safeWcagBreakdown).map(([principle, data]) => (
             <div key={principle} className="p-4 rounded-lg bg-slate-50 border border-slate-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-slate-900 capitalize">{principle}</span>
@@ -188,7 +198,7 @@ export default function AccessibilitySummary({
       </div>
 
       {/* Violations List */}
-      {violations.length > 0 && (
+      {safeViolations.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
           <h4 className="text-lg font-bold text-slate-900 mb-4">
             Accessibility Issues ({totalViolations})
@@ -262,28 +272,28 @@ export default function AccessibilitySummary({
             ))}
           </div>
 
-          {violations.length > 5 && (
+          {safeViolations.length > 5 && (
             <button
               onClick={() => setShowAllViolations(!showAllViolations)}
               className="mt-4 w-full py-2 text-sm font-bold text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
             >
-              {showAllViolations ? 'Show Less' : `Show All ${violations.length} Issues`}
+              {showAllViolations ? 'Show Less' : `Show All ${safeViolations.length} Issues`}
             </button>
           )}
         </div>
       )}
 
       {/* AI Suggestions */}
-      {aiSuggestions && aiSuggestions.length > 0 && (
+      {safeAiSuggestions.length > 0 && (
         <div className="rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-6 shadow-lg">
           <h4 className="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            AI-Generated Fixes ({aiSuggestions.length})
+            AI-Generated Fixes ({safeAiSuggestions.length})
           </h4>
           <div className="space-y-4">
-            {aiSuggestions.map((suggestion, idx) => (
+            {safeAiSuggestions.map((suggestion, idx) => (
               <div key={idx} className="p-4 rounded-lg bg-white border border-purple-200">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-xs font-bold">
