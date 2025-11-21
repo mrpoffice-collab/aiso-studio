@@ -158,18 +158,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If we didn't find enough qualified leads, show a message but return what we have
-    if (qualifiedLeads.length === 0) {
+    // If we didn't find enough qualified leads, use all leads instead
+    let scoredLeads: LeadResult[];
+    if (qualifiedLeads.length === 0 && allLeads.length === 0) {
       return NextResponse.json(
-        { error: 'No qualified leads found in the sweet spot (50-75 score range). Try a different search or expand your criteria.' },
+        { error: 'No leads found. Try a different search or expand your criteria.' },
         { status: 404 }
       );
+    } else if (qualifiedLeads.length < limit && allLeads.length > 0) {
+      // Not enough qualified leads, use all leads we found
+      console.log(`Found ${qualifiedLeads.length} qualified leads and ${allLeads.length - qualifiedLeads.length} other leads`);
+      scoredLeads = allLeads.slice(0, limit);
+    } else {
+      console.log(`Found ${qualifiedLeads.length} qualified leads after ${searchAttempts} search attempt(s)`);
+      scoredLeads = qualifiedLeads;
     }
-
-    console.log(`Found ${qualifiedLeads.length} qualified leads after ${searchAttempts} search attempt(s)`);
-
-    // Use only qualified leads for response
-    const scoredLeads = qualifiedLeads;
 
     // Step 3: Sort by opportunity (sweet spot first)
     scoredLeads.sort((a, b) => {
