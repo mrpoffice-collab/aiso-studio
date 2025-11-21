@@ -450,9 +450,19 @@ function AuditPageContent() {
               </div>
 
               <AccessibilitySummary
-                result={accessibilityResult}
-                onGenerateFixes={handleGenerateFixes}
-                isGeneratingFixes={isGeneratingFixes}
+                score={accessibilityResult.accessibilityScore}
+                criticalCount={accessibilityResult.criticalCount}
+                seriousCount={accessibilityResult.seriousCount}
+                moderateCount={accessibilityResult.moderateCount}
+                minorCount={accessibilityResult.minorCount}
+                totalViolations={accessibilityResult.totalViolations}
+                totalPasses={accessibilityResult.totalPasses}
+                violations={accessibilityResult.violations || []}
+                wcagBreakdown={accessibilityResult.wcagBreakdown}
+                pageTitle={accessibilityResult.pageTitle}
+                onFixAll={handleGenerateFixes}
+                isFixing={isGeneratingFixes}
+                aiSuggestions={accessibilityResult.aiSuggestions}
               />
             </div>
           )}
