@@ -1,7 +1,7 @@
 // Simple accessibility scanner that analyzes HTML content
 // Uses pattern-based detection for common WCAG violations
 
-import { JSDOM } from 'jsdom';
+import * as cheerio from 'cheerio';
 
 export interface AccessibilityViolation {
   id: string;
@@ -51,16 +51,17 @@ async function fetchHTML(url: string): Promise<string> {
   return await response.text();
 }
 
+type CheerioAPI = ReturnType<typeof cheerio.load>;
+
 // Check for images without alt text
-function checkImageAlt(doc: Document): AccessibilityViolation | null {
-  const images = doc.querySelectorAll('img');
+function checkImageAlt($: CheerioAPI): AccessibilityViolation | null {
   const violations: { html: string; target: string[]; failureSummary: string }[] = [];
 
-  images.forEach((img, idx) => {
-    const alt = img.getAttribute('alt');
-    if (alt === null || alt === undefined) {
+  $('img').each((idx, el) => {
+    const alt = $(el).attr('alt');
+    if (alt === undefined) {
       violations.push({
-        html: img.outerHTML.substring(0, 200),
+        html: $.html(el).substring(0, 200),
         target: [`img:nth-of-type(${idx + 1})`],
         failureSummary: 'Image does not have an alt attribute',
       });
@@ -81,18 +82,17 @@ function checkImageAlt(doc: Document): AccessibilityViolation | null {
 }
 
 // Check for empty links
-function checkLinkName(doc: Document): AccessibilityViolation | null {
-  const links = doc.querySelectorAll('a');
+function checkLinkName($: CheerioAPI): AccessibilityViolation | null {
   const violations: { html: string; target: string[]; failureSummary: string }[] = [];
 
-  links.forEach((link, idx) => {
-    const text = link.textContent?.trim();
-    const ariaLabel = link.getAttribute('aria-label');
-    const title = link.getAttribute('title');
+  $('a').each((idx, el) => {
+    const text = $(el).text().trim();
+    const ariaLabel = $(el).attr('aria-label');
+    const title = $(el).attr('title');
 
     if (!text && !ariaLabel && !title) {
       violations.push({
-        html: link.outerHTML.substring(0, 200),
+        html: $.html(el).substring(0, 200),
         target: [`a:nth-of-type(${idx + 1})`],
         failureSummary: 'Link has no discernible text',
       });
@@ -113,18 +113,17 @@ function checkLinkName(doc: Document): AccessibilityViolation | null {
 }
 
 // Check for buttons without accessible names
-function checkButtonName(doc: Document): AccessibilityViolation | null {
-  const buttons = doc.querySelectorAll('button, [role="button"]');
+function checkButtonName($: CheerioAPI): AccessibilityViolation | null {
   const violations: { html: string; target: string[]; failureSummary: string }[] = [];
 
-  buttons.forEach((btn, idx) => {
-    const text = btn.textContent?.trim();
-    const ariaLabel = btn.getAttribute('aria-label');
-    const title = btn.getAttribute('title');
+  $('button, [role="button"]').each((idx, el) => {
+    const text = $(el).text().trim();
+    const ariaLabel = $(el).attr('aria-label');
+    const title = $(el).attr('title');
 
     if (!text && !ariaLabel && !title) {
       violations.push({
-        html: btn.outerHTML.substring(0, 200),
+        html: $.html(el).substring(0, 200),
         target: [`button:nth-of-type(${idx + 1})`],
         failureSummary: 'Button has no accessible name',
       });
@@ -145,25 +144,24 @@ function checkButtonName(doc: Document): AccessibilityViolation | null {
 }
 
 // Check for missing form labels
-function checkFormLabels(doc: Document): AccessibilityViolation | null {
-  const inputs = doc.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
+function checkFormLabels($: CheerioAPI): AccessibilityViolation | null {
   const violations: { html: string; target: string[]; failureSummary: string }[] = [];
 
-  inputs.forEach((input, idx) => {
-    const id = input.getAttribute('id');
-    const ariaLabel = input.getAttribute('aria-label');
-    const ariaLabelledBy = input.getAttribute('aria-labelledby');
-    const placeholder = input.getAttribute('placeholder');
+  $('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select').each((idx, el) => {
+    const id = $(el).attr('id');
+    const ariaLabel = $(el).attr('aria-label');
+    const ariaLabelledBy = $(el).attr('aria-labelledby');
+    const placeholder = $(el).attr('placeholder');
 
     let hasLabel = false;
     if (id) {
-      const label = doc.querySelector(`label[for="${id}"]`);
-      if (label) hasLabel = true;
+      const label = $(`label[for="${id}"]`);
+      if (label.length > 0) hasLabel = true;
     }
 
     if (!hasLabel && !ariaLabel && !ariaLabelledBy) {
       violations.push({
-        html: input.outerHTML.substring(0, 200),
+        html: $.html(el).substring(0, 200),
         target: [`input:nth-of-type(${idx + 1})`],
         failureSummary: placeholder
           ? 'Form element uses placeholder instead of label'
@@ -186,9 +184,8 @@ function checkFormLabels(doc: Document): AccessibilityViolation | null {
 }
 
 // Check for missing lang attribute
-function checkHtmlLang(doc: Document): AccessibilityViolation | null {
-  const html = doc.querySelector('html');
-  const lang = html?.getAttribute('lang');
+function checkHtmlLang($: CheerioAPI): AccessibilityViolation | null {
+  const lang = $('html').attr('lang');
 
   if (!lang) {
     return {
@@ -210,17 +207,17 @@ function checkHtmlLang(doc: Document): AccessibilityViolation | null {
 }
 
 // Check heading structure
-function checkHeadingOrder(doc: Document): AccessibilityViolation | null {
-  const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
+function checkHeadingOrder($: CheerioAPI): AccessibilityViolation | null {
   const violations: { html: string; target: string[]; failureSummary: string }[] = [];
 
   let lastLevel = 0;
-  headings.forEach((h, idx) => {
-    const level = parseInt(h.tagName[1]);
+  $('h1, h2, h3, h4, h5, h6').each((idx, el) => {
+    const tagName = el.tagName.toLowerCase();
+    const level = parseInt(tagName[1]);
     if (lastLevel > 0 && level > lastLevel + 1) {
       violations.push({
-        html: h.outerHTML.substring(0, 200),
-        target: [`${h.tagName.toLowerCase()}:nth-of-type(${idx + 1})`],
+        html: $.html(el).substring(0, 200),
+        target: [`${tagName}:nth-of-type(${idx + 1})`],
         failureSummary: `Heading level skipped from H${lastLevel} to H${level}`,
       });
     }
@@ -241,15 +238,15 @@ function checkHeadingOrder(doc: Document): AccessibilityViolation | null {
 }
 
 // Check for empty headings
-function checkEmptyHeadings(doc: Document): AccessibilityViolation | null {
-  const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
+function checkEmptyHeadings($: CheerioAPI): AccessibilityViolation | null {
   const violations: { html: string; target: string[]; failureSummary: string }[] = [];
 
-  headings.forEach((h, idx) => {
-    if (!h.textContent?.trim()) {
+  $('h1, h2, h3, h4, h5, h6').each((idx, el) => {
+    const tagName = el.tagName.toLowerCase();
+    if (!$(el).text().trim()) {
       violations.push({
-        html: h.outerHTML.substring(0, 200),
-        target: [`${h.tagName.toLowerCase()}:nth-of-type(${idx + 1})`],
+        html: $.html(el).substring(0, 200),
+        target: [`${tagName}:nth-of-type(${idx + 1})`],
         failureSummary: 'Heading is empty',
       });
     }
@@ -269,10 +266,10 @@ function checkEmptyHeadings(doc: Document): AccessibilityViolation | null {
 }
 
 // Check for missing document title
-function checkDocumentTitle(doc: Document): AccessibilityViolation | null {
-  const title = doc.querySelector('title');
+function checkDocumentTitle($: CheerioAPI): AccessibilityViolation | null {
+  const title = $('title').text().trim();
 
-  if (!title || !title.textContent?.trim()) {
+  if (!title) {
     return {
       id: 'document-title',
       impact: 'serious',
@@ -292,15 +289,14 @@ function checkDocumentTitle(doc: Document): AccessibilityViolation | null {
 }
 
 // Check for tables without headers
-function checkTableHeaders(doc: Document): AccessibilityViolation | null {
-  const tables = doc.querySelectorAll('table');
+function checkTableHeaders($: CheerioAPI): AccessibilityViolation | null {
   const violations: { html: string; target: string[]; failureSummary: string }[] = [];
 
-  tables.forEach((table, idx) => {
-    const hasHeaders = table.querySelector('th');
+  $('table').each((idx, el) => {
+    const hasHeaders = $(el).find('th').length > 0;
     if (!hasHeaders) {
       violations.push({
-        html: table.outerHTML.substring(0, 300),
+        html: $.html(el).substring(0, 300),
         target: [`table:nth-of-type(${idx + 1})`],
         failureSummary: 'Table does not have header cells',
       });
@@ -375,39 +371,36 @@ function getWcagBreakdown(violations: AccessibilityViolation[]): WcagBreakdown {
 export async function scanAccessibility(url: string): Promise<AccessibilityScanResult> {
   // Fetch HTML
   const html = await fetchHTML(url);
-  const dom = new JSDOM(html);
-  const doc = dom.window.document;
+  const $ = cheerio.load(html);
 
   // Get page metadata
-  const pageTitle = doc.querySelector('title')?.textContent || 'Unknown';
-  const pageLanguage = doc.querySelector('html')?.getAttribute('lang') || 'unknown';
+  const pageTitle = $('title').text() || 'Unknown';
+  const pageLanguage = $('html').attr('lang') || 'unknown';
 
   // Run all checks
   const checks = [
-    checkImageAlt,
-    checkLinkName,
-    checkButtonName,
-    checkFormLabels,
-    checkHtmlLang,
-    checkHeadingOrder,
-    checkEmptyHeadings,
-    checkDocumentTitle,
-    checkTableHeaders,
+    { fn: checkImageAlt, name: 'imagealt' },
+    { fn: checkLinkName, name: 'linkname' },
+    { fn: checkButtonName, name: 'buttonname' },
+    { fn: checkFormLabels, name: 'formlabels' },
+    { fn: checkHtmlLang, name: 'htmllang' },
+    { fn: checkHeadingOrder, name: 'headingorder' },
+    { fn: checkEmptyHeadings, name: 'emptyheadings' },
+    { fn: checkDocumentTitle, name: 'documenttitle' },
+    { fn: checkTableHeaders, name: 'tableheaders' },
   ];
 
   const violations: AccessibilityViolation[] = [];
   const passes: { id: string; description: string }[] = [];
 
   for (const check of checks) {
-    const result = check(doc);
+    const result = check.fn($);
     if (result) {
       violations.push(result);
     } else {
-      // Infer pass from check function name
-      const checkName = check.name.replace('check', '').toLowerCase();
       passes.push({
-        id: checkName,
-        description: `${checkName} check passed`,
+        id: check.name,
+        description: `${check.name} check passed`,
       });
     }
   }
@@ -434,7 +427,7 @@ export async function scanAccessibility(url: string): Promise<AccessibilityScanR
     violations,
     passes,
     wcagBreakdown,
-    scanVersion: '1.0-static',
+    scanVersion: '1.0-cheerio',
     pageTitle,
     pageLanguage,
   };
