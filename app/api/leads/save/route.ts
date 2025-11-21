@@ -58,13 +58,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create the lead (filter out undefined values)
+    // Create the lead (provide defaults for required NOT NULL fields)
     const leadData: any = {
       user_id: user.id,
       domain,
       business_name,
       status: 'new',
       opportunity_rating: rating,
+      // Required NOT NULL fields with defaults
+      overall_score: overall_score ?? 0,
+      content_score: content_score ?? 0,
+      seo_score: seo_score ?? 0,
+      design_score: design_score ?? 0,
+      speed_score: speed_score ?? 0,
     };
 
     // Only add defined optional fields
@@ -72,11 +78,6 @@ export async function POST(request: NextRequest) {
     if (city !== undefined) leadData.city = city;
     if (state !== undefined) leadData.state = state;
     if (industry !== undefined) leadData.industry = industry;
-    if (overall_score !== undefined) leadData.overall_score = overall_score;
-    if (content_score !== undefined) leadData.content_score = content_score;
-    if (seo_score !== undefined) leadData.seo_score = seo_score;
-    if (design_score !== undefined) leadData.design_score = design_score;
-    if (speed_score !== undefined) leadData.speed_score = speed_score;
     if (has_blog !== undefined) leadData.has_blog = has_blog;
     if (blog_post_count !== undefined) leadData.blog_post_count = blog_post_count;
     if (last_blog_update !== undefined) leadData.last_blog_update = last_blog_update;
