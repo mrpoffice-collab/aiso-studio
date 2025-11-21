@@ -3,7 +3,9 @@
 
 import chromium from '@sparticuz/chromium-min';
 import puppeteer, { Browser, Page } from 'puppeteer-core';
-import { AxePuppeteer } from '@axe-core/puppeteer';
+
+// axe-core CDN URL for injection
+const AXE_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.2/axe.min.js';
 
 export interface AccessibilityViolation {
   id: string;
@@ -121,27 +123,35 @@ export async function scanAccessibilityFull(url: string): Promise<AccessibilityS
     const pageTitle = await page.title();
     const pageLanguage = await page.evaluate(() => document.documentElement.lang || 'unknown');
 
+    // Inject and run axe-core directly via CDN
+    await page.addScriptTag({ url: AXE_CDN_URL });
+
     // Run axe-core accessibility scan
-    const axeResults = await new AxePuppeteer(page)
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'])
-      .analyze();
+    const axeResults = await page.evaluate(() => {
+      return (window as any).axe.run(document, {
+        runOnly: {
+          type: 'tag',
+          values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice']
+        }
+      });
+    });
 
     // Process violations
-    const violations: AccessibilityViolation[] = axeResults.violations.map(v => ({
+    const violations: AccessibilityViolation[] = axeResults.violations.map((v: any) => ({
       id: v.id,
       impact: v.impact as 'critical' | 'serious' | 'moderate' | 'minor',
       description: v.description,
       help: v.help,
       helpUrl: v.helpUrl,
       wcagTags: v.tags,
-      nodes: v.nodes.map(n => ({
+      nodes: v.nodes.map((n: any) => ({
         html: n.html,
-        target: n.target.map(t => String(t)),
+        target: n.target.map((t: any) => String(t)),
         failureSummary: n.failureSummary || '',
       })),
     }));
 
-    const passes = axeResults.passes.map(p => ({
+    const passes = axeResults.passes.map((p: any) => ({
       id: p.id,
       description: p.description,
     }));
