@@ -9,6 +9,7 @@ import AEOScoreCard from '@/components/AEOScoreCard';
 import ArticlePreview from '@/components/ArticlePreview';
 import AccessibilitySummary from '@/components/AccessibilitySummary';
 import { generateComparisonPDF } from '@/lib/comparison-pdf-generator';
+import RepurposeModal from '@/components/RepurposeModal';
 
 function AuditPageContent() {
   const searchParams = useSearchParams();
@@ -27,6 +28,7 @@ function AuditPageContent() {
   const [accessibilityResult, setAccessibilityResult] = useState<any>(null);
   const [isAccessibilityAuditing, setIsAccessibilityAuditing] = useState(false);
   const [isGeneratingFixes, setIsGeneratingFixes] = useState(false);
+  const [showRepurposeModal, setShowRepurposeModal] = useState(false);
 
   // Check for parameters from batch audit or direct post audit
   useEffect(() => {
@@ -489,18 +491,31 @@ function AuditPageContent() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-black text-slate-900">Audit Results</h2>
-                <button
-                  onClick={() => {
-                    setAuditResult(null);
-                    setAccessibilityResult(null);
-                    setContentInput('');
-                    setUrlInput('');
-                    setError('');
-                  }}
-                  className="text-sm font-semibold text-slate-600 hover:text-deep-indigo"
-                >
-                  ← Audit Another Post
-                </button>
+                <div className="flex items-center gap-3">
+                  {auditResult?.content && (
+                    <button
+                      onClick={() => setShowRepurposeModal(true)}
+                      className="px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 text-sm"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Repurpose
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setAuditResult(null);
+                      setAccessibilityResult(null);
+                      setContentInput('');
+                      setUrlInput('');
+                      setError('');
+                    }}
+                    className="text-sm font-semibold text-slate-600 hover:text-deep-indigo"
+                  >
+                    ← Audit Another Post
+                  </button>
+                </div>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
@@ -1162,6 +1177,14 @@ function AuditPageContent() {
           )}
         </div>
       </main>
+
+      {/* Repurpose Modal */}
+      <RepurposeModal
+        isOpen={showRepurposeModal}
+        onClose={() => setShowRepurposeModal(false)}
+        content={auditResult?.content || contentInput || ''}
+        title={auditResult?.title || titleInput}
+      />
     </div>
   );
 }
