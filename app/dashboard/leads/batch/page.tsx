@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DashboardNav from '@/components/DashboardNav';
+import { useFormPersistence } from '@/hooks/useFormPersistence';
 
 interface BatchJob {
   id: string;
@@ -22,10 +23,14 @@ interface BatchJob {
 }
 
 export default function BatchLeadDiscoveryPage() {
-  const [industry, setIndustry] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [targetCount, setTargetCount] = useState(50);
+  // Auto-save form data to localStorage (expires after 2 hours)
+  const [formData, setFormData, clearFormData] = useFormPersistence('batch-lead-form', {
+    industry: '',
+    city: '',
+    state: '',
+    targetCount: 50,
+  }, 120);
+
   const [isCreating, setIsCreating] = useState(false);
   const [batches, setBatches] = useState<BatchJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +58,7 @@ export default function BatchLeadDiscoveryPage() {
   };
 
   const handleCreateBatch = async () => {
-    if (!industry.trim() || !city.trim()) {
+    if (!formData.industry.trim() || !formData.city.trim()) {
       setError('Industry and city are required');
       return;
     }
@@ -65,7 +70,12 @@ export default function BatchLeadDiscoveryPage() {
       const response = await fetch('/api/leads/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ industry, city, state, targetCount }),
+        body: JSON.stringify({
+          industry: formData.industry,
+          city: formData.city,
+          state: formData.state,
+          targetCount: formData.targetCount,
+        }),
       });
 
       const data = await response.json();
@@ -76,11 +86,8 @@ export default function BatchLeadDiscoveryPage() {
 
       alert(`✓ ${data.message}\n\nYou can track progress below. This may take 10-30 minutes.`);
 
-      // Reset form
-      setIndustry('');
-      setCity('');
-      setState('');
-      setTargetCount(50);
+      // Clear saved form data after successful creation
+      clearFormData();
 
       // Refresh batches
       fetchBatches();
@@ -111,8 +118,8 @@ export default function BatchLeadDiscoveryPage() {
     return new Date(dateString).toLocaleString();
   };
 
-  const estimatedCost = (targetCount / 20) * 1.5; // Rough estimate
-  const estimatedTime = Math.ceil(targetCount / 3); // Minutes
+  const estimatedCost = (formData.targetCount / 20) * 1.5; // Rough estimate
+  const estimatedTime = Math.ceil(formData.targetCount / 3); // Minutes
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50">
@@ -158,8 +165,8 @@ export default function BatchLeadDiscoveryPage() {
               </label>
               <input
                 type="text"
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
+                value={formData.industry}
+                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
                 placeholder="e.g., dentists, chiropractors, law firms"
                 className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                 style={{ color: '#0f172a' }}
@@ -172,8 +179,8 @@ export default function BatchLeadDiscoveryPage() {
               </label>
               <input
                 type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 placeholder="e.g., Miami, Phoenix, Chicago"
                 className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                 style={{ color: '#0f172a' }}
@@ -186,8 +193,8 @@ export default function BatchLeadDiscoveryPage() {
               </label>
               <input
                 type="text"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                 placeholder="e.g., FL, AZ, IL"
                 className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                 style={{ color: '#0f172a' }}
@@ -202,8 +209,8 @@ export default function BatchLeadDiscoveryPage() {
                 type="number"
                 min="50"
                 max="200"
-                value={targetCount}
-                onChange={(e) => setTargetCount(parseInt(e.target.value))}
+                value={formData.targetCount}
+                onChange={(e) => setFormData({ ...formData, targetCount: parseInt(e.target.value) })}
                 className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                 style={{ color: '#0f172a' }}
               />
@@ -237,7 +244,7 @@ export default function BatchLeadDiscoveryPage() {
 
           <button
             onClick={handleCreateBatch}
-            disabled={isCreating || !industry.trim() || !city.trim()}
+            disabled={isCreating || !formData.industry.trim() || !formData.city.trim()}
             className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
           >
             {isCreating ? (
