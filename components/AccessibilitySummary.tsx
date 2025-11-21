@@ -57,15 +57,25 @@ export default function AccessibilitySummary({
   const [expandedViolation, setExpandedViolation] = useState<string | null>(null);
   const [showAllViolations, setShowAllViolations] = useState(false);
 
-  // Ensure violations is always an array
-  const safeViolations = Array.isArray(violations) ? violations : [];
-  const safeWcagBreakdown = wcagBreakdown && typeof wcagBreakdown === 'object' ? wcagBreakdown : {
+  // Ensure violations is always an array (handle string JSON from DB)
+  const parseIfString = (val: any) => {
+    if (typeof val === 'string') {
+      try { return JSON.parse(val); } catch { return null; }
+    }
+    return val;
+  };
+  const parsedViolations = parseIfString(violations);
+  const parsedWcagBreakdown = parseIfString(wcagBreakdown);
+  const parsedAiSuggestions = parseIfString(aiSuggestions);
+
+  const safeViolations = Array.isArray(parsedViolations) ? parsedViolations : [];
+  const safeWcagBreakdown = parsedWcagBreakdown && typeof parsedWcagBreakdown === 'object' ? parsedWcagBreakdown : {
     perceivable: { violations: 0, score: 100 },
     operable: { violations: 0, score: 100 },
     understandable: { violations: 0, score: 100 },
     robust: { violations: 0, score: 100 },
   };
-  const safeAiSuggestions = Array.isArray(aiSuggestions) ? aiSuggestions : [];
+  const safeAiSuggestions = Array.isArray(parsedAiSuggestions) ? parsedAiSuggestions : [];
 
   const getScoreColor = (s: number) => {
     if (s >= 90) return 'text-green-700 bg-green-50 border-green-300';
