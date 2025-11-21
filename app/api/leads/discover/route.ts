@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
       searchAttempts++;
       console.log(`Search attempt ${searchAttempts}, found ${qualifiedLeads.length}/${limit} qualified leads so far...`);
 
-      // Search for more businesses (request 2x the remaining needed)
-      const searchLimit = Math.max(limit * 2, 20);
+      // Search for more businesses (Brave API max is 20 per request)
+      const searchLimit = 20;
       const businesses = await searchBusinesses(searchQuery, searchLimit, searchOffset);
 
       if (businesses.length === 0) {
@@ -236,8 +236,7 @@ async function searchBusinesses(
     return fallbackBusinessSearch(query, limit);
   }
 
-  // TEMPORARY: Log key prefix for debugging (remove after fixing)
-  console.log('✓ Brave API key found:', braveApiKey.substring(0, 10) + '...');
+  console.log('✓ Brave API key found, using Brave Search');
 
   try {
     // Use Brave Search API
