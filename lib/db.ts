@@ -7,6 +7,9 @@ const sql = postgres(process.env.DATABASE_URL!, {
   prepare: false, // Disable prepared statements to avoid caching issues after schema changes
 });
 
+// Export sql for migrations and direct queries
+export { sql };
+
 // Helper function to execute queries
 export async function query<T = any>(
   queryText: string,
