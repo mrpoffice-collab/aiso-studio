@@ -47,7 +47,7 @@ let browser: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {
   if (!browser) {
-    const isLocal = process.env.NODE_ENV === 'development' || !process.env.AWS_LAMBDA_FUNCTION_NAME;
+    const isLocal = process.env.NODE_ENV === 'development' && !process.env.VERCEL;
 
     if (isLocal) {
       // Local development - use regular puppeteer
