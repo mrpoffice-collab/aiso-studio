@@ -196,8 +196,11 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
 
         // Search and score businesses
         const { businesses, scored } = await step.run(`search-batch-${iteration}`, async () => {
+          // Determine the API URL (works in both local and production)
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
           // Use the same search logic from the discover route
-          const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/leads/discover`, {
+          const response = await fetch(`${baseUrl}/api/leads/discover`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -205,7 +208,8 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
               city,
               state,
               limit: 20, // Search 20 at a time
-              internal: true, // Flag to skip user checks
+              internal: true, // Flag for internal calls
+              internalUserId: userId, // Pass userId for auth
             }),
           });
 

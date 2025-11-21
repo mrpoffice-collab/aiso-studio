@@ -32,20 +32,30 @@ interface LeadResult {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get user from database
-    const user = await db.getUserByClerkId(userId);
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     const body = await request.json();
-    const { industry, city, state, limit = 15 } = body;
+    const { industry, city, state, limit = 15, internal = false, internalUserId } = body;
+
+    let user;
+
+    // Handle internal calls from Inngest functions
+    if (internal && internalUserId) {
+      user = await db.getUserById(internalUserId);
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+    } else {
+      // Check authentication for external calls
+      const { userId } = await auth();
+      if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      // Get user from database
+      user = await db.getUserByClerkId(userId);
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+    }
 
     if (!industry || !city) {
       return NextResponse.json(

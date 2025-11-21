@@ -32,6 +32,14 @@ export const db = {
     return result[0] || null;
   },
 
+  async getUserById(userId: string) {
+    const result = await query(
+      'SELECT * FROM users WHERE id = $1',
+      [userId]
+    );
+    return result[0] || null;
+  },
+
   async createUser(data: { clerk_id: string; email: string; name?: string }) {
     const result = await query(
       `INSERT INTO users (
