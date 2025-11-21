@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { inngest } from '@/lib/inngest/client';
-import { scanAccessibility, closeBrowser } from '@/lib/accessibility-scanner';
+import { scanAccessibilityFull, closeBrowser } from '@/lib/accessibility-scanner-playwright';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Synchronous scan
-    const result = await scanAccessibility(url);
+    const result = await scanAccessibilityFull(url);
     await closeBrowser();
 
     // Save to database
