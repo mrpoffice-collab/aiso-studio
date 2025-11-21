@@ -58,26 +58,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create the lead
-    const lead = await db.createLead({
+    // Create the lead (filter out undefined values)
+    const leadData: any = {
       user_id: user.id,
-      project_id,
       domain,
       business_name,
-      city,
-      state,
-      industry,
-      overall_score,
-      content_score,
-      seo_score,
-      design_score,
-      speed_score,
-      has_blog,
-      blog_post_count,
-      last_blog_update,
       status: 'new',
       opportunity_rating: rating,
-    });
+    };
+
+    // Only add defined optional fields
+    if (project_id !== undefined) leadData.project_id = project_id;
+    if (city !== undefined) leadData.city = city;
+    if (state !== undefined) leadData.state = state;
+    if (industry !== undefined) leadData.industry = industry;
+    if (overall_score !== undefined) leadData.overall_score = overall_score;
+    if (content_score !== undefined) leadData.content_score = content_score;
+    if (seo_score !== undefined) leadData.seo_score = seo_score;
+    if (design_score !== undefined) leadData.design_score = design_score;
+    if (speed_score !== undefined) leadData.speed_score = speed_score;
+    if (has_blog !== undefined) leadData.has_blog = has_blog;
+    if (blog_post_count !== undefined) leadData.blog_post_count = blog_post_count;
+    if (last_blog_update !== undefined) leadData.last_blog_update = last_blog_update;
+
+    const lead = await db.createLead(leadData);
 
     // Log the activity
     await db.createLeadActivity({

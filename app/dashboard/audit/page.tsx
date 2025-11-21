@@ -34,6 +34,7 @@ function AuditPageContent() {
   useEffect(() => {
     const urlParam = searchParams.get('url');
     const fromPost = searchParams.get('fromPost');
+    const wcagOnly = searchParams.get('wcag');
 
     // Check if data was passed via sessionStorage (from post detail page)
     if (fromPost === 'true') {
@@ -57,6 +58,12 @@ function AuditPageContent() {
           console.error('Failed to parse stored audit data:', e);
         }
       }
+    } else if (urlParam && wcagOnly === 'true') {
+      // Auto-run WCAG scan only
+      setUrlInput(urlParam);
+      setTimeout(() => {
+        handleAccessibilityAudit(urlParam);
+      }, 100);
     } else if (urlParam) {
       setUrlInput(urlParam);
       // Auto-audit when URL is provided
