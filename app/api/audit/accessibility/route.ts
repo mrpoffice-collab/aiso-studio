@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
+import { db, query } from '@/lib/db';
 import { inngest } from '@/lib/inngest/client';
 import { scanAccessibility, closeBrowser } from '@/lib/accessibility-scanner';
 
@@ -14,6 +14,10 @@ export async function POST(request: NextRequest) {
     const dbUrl = process.env.DATABASE_URL || 'NOT SET';
     const dbHost = dbUrl.includes('@') ? dbUrl.split('@')[1]?.split('/')[0] : 'unknown';
     console.log('DATABASE_URL host:', dbHost);
+
+    // Check if accessibility_audits table exists
+    const tableCheck = await query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'accessibility_audits'`);
+    console.log('accessibility_audits exists:', tableCheck.length > 0);
 
     const { userId: clerkId } = await auth();
     if (!clerkId) {
