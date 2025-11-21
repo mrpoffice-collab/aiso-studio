@@ -10,6 +10,11 @@ export const maxDuration = 60;
 // POST - Start an accessibility audit (sync or async)
 export async function POST(request: NextRequest) {
   try {
+    // Debug: Log which database we're connecting to
+    const dbUrl = process.env.DATABASE_URL || 'NOT SET';
+    const dbHost = dbUrl.includes('@') ? dbUrl.split('@')[1]?.split('/')[0] : 'unknown';
+    console.log('DATABASE_URL host:', dbHost);
+
     const { userId: clerkId } = await auth();
     if (!clerkId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
