@@ -77,9 +77,12 @@ export async function POST(request: NextRequest) {
       const businesses = await searchBusinesses(searchQuery, searchLimit, searchOffset);
 
       if (businesses.length === 0) {
-        console.log('No more businesses found in search results');
+        console.error(`❌ Search returned 0 businesses on attempt ${searchAttempts}/${maxSearchAttempts}`);
+        console.error(`Query: "${searchQuery}", Limit: ${searchLimit}, Offset: ${searchOffset}`);
         break;
       }
+
+      console.log(`Found ${businesses.length} businesses to score...`);
 
       searchOffset += businesses.length;
 
@@ -229,14 +232,19 @@ async function searchBusinesses(
   const braveApiKey = process.env.BRAVE_SEARCH_API_KEY;
 
   if (!braveApiKey) {
-    console.warn('BRAVE_SEARCH_API_KEY not configured. Using fallback method.');
+    console.warn('⚠️  BRAVE_SEARCH_API_KEY not configured. Using fallback method.');
     return fallbackBusinessSearch(query, limit);
   }
+
+  // TEMPORARY: Log key prefix for debugging (remove after fixing)
+  console.log('✓ Brave API key found:', braveApiKey.substring(0, 10) + '...');
 
   try {
     // Use Brave Search API
     const endpoint = 'https://api.search.brave.com/res/v1/web/search';
     const searchUrl = `${endpoint}?q=${encodeURIComponent(query)}&count=${limit}&offset=${offset}`;
+
+    console.log('🔍 Calling Brave API with query:', query);
 
     const response = await fetch(searchUrl, {
       headers: {
@@ -246,11 +254,14 @@ async function searchBusinesses(
     });
 
     if (!response.ok) {
-      console.error('Brave API error:', response.status);
+      const errorText = await response.text();
+      console.error('❌ Brave API error:', response.status, errorText);
+      console.error('Falling back to DuckDuckGo...');
       return fallbackBusinessSearch(query, limit);
     }
 
     const data = await response.json();
+    console.log('✓ Brave API returned', data.web?.results?.length || 0, 'raw results');
 
     // Extract domains from web results
     const domains = new Set<string>();
@@ -301,11 +312,19 @@ async function searchBusinesses(
       }
     }
 
-    console.log(`Brave API found ${businesses.length} businesses`);
+    console.log(`✓ Brave API found ${businesses.length} businesses after filtering`);
+
+    if (businesses.length === 0) {
+      console.warn('⚠️  All Brave results were filtered out! Raw result count:', data.web?.results?.length || 0);
+      console.warn('Falling back to DuckDuckGo...');
+      return fallbackBusinessSearch(query, limit);
+    }
+
     return businesses;
 
   } catch (error: any) {
-    console.error('Brave search error:', error.message);
+    console.error('❌ Brave search error:', error.message);
+    console.error('Falling back to DuckDuckGo...');
     return fallbackBusinessSearch(query, limit);
   }
 }
@@ -391,11 +410,16 @@ async function fallbackBusinessSearch(
       }
     });
 
-    console.log(`Fallback search found ${businesses.length} businesses`);
+    console.log(`✓ Fallback search found ${businesses.length} businesses`);
+
+    if (businesses.length === 0) {
+      console.error('❌ Fallback search also returned 0 results');
+    }
+
     return businesses;
 
   } catch (error: any) {
-    console.error('Fallback search error:', error.message);
+    console.error('❌ Fallback search error:', error.message);
     return [];
   }
 }
