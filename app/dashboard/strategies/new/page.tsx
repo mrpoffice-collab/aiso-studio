@@ -575,7 +575,7 @@ export default function NewStrategyPage() {
                 </svg>
               </div>
               <div>
-                <p className="font-bold text-blue-900 mb-1">Claude AI is Working...</p>
+                <p className="font-bold text-blue-900 mb-1">Thinking Really Hard...</p>
                 <p className="text-sm text-blue-700 font-medium">
                   Generating your personalized content strategy with 12 SEO-optimized topics. This may take 20-30 seconds.
                 </p>
