@@ -95,11 +95,11 @@ export async function POST(request: NextRequest) {
         createdAt: audit.created_at,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Accessibility audit error:', error);
     await closeBrowser();
     return NextResponse.json(
-      { error: 'Failed to run accessibility audit' },
+      { error: `Failed to run accessibility audit: ${error.message || error}` },
       { status: 500 }
     );
   }
