@@ -232,16 +232,33 @@ function AuditPageContent() {
         body: JSON.stringify({ url }),
       });
 
-      const data = await response.json();
+      const text = await response.text();
+
+      if (!text) {
+        console.error('Accessibility audit failed: Empty response');
+        setError('Accessibility scan failed - empty response from server');
+        return;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        console.error('Failed to parse response:', text.substring(0, 500));
+        setError('Accessibility scan failed - invalid response');
+        return;
+      }
 
       if (!response.ok) {
         console.error('Accessibility audit failed:', data.error);
+        setError(data.error || 'Accessibility scan failed');
         return;
       }
 
       setAccessibilityResult(data.audit);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Accessibility audit error:', err);
+      setError(err.message || 'Accessibility scan failed');
     } finally {
       setIsAccessibilityAuditing(false);
     }
