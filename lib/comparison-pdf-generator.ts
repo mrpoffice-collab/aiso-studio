@@ -14,6 +14,16 @@ interface ComparisonData {
     improvement: number;
   }[];
   generatedDate?: string;
+  // WCAG Accessibility data
+  accessibilityScore?: number;
+  accessibilityData?: {
+    criticalCount: number;
+    seriousCount: number;
+    moderateCount: number;
+    minorCount: number;
+    totalViolations: number;
+    totalPasses: number;
+  };
 }
 
 /**
@@ -162,6 +172,49 @@ export function generateComparisonPDF(data: ComparisonData): void {
 
     // Add some space after the table
     yPos += 15;
+  }
+
+  // Accessibility Score Section (if provided)
+  if (data.accessibilityScore !== undefined) {
+    checkPageBreak(50);
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Accessibility Score (WCAG 2.1)', margin, yPos);
+    yPos += 10;
+
+    // Accessibility score box
+    const a11yColor = data.accessibilityScore >= 90 ? [74, 222, 128] :
+                      data.accessibilityScore >= 70 ? [96, 165, 250] :
+                      data.accessibilityScore >= 50 ? [250, 204, 21] : [248, 113, 113];
+
+    doc.setFillColor(a11yColor[0], a11yColor[1], a11yColor[2]);
+    doc.roundedRect(margin, yPos, 60, 30, 3, 3, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text(data.accessibilityScore.toString(), margin + 10, yPos + 18);
+    doc.setFontSize(12);
+    doc.text('/100', margin + 35, yPos + 18);
+
+    // Accessibility breakdown if data provided
+    if (data.accessibilityData) {
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+
+      const a11yX = margin + 70;
+      doc.text(`Critical: ${data.accessibilityData.criticalCount}`, a11yX, yPos + 8);
+      doc.text(`Serious: ${data.accessibilityData.seriousCount}`, a11yX, yPos + 15);
+      doc.text(`Moderate: ${data.accessibilityData.moderateCount}`, a11yX + 50, yPos + 8);
+      doc.text(`Minor: ${data.accessibilityData.minorCount}`, a11yX + 50, yPos + 15);
+      doc.text(`Total Issues: ${data.accessibilityData.totalViolations}`, a11yX, yPos + 25);
+      doc.text(`Rules Passed: ${data.accessibilityData.totalPasses}`, a11yX + 50, yPos + 25);
+    }
+
+    yPos += 40;
   }
 
   // Content Comparison Section

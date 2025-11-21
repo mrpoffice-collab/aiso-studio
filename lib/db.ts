@@ -1126,4 +1126,104 @@ export const db = {
       [userId]
     );
   },
+
+  // Accessibility Audits (WCAG)
+  async createAccessibilityAudit(data: {
+    user_id: number | string;
+    content_audit_id?: number;
+    url: string;
+    accessibility_score: number;
+    critical_count: number;
+    serious_count: number;
+    moderate_count: number;
+    minor_count: number;
+    total_violations: number;
+    total_passes: number;
+    violations: any[];
+    passes: any[];
+    wcag_breakdown: any;
+    scan_version?: string;
+    page_title?: string;
+    page_language?: string;
+  }) {
+    const result = await query(
+      `INSERT INTO accessibility_audits (
+        user_id, content_audit_id, url, accessibility_score,
+        critical_count, serious_count, moderate_count, minor_count,
+        total_violations, total_passes, violations, passes, wcag_breakdown,
+        scan_version, page_title, page_language
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      RETURNING *`,
+      [
+        data.user_id,
+        data.content_audit_id || null,
+        data.url,
+        data.accessibility_score,
+        data.critical_count,
+        data.serious_count,
+        data.moderate_count,
+        data.minor_count,
+        data.total_violations,
+        data.total_passes,
+        JSON.stringify(data.violations),
+        JSON.stringify(data.passes),
+        JSON.stringify(data.wcag_breakdown),
+        data.scan_version || null,
+        data.page_title || null,
+        data.page_language || null,
+      ]
+    );
+    return result[0];
+  },
+
+  async getAccessibilityAuditsByUserId(userId: number | string, limit = 50) {
+    return await query(
+      `SELECT * FROM accessibility_audits
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [userId, limit]
+    );
+  },
+
+  async getAccessibilityAuditById(id: number) {
+    const result = await query(
+      'SELECT * FROM accessibility_audits WHERE id = $1',
+      [id]
+    );
+    return result[0] || null;
+  },
+
+  async getAccessibilityAuditByContentAuditId(contentAuditId: number) {
+    const result = await query(
+      'SELECT * FROM accessibility_audits WHERE content_audit_id = $1',
+      [contentAuditId]
+    );
+    return result[0] || null;
+  },
+
+  async updateAccessibilityAuditRemediation(id: number, data: {
+    ai_suggestions: any[];
+    remediation_applied?: boolean;
+  }) {
+    const result = await query(
+      `UPDATE accessibility_audits
+       SET ai_suggestions = $1,
+           remediation_applied = $2,
+           remediation_at = CASE WHEN $2 THEN NOW() ELSE remediation_at END,
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [JSON.stringify(data.ai_suggestions), data.remediation_applied || false, id]
+    );
+    return result[0];
+  },
+
+  async deleteAccessibilityAudit(id: number) {
+    const result = await query(
+      'DELETE FROM accessibility_audits WHERE id = $1 RETURNING *',
+      [id]
+    );
+    return result[0] || null;
+  },
 };

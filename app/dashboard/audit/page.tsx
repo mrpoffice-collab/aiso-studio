@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import AISOBadge from '@/components/AISOBadge';
 import AEOScoreCard from '@/components/AEOScoreCard';
 import ArticlePreview from '@/components/ArticlePreview';
+import AccessibilitySummary from '@/components/AccessibilitySummary';
 import { generateComparisonPDF } from '@/lib/comparison-pdf-generator';
 
 function AuditPageContent() {
@@ -21,6 +22,11 @@ function AuditPageContent() {
   const [rewriteResult, setRewriteResult] = useState<any>(null);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'preview' | 'metrics' | 'changes'>('preview');
+
+  // Accessibility audit state
+  const [accessibilityResult, setAccessibilityResult] = useState<any>(null);
+  const [isAccessibilityAuditing, setIsAccessibilityAuditing] = useState(false);
+  const [isGeneratingFixes, setIsGeneratingFixes] = useState(false);
 
   // Check for parameters from batch audit or direct post audit
   useEffect(() => {
@@ -68,6 +74,7 @@ function AuditPageContent() {
     setIsAuditing(true);
     setError('');
     setAuditResult(null);
+    setAccessibilityResult(null);
 
     try {
       const response = await fetch('/api/audit', {
@@ -208,6 +215,61 @@ function AuditPageContent() {
       setError(err.message);
     } finally {
       setIsRewriting(false);
+    }
+  };
+
+  // Accessibility audit handler
+  const handleAccessibilityAudit = async (url: string) => {
+    if (!url) return;
+
+    setIsAccessibilityAuditing(true);
+    setAccessibilityResult(null);
+
+    try {
+      const response = await fetch('/api/audit/accessibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Accessibility audit failed:', data.error);
+        return;
+      }
+
+      setAccessibilityResult(data.audit);
+    } catch (err) {
+      console.error('Accessibility audit error:', err);
+    } finally {
+      setIsAccessibilityAuditing(false);
+    }
+  };
+
+  // Generate AI fixes for accessibility issues
+  const handleGenerateFixes = async () => {
+    if (!accessibilityResult?.id) return;
+
+    setIsGeneratingFixes(true);
+
+    try {
+      const response = await fetch(`/api/audit/accessibility/${accessibilityResult.id}/fix`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setAccessibilityResult((prev: any) => ({
+          ...prev,
+          aiSuggestions: data.suggestions,
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to generate fixes:', err);
+    } finally {
+      setIsGeneratingFixes(false);
     }
   };
 
@@ -354,6 +416,7 @@ function AuditPageContent() {
                 <button
                   onClick={() => {
                     setAuditResult(null);
+                    setAccessibilityResult(null);
                     setContentInput('');
                     setUrlInput('');
                     setError('');
@@ -568,6 +631,78 @@ function AuditPageContent() {
                     </p>
                   </div>
                 )}
+
+                {/* Accessibility Audit Section */}
+                {urlInput && (
+                  <div className="mt-8 pt-8 border-t border-slate-200">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        WCAG Accessibility Audit
+                      </h3>
+                      {!accessibilityResult && (
+                        <button
+                          onClick={() => handleAccessibilityAudit(urlInput)}
+                          disabled={isAccessibilityAuditing}
+                          className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold text-sm hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {isAccessibilityAuditing ? (
+                            <>
+                              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Scanning...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Run Accessibility Scan
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {isAccessibilityAuditing && (
+                      <div className="p-8 rounded-xl bg-purple-50 border border-purple-200 text-center">
+                        <svg className="animate-spin h-8 w-8 mx-auto mb-4 text-purple-600" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p className="text-purple-800 font-bold">Scanning page for WCAG accessibility issues...</p>
+                        <p className="text-purple-600 text-sm mt-2">This may take 15-30 seconds</p>
+                      </div>
+                    )}
+
+                    {accessibilityResult && (
+                      <AccessibilitySummary
+                        score={accessibilityResult.accessibilityScore}
+                        criticalCount={accessibilityResult.criticalCount}
+                        seriousCount={accessibilityResult.seriousCount}
+                        moderateCount={accessibilityResult.moderateCount}
+                        minorCount={accessibilityResult.minorCount}
+                        totalViolations={accessibilityResult.totalViolations}
+                        totalPasses={accessibilityResult.totalPasses}
+                        violations={accessibilityResult.violations || []}
+                        wcagBreakdown={accessibilityResult.wcagBreakdown || {
+                          perceivable: { violations: 0, score: 100 },
+                          operable: { violations: 0, score: 100 },
+                          understandable: { violations: 0, score: 100 },
+                          robust: { violations: 0, score: 100 },
+                        }}
+                        pageTitle={accessibilityResult.pageTitle}
+                        onFixAll={handleGenerateFixes}
+                        isFixing={isGeneratingFixes}
+                        aiSuggestions={accessibilityResult.aiSuggestions}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -588,6 +723,7 @@ function AuditPageContent() {
                   onClick={() => {
                     setRewriteResult(null);
                     setAuditResult(null);
+                    setAccessibilityResult(null);
                     setContentInput('');
                     setUrlInput('');
                     setActiveTab('preview');
