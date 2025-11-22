@@ -97,13 +97,14 @@ export default function BrandingSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Agency Branding</h1>
-        <p className="mt-2 text-slate-600">
-          Customize your agency branding for professional MOUs and documents
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <div className="mx-auto max-w-4xl p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900">Agency Branding</h1>
+          <p className="mt-2 text-slate-600">
+            Customize your agency branding for professional MOUs and documents
+          </p>
+        </div>
 
       {message && (
         <div
@@ -302,6 +303,7 @@ export default function BrandingSettingsPage() {
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

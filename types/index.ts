@@ -149,6 +149,52 @@ export interface SearchImagesResponse {
   }>;
 }
 
+// Digital Asset Manager types
+export interface Asset {
+  id: string;
+  user_id: string;
+  folder_id: string | null;
+  filename: string;
+  original_filename: string;
+  file_type: 'image' | 'pdf' | 'video' | 'document';
+  mime_type: string;
+  file_size: number;
+  blob_url: string;
+  public_url: string | null;
+  width: number | null;
+  height: number | null;
+  dominant_color: string | null;
+  tags: string[];
+  description: string | null;
+  alt_text: string | null;
+  download_count: number;
+  last_accessed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface AssetFolder {
+  id: string;
+  user_id: string;
+  parent_folder_id: string | null;
+  name: string;
+  description: string | null;
+  color: string | null;
+  strategy_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssetUsage {
+  id: string;
+  asset_id: string;
+  entity_type: 'post' | 'mou' | 'strategy';
+  entity_id: string;
+  usage_type: 'featured_image' | 'attachment' | 'inline' | null;
+  created_at: string;
+}
+
 // Form types
 export type BrandVoice = 'Professional' | 'Conversational' | 'Technical' | 'Casual';
 export type PostingFrequency = '1/week' | '2/week' | '1/month';
