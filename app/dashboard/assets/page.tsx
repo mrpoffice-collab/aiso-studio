@@ -1,12 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { Asset } from '@/types';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Asset, AssetFolder } from '@/types';
+import { HexColorPicker } from 'react-colorful';
 
 export default function AssetsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentFolderId = searchParams.get('folder');
+
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [folders, setFolders] = useState<AssetFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -14,15 +19,29 @@ export default function AssetsPage() {
   const [filterType, setFilterType] = useState<string>('all');
   const [isDragging, setIsDragging] = useState(false);
 
-  // Load assets on mount
+  // Folder creation state
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderDescription, setNewFolderDescription] = useState('');
+  const [newFolderColor, setNewFolderColor] = useState('#6366f1');
+  const [showColorPicker, setShowColorPicker] = useState(false);
+
+  // Move asset state
+  const [movingAssetId, setMovingAssetId] = useState<string | null>(null);
+
+  // Load assets and folders on mount
   useEffect(() => {
     loadAssets();
-  }, []);
+    loadFolders();
+  }, [currentFolderId]);
 
   const loadAssets = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/assets');
+      const url = currentFolderId
+        ? `/api/assets?folderId=${currentFolderId}`
+        : '/api/assets';
+      const response = await fetch(url);
       const data = await response.json();
 
       if (data.success) {
@@ -34,6 +53,19 @@ export default function AssetsPage() {
       setError(err.message || 'Failed to load assets');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFolders = async () => {
+    try {
+      const response = await fetch('/api/assets/folders');
+      const data = await response.json();
+
+      if (data.success) {
+        setFolders(data.folders);
+      }
+    } catch (err: any) {
+      console.error('Failed to load folders:', err);
     }
   };
 
@@ -56,6 +88,9 @@ export default function AssetsPage() {
 
       const formData = new FormData();
       formData.append('file', file);
+      if (currentFolderId) {
+        formData.append('folderId', currentFolderId);
+      }
 
       const response = await fetch('/api/assets/upload', {
         method: 'POST',
@@ -66,7 +101,7 @@ export default function AssetsPage() {
 
       if (data.success) {
         setSuccess(`Successfully uploaded ${file.name}`);
-        loadAssets(); // Reload the asset list
+        loadAssets();
       } else {
         setError(data.error || 'Upload failed');
       }
@@ -91,12 +126,69 @@ export default function AssetsPage() {
 
       if (data.success) {
         setSuccess(`Deleted ${filename}`);
-        loadAssets(); // Reload the asset list
+        loadAssets();
       } else {
         setError(data.error || 'Delete failed');
       }
     } catch (err: any) {
       setError(err.message || 'Delete failed');
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      setError('Folder name is required');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/assets/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newFolderName,
+          description: newFolderDescription,
+          color: newFolderColor,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSuccess(`Folder "${newFolderName}" created`);
+        setNewFolderName('');
+        setNewFolderDescription('');
+        setNewFolderColor('#6366f1');
+        setShowCreateFolder(false);
+        loadFolders();
+      } else {
+        setError(data.error || 'Failed to create folder');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to create folder');
+    }
+  };
+
+  const handleMoveAsset = async (assetId: string, folderId: string | null) => {
+    try {
+      const response = await fetch(`/api/assets/${assetId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder_id: folderId }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSuccess('Asset moved successfully');
+        loadAssets();
+      } else {
+        setError(data.error || 'Failed to move asset');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to move asset');
+    } finally {
+      setMovingAssetId(null);
     }
   };
 
@@ -155,190 +247,366 @@ export default function AssetsPage() {
     }
   };
 
+  // Get current folder
+  const currentFolder = folders.find(f => f.id === currentFolderId);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <div className="mx-auto max-w-7xl p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900">Digital Assets</h1>
-          <p className="mt-2 text-slate-600">
-            Upload and manage your images, PDFs, videos, and documents
-          </p>
-        </div>
-
-        {/* Alerts */}
-        {error && (
-          <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-800 border border-red-200">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="mb-6 rounded-lg bg-green-50 p-4 text-green-800 border border-green-200">
-            {success}
-          </div>
-        )}
-
-        {/* Upload Area */}
-        <div
-          className={`mb-8 rounded-xl border-2 border-dashed p-8 text-center transition-all ${
-            isDragging
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-slate-50'
-          }`}
-          onDragEnter={handleDragEnter}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <div className="flex flex-col items-center gap-4">
-            <div className="text-6xl">📤</div>
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">
-                {uploading ? 'Uploading...' : 'Drop files here or click to upload'}
-              </h3>
-              <p className="mt-1 text-sm text-slate-600">
-                Maximum file size: 25MB
-              </p>
-            </div>
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                className="hidden"
-                onChange={(e) => handleFileUpload(e.target.files)}
-                disabled={uploading}
-              />
-              <span className="inline-block rounded-lg bg-blue-600 px-6 py-3 text-white font-medium hover:bg-blue-700 transition-colors">
-                {uploading ? 'Uploading...' : 'Choose File'}
-              </span>
-            </label>
-          </div>
-        </div>
-
-        {/* Filter Tabs */}
-        <div className="mb-6 flex gap-2 border-b border-slate-200">
-          {[
-            { value: 'all', label: 'All Files', icon: '📁' },
-            { value: 'image', label: 'Images', icon: '🖼️' },
-            { value: 'pdf', label: 'PDFs', icon: '📄' },
-            { value: 'video', label: 'Videos', icon: '🎥' },
-            { value: 'document', label: 'Documents', icon: '📎' },
-          ].map((filter) => (
+      <div className="flex">
+        {/* Folder Sidebar */}
+        <div className="w-64 min-h-screen bg-white border-r border-slate-200 p-4">
+          <div className="mb-4">
             <button
-              key={filter.value}
-              onClick={() => setFilterType(filter.value)}
-              className={`px-4 py-2 font-medium transition-colors ${
-                filterType === filter.value
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              onClick={() => setShowCreateFolder(true)}
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
-              <span className="mr-2">{filter.icon}</span>
-              {filter.label}
+              + New Folder
             </button>
-          ))}
-        </div>
+          </div>
 
-        {/* Assets Grid */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-4">⏳</div>
-            <p className="text-slate-600">Loading assets...</p>
-          </div>
-        ) : filteredAssets.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-            <div className="text-6xl mb-4">📭</div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
-              No assets yet
-            </h3>
-            <p className="text-slate-600">
-              {filterType === 'all'
-                ? 'Upload your first file to get started'
-                : `No ${filterType} files found`}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredAssets.map((asset) => (
-              <div
-                key={asset.id}
-                className="group relative rounded-xl bg-white border border-slate-200 overflow-hidden hover:shadow-lg transition-all"
+          {/* All Files */}
+          <button
+            onClick={() => router.push('/dashboard/assets')}
+            className={`w-full px-3 py-2 rounded-lg text-left font-medium transition-colors mb-2 ${
+              !currentFolderId
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            📁 All Files
+          </button>
+
+          {/* Folders List */}
+          <div className="space-y-1">
+            {folders.map((folder) => (
+              <button
+                key={folder.id}
+                onClick={() => router.push(`/dashboard/assets?folder=${folder.id}`)}
+                className={`w-full px-3 py-2 rounded-lg text-left font-medium transition-colors flex items-center gap-2 ${
+                  currentFolderId === folder.id
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
               >
-                {/* Asset Preview */}
-                <div className="aspect-square bg-slate-100 flex items-center justify-center">
-                  {asset.file_type === 'image' ? (
-                    <img
-                      src={asset.public_url || asset.blob_url}
-                      alt={asset.alt_text || asset.original_filename}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-6xl">{getFileIcon(asset.file_type)}</div>
-                  )}
-                </div>
-
-                {/* Asset Info */}
-                <div className="p-4">
-                  <h3 className="font-medium text-slate-900 truncate mb-1">
-                    {asset.original_filename}
-                  </h3>
-                  <p className="text-sm text-slate-600">
-                    {formatFileSize(asset.file_size)}
-                    {asset.width && asset.height && (
-                      <span className="ml-2">
-                        {asset.width} × {asset.height}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {new Date(asset.created_at).toLocaleDateString()}
-                  </p>
-
-                  {/* Tags */}
-                  {asset.tags && asset.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {asset.tags.slice(0, 3).map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                  <a
-                    href={asset.public_url || asset.blob_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 bg-white rounded-lg shadow-lg hover:bg-slate-50 transition-colors"
-                    title="View"
-                  >
-                    👁️
-                  </a>
-                  <button
-                    onClick={() => handleDelete(asset.id, asset.original_filename)}
-                    className="p-2 bg-white rounded-lg shadow-lg hover:bg-red-50 transition-colors"
-                    title="Delete"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: folder.color || '#6366f1' }}
+                />
+                <span className="truncate">{folder.name}</span>
+              </button>
             ))}
           </div>
-        )}
+        </div>
 
-        {/* Stats */}
-        {!loading && assets.length > 0 && (
-          <div className="mt-8 text-center text-sm text-slate-600">
-            Showing {filteredAssets.length} of {assets.length} assets
+        {/* Main Content */}
+        <div className="flex-1 p-6">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-2 text-sm text-slate-600">
+              <button
+                onClick={() => router.push('/dashboard/assets')}
+                className="hover:text-slate-900"
+              >
+                All Files
+              </button>
+              {currentFolder && (
+                <>
+                  <span>/</span>
+                  <span className="font-medium text-slate-900">
+                    {currentFolder.name}
+                  </span>
+                </>
+              )}
+            </div>
+            <h1 className="text-4xl font-bold text-slate-900">
+              {currentFolder ? currentFolder.name : 'Digital Assets'}
+            </h1>
+            {currentFolder?.description && (
+              <p className="mt-2 text-slate-600">{currentFolder.description}</p>
+            )}
           </div>
-        )}
+
+          {/* Alerts */}
+          {error && (
+            <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-800 border border-red-200">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-6 rounded-lg bg-green-50 p-4 text-green-800 border border-green-200">
+              {success}
+            </div>
+          )}
+
+          {/* Upload Area */}
+          <div
+            className={`mb-8 rounded-xl border-2 border-dashed p-8 text-center transition-all ${
+              isDragging
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-slate-50'
+            }`}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="flex flex-col items-center gap-4">
+              <div className="text-6xl">📤</div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  {uploading ? 'Uploading...' : 'Drop files here or click to upload'}
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Maximum file size: 25MB
+                  {currentFolder && ` • Uploading to ${currentFolder.name}`}
+                </p>
+              </div>
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => handleFileUpload(e.target.files)}
+                  disabled={uploading}
+                />
+                <span className="inline-block rounded-lg bg-blue-600 px-6 py-3 text-white font-medium hover:bg-blue-700 transition-colors">
+                  {uploading ? 'Uploading...' : 'Choose File'}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="mb-6 flex gap-2 border-b border-slate-200">
+            {[
+              { value: 'all', label: 'All Files', icon: '📁' },
+              { value: 'image', label: 'Images', icon: '🖼️' },
+              { value: 'pdf', label: 'PDFs', icon: '📄' },
+              { value: 'video', label: 'Videos', icon: '🎥' },
+              { value: 'document', label: 'Documents', icon: '📎' },
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setFilterType(filter.value)}
+                className={`px-4 py-2 font-medium transition-colors ${
+                  filterType === filter.value
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span className="mr-2">{filter.icon}</span>
+                {filter.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Assets Grid */}
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-4">⏳</div>
+              <p className="text-slate-600">Loading assets...</p>
+            </div>
+          ) : filteredAssets.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
+              <div className="text-6xl mb-4">📭</div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                No assets yet
+              </h3>
+              <p className="text-slate-600">
+                {filterType === 'all'
+                  ? 'Upload your first file to get started'
+                  : `No ${filterType} files found`}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredAssets.map((asset) => (
+                <div
+                  key={asset.id}
+                  className="group relative rounded-xl bg-white border border-slate-200 overflow-hidden hover:shadow-lg transition-all"
+                >
+                  {/* Asset Preview */}
+                  <div className="aspect-square bg-slate-100 flex items-center justify-center">
+                    {asset.file_type === 'image' ? (
+                      <img
+                        src={asset.public_url || asset.blob_url}
+                        alt={asset.alt_text || asset.original_filename}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-6xl">{getFileIcon(asset.file_type)}</div>
+                    )}
+                  </div>
+
+                  {/* Asset Info */}
+                  <div className="p-4">
+                    <h3 className="font-medium text-slate-900 truncate mb-1">
+                      {asset.original_filename}
+                    </h3>
+                    <p className="text-sm text-slate-600">
+                      {formatFileSize(asset.file_size)}
+                      {asset.width && asset.height && (
+                        <span className="ml-2">
+                          {asset.width} × {asset.height}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {new Date(asset.created_at).toLocaleDateString()}
+                    </p>
+
+                    {/* Tags */}
+                    {asset.tags && asset.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {asset.tags.slice(0, 3).map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                    <a
+                      href={asset.public_url || asset.blob_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 bg-white rounded-lg shadow-lg hover:bg-slate-50 transition-colors"
+                      title="View"
+                    >
+                      👁️
+                    </a>
+                    {movingAssetId === asset.id ? (
+                      <div className="p-2 bg-white rounded-lg shadow-lg">
+                        <select
+                          onChange={(e) => handleMoveAsset(asset.id, e.target.value || null)}
+                          className="text-xs"
+                        >
+                          <option value="">No Folder</option>
+                          {folders.map((folder) => (
+                            <option key={folder.id} value={folder.id}>
+                              {folder.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setMovingAssetId(asset.id)}
+                        className="p-2 bg-white rounded-lg shadow-lg hover:bg-slate-50 transition-colors"
+                        title="Move"
+                      >
+                        📁
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(asset.id, asset.original_filename)}
+                      className="p-2 bg-white rounded-lg shadow-lg hover:bg-red-50 transition-colors"
+                      title="Delete"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Stats */}
+          {!loading && assets.length > 0 && (
+            <div className="mt-8 text-center text-sm text-slate-600">
+              Showing {filteredAssets.length} of {assets.length} assets
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Create Folder Modal */}
+      {showCreateFolder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full m-4">
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">Create Folder</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Folder Name *
+                </label>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Client Assets"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={newFolderDescription}
+                  onChange={(e) => setNewFolderDescription(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  placeholder="Store client logos and brand assets"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Folder Color
+                </label>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-lg border-2 border-slate-300 cursor-pointer"
+                    style={{ backgroundColor: newFolderColor }}
+                    onClick={() => setShowColorPicker(!showColorPicker)}
+                  />
+                  <input
+                    type="text"
+                    value={newFolderColor}
+                    onChange={(e) => setNewFolderColor(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
+                    placeholder="#6366f1"
+                  />
+                </div>
+                {showColorPicker && (
+                  <div className="mt-2">
+                    <HexColorPicker color={newFolderColor} onChange={setNewFolderColor} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowCreateFolder(false);
+                  setNewFolderName('');
+                  setNewFolderDescription('');
+                  setNewFolderColor('#6366f1');
+                  setShowColorPicker(false);
+                }}
+                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateFolder}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Create Folder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

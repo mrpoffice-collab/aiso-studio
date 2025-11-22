@@ -130,3 +130,68 @@ export async function GET(
     );
   }
 }
+
+/**
+ * PATCH /api/assets/[id]
+ * Moves an asset to a different folder or updates its metadata
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { userId: clerkId } = await auth();
+
+    if (!clerkId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get user from database
+    const user = await db.getUserByClerkId(clerkId);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const { id: assetId } = await params;
+
+    // Get the asset to verify ownership
+    const asset = await db.getAssetById(assetId);
+
+    if (!asset) {
+      return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
+    }
+
+    // Verify the asset belongs to the user
+    if (asset.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Not authorized to update this asset' },
+        { status: 403 }
+      );
+    }
+
+    // Get request body
+    const body = await request.json();
+    const { folder_id, tags, description, alt_text } = body;
+
+    // Update the asset
+    const updatedAsset = await db.updateAsset(assetId, {
+      folder_id,
+      tags,
+      description,
+      alt_text,
+    });
+
+    return NextResponse.json({
+      success: true,
+      asset: updatedAsset,
+      message: 'Asset updated successfully',
+    });
+
+  } catch (error: any) {
+    console.error('Update asset error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to update asset' },
+      { status: 500 }
+    );
+  }
+}

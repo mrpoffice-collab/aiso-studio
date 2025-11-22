@@ -1459,6 +1459,47 @@ export const db = {
     return result[0] || null;
   },
 
+  async updateAsset(id: string, data: {
+    folder_id?: string | null;
+    tags?: string[];
+    description?: string;
+    alt_text?: string;
+  }) {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (data.folder_id !== undefined) {
+      updates.push(`folder_id = $${paramIndex++}`);
+      values.push(data.folder_id || null);
+    }
+    if (data.tags !== undefined) {
+      updates.push(`tags = $${paramIndex++}`);
+      values.push(data.tags || []);
+    }
+    if (data.description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(data.description || null);
+    }
+    if (data.alt_text !== undefined) {
+      updates.push(`alt_text = $${paramIndex++}`);
+      values.push(data.alt_text || null);
+    }
+
+    if (updates.length === 0) {
+      // No updates provided, return current asset
+      return this.getAssetById(id);
+    }
+
+    updates.push(`updated_at = NOW()`);
+
+    const result = await query(
+      `UPDATE assets SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      [...values, id]
+    );
+    return result[0];
+  },
+
   async deleteAsset(id: string) {
     // Soft delete
     const result = await sql`
@@ -1497,6 +1538,64 @@ export const db = {
       ORDER BY created_at DESC
     `;
     return result;
+  },
+
+  async getAssetFolderById(folderId: string) {
+    const result = await sql`
+      SELECT * FROM asset_folders
+      WHERE id = ${folderId}
+    `;
+    return result[0];
+  },
+
+  async updateAssetFolder(folderId: string, data: {
+    name?: string;
+    description?: string;
+    color?: string;
+    parent_folder_id?: string;
+    strategy_id?: string;
+  }) {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (data.name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(data.name);
+    }
+    if (data.description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(data.description || null);
+    }
+    if (data.color !== undefined) {
+      updates.push(`color = $${paramIndex++}`);
+      values.push(data.color || null);
+    }
+    if (data.parent_folder_id !== undefined) {
+      updates.push(`parent_folder_id = $${paramIndex++}`);
+      values.push(data.parent_folder_id || null);
+    }
+    if (data.strategy_id !== undefined) {
+      updates.push(`strategy_id = $${paramIndex++}`);
+      values.push(data.strategy_id || null);
+    }
+
+    if (updates.length === 0) {
+      // No updates provided, return current folder
+      return this.getAssetFolderById(folderId);
+    }
+
+    updates.push(`updated_at = NOW()`);
+
+    const result = await query(
+      `UPDATE asset_folders SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      [...values, folderId]
+    );
+    return result[0];
+  },
+
+  async deleteAssetFolder(folderId: string) {
+    await sql`DELETE FROM asset_folders WHERE id = ${folderId}`;
   },
 
   async trackAssetUsage(data: {
