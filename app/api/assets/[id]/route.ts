@@ -9,7 +9,7 @@ import { db } from '@/lib/db';
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId: clerkId } = await auth();
@@ -24,7 +24,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const assetId = params.id;
+    const { id: assetId } = await params;
 
     // Get the asset to verify ownership and get blob URL
     const asset = await db.getAssetById(assetId);
@@ -82,7 +82,7 @@ export async function DELETE(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId: clerkId } = await auth();
@@ -97,7 +97,7 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const assetId = params.id;
+    const { id: assetId } = await params;
     const asset = await db.getAssetById(assetId);
 
     if (!asset) {
