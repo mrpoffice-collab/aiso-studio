@@ -1390,4 +1390,126 @@ export const db = {
     );
     return result[0] || null;
   },
+
+  // Digital Asset Manager
+  async createAsset(data: {
+    user_id: string;
+    folder_id?: string;
+    filename: string;
+    original_filename: string;
+    file_type: 'image' | 'pdf' | 'video' | 'document';
+    mime_type: string;
+    file_size: number;
+    blob_url: string;
+    public_url?: string;
+    width?: number;
+    height?: number;
+    dominant_color?: string;
+    tags?: string[];
+    description?: string;
+    alt_text?: string;
+  }) {
+    const result = await sql`
+      INSERT INTO assets (
+        user_id, folder_id, filename, original_filename, file_type, mime_type,
+        file_size, blob_url, public_url, width, height, dominant_color,
+        tags, description, alt_text
+      ) VALUES (
+        ${data.user_id},
+        ${data.folder_id || null},
+        ${data.filename},
+        ${data.original_filename},
+        ${data.file_type},
+        ${data.mime_type},
+        ${data.file_size},
+        ${data.blob_url},
+        ${data.public_url || null},
+        ${data.width || null},
+        ${data.height || null},
+        ${data.dominant_color || null},
+        ${data.tags ? sql.array(data.tags) : sql.array([])},
+        ${data.description || null},
+        ${data.alt_text || null}
+      ) RETURNING *
+    `;
+    return result[0];
+  },
+
+  async getAssetsByUserId(userId: string, folderId?: string) {
+    if (folderId) {
+      const result = await sql`
+        SELECT * FROM assets
+        WHERE user_id = ${userId} AND folder_id = ${folderId} AND deleted_at IS NULL
+        ORDER BY created_at DESC
+      `;
+      return result;
+    }
+    const result = await sql`
+      SELECT * FROM assets
+      WHERE user_id = ${userId} AND deleted_at IS NULL
+      ORDER BY created_at DESC
+    `;
+    return result;
+  },
+
+  async getAssetById(id: string) {
+    const result = await sql`
+      SELECT * FROM assets WHERE id = ${id} AND deleted_at IS NULL
+    `;
+    return result[0] || null;
+  },
+
+  async deleteAsset(id: string) {
+    // Soft delete
+    const result = await sql`
+      UPDATE assets SET deleted_at = NOW() WHERE id = ${id} RETURNING *
+    `;
+    return result[0] || null;
+  },
+
+  async createAssetFolder(data: {
+    user_id: string;
+    name: string;
+    parent_folder_id?: string;
+    description?: string;
+    color?: string;
+    strategy_id?: string;
+  }) {
+    const result = await sql`
+      INSERT INTO asset_folders (
+        user_id, name, parent_folder_id, description, color, strategy_id
+      ) VALUES (
+        ${data.user_id},
+        ${data.name},
+        ${data.parent_folder_id || null},
+        ${data.description || null},
+        ${data.color || null},
+        ${data.strategy_id || null}
+      ) RETURNING *
+    `;
+    return result[0];
+  },
+
+  async getAssetFoldersByUserId(userId: string) {
+    const result = await sql`
+      SELECT * FROM asset_folders
+      WHERE user_id = ${userId}
+      ORDER BY created_at DESC
+    `;
+    return result;
+  },
+
+  async trackAssetUsage(data: {
+    asset_id: string;
+    entity_type: 'post' | 'mou' | 'strategy';
+    entity_id: string;
+    usage_type?: string;
+  }) {
+    const result = await sql`
+      INSERT INTO asset_usage (asset_id, entity_type, entity_id, usage_type)
+      VALUES (${data.asset_id}, ${data.entity_type}, ${data.entity_id}, ${data.usage_type || null})
+      RETURNING *
+    `;
+    return result[0];
+  },
 };

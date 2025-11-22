@@ -2,10 +2,29 @@
 -- Description: Creates tables for storing and organizing digital assets
 -- Created: 2025-11-22
 
+-- Asset folders - organize assets by client/campaign (CREATE FIRST - referenced by assets)
+CREATE TABLE IF NOT EXISTS asset_folders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  parent_folder_id UUID REFERENCES asset_folders(id) ON DELETE CASCADE,
+
+  -- Folder info
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  color VARCHAR(7), -- hex color for folder icon
+
+  -- Auto-link to strategies/clients
+  strategy_id UUID REFERENCES strategies(id) ON DELETE SET NULL,
+
+  -- Metadata
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Assets table - stores all uploaded files
 CREATE TABLE IF NOT EXISTS assets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   folder_id UUID REFERENCES asset_folders(id) ON DELETE SET NULL,
   
   -- File information
@@ -37,25 +56,6 @@ CREATE TABLE IF NOT EXISTS assets (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   deleted_at TIMESTAMP WITH TIME ZONE -- soft delete
-);
-
--- Asset folders - organize assets by client/campaign
-CREATE TABLE IF NOT EXISTS asset_folders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  parent_folder_id UUID REFERENCES asset_folders(id) ON DELETE CASCADE,
-  
-  -- Folder info
-  name VARCHAR(255) NOT NULL,
-  description TEXT,
-  color VARCHAR(7), -- hex color for folder icon
-  
-  -- Auto-link to strategies/clients
-  strategy_id UUID REFERENCES strategies(id) ON DELETE SET NULL,
-  
-  -- Metadata
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Asset usage tracking - which posts/MOUs use which assets
