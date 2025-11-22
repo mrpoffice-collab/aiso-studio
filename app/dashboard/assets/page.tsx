@@ -9,6 +9,7 @@ function AssetsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentFolderId = searchParams.get('folder');
+  const activeTag = searchParams.get('tag');
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [folders, setFolders] = useState<AssetFolder[]>([]);
@@ -25,27 +26,51 @@ function AssetsContent() {
   const [newFolderDescription, setNewFolderDescription] = useState('');
   const [newFolderColor, setNewFolderColor] = useState('#6366f1');
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [parentFolderId, setParentFolderId] = useState<string | null>(null);
+
+  // Tag state
+  const [uploadTags, setUploadTags] = useState('');
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [editTags, setEditTags] = useState('');
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   // Move asset state
   const [movingAssetId, setMovingAssetId] = useState<string | null>(null);
+
+  // Folder expand/collapse state
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   // Load assets and folders on mount
   useEffect(() => {
     loadAssets();
     loadFolders();
-  }, [currentFolderId]);
+  }, [currentFolderId, activeTag]);
 
   const loadAssets = async () => {
     try {
       setLoading(true);
-      const url = currentFolderId
-        ? `/api/assets?folderId=${currentFolderId}`
-        : '/api/assets';
+      let url = '/api/assets';
+      const params = new URLSearchParams();
+
+      if (currentFolderId) params.append('folderId', currentFolderId);
+      if (activeTag) params.append('tags', activeTag);
+
+      if (params.toString()) url += `?${params.toString()}`;
+
       const response = await fetch(url);
       const data = await response.json();
 
       if (data.success) {
         setAssets(data.assets);
+
+        // Extract all unique tags
+        const tags = new Set<string>();
+        data.assets.forEach((asset: Asset) => {
+          if (asset.tags) {
+            asset.tags.forEach((tag: string) => tags.add(tag));
+          }
+        });
+        setAllTags(Array.from(tags).sort());
       } else {
         setError(data.error || 'Failed to load assets');
       }
@@ -91,6 +116,9 @@ function AssetsContent() {
       if (currentFolderId) {
         formData.append('folderId', currentFolderId);
       }
+      if (uploadTags.trim()) {
+        formData.append('tags', uploadTags);
+      }
 
       const response = await fetch('/api/assets/upload', {
         method: 'POST',
@@ -101,6 +129,7 @@ function AssetsContent() {
 
       if (data.success) {
         setSuccess(`Successfully uploaded ${file.name}`);
+        setUploadTags(''); // Clear tags after upload
         loadAssets();
       } else {
         setError(data.error || 'Upload failed');
@@ -149,6 +178,7 @@ function AssetsContent() {
           name: newFolderName,
           description: newFolderDescription,
           color: newFolderColor,
+          parent_folder_id: parentFolderId,
         }),
       });
 
@@ -159,6 +189,7 @@ function AssetsContent() {
         setNewFolderName('');
         setNewFolderDescription('');
         setNewFolderColor('#6366f1');
+        setParentFolderId(null);
         setShowCreateFolder(false);
         loadFolders();
       } else {
@@ -190,6 +221,41 @@ function AssetsContent() {
     } finally {
       setMovingAssetId(null);
     }
+  };
+
+  const handleUpdateTags = async (assetId: string) => {
+    try {
+      const tagsArray = editTags.split(',').map(t => t.trim()).filter(Boolean);
+
+      const response = await fetch(`/api/assets/${assetId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: tagsArray }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSuccess('Tags updated successfully');
+        setEditingAssetId(null);
+        setEditTags('');
+        loadAssets();
+      } else {
+        setError(data.error || 'Failed to update tags');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to update tags');
+    }
+  };
+
+  const toggleFolder = (folderId: string) => {
+    const newExpanded = new Set(expandedFolders);
+    if (newExpanded.has(folderId)) {
+      newExpanded.delete(folderId);
+    } else {
+      newExpanded.add(folderId);
+    }
+    setExpandedFolders(newExpanded);
   };
 
   // Drag and drop handlers
@@ -247,20 +313,108 @@ function AssetsContent() {
     }
   };
 
+  // Build folder tree
+  const buildFolderTree = () => {
+    const rootFolders = folders.filter(f => !f.parent_folder_id);
+
+    const renderFolder = (folder: AssetFolder, depth: number = 0): JSX.Element[] => {
+      const children = folders.filter(f => f.parent_folder_id === folder.id);
+      const hasChildren = children.length > 0;
+      const isExpanded = expandedFolders.has(folder.id);
+      const isActive = currentFolderId === folder.id;
+
+      const result: JSX.Element[] = [
+        <div key={folder.id} className="relative">
+          <button
+            onClick={() => router.push(`/dashboard/assets?folder=${folder.id}`)}
+            className={`w-full px-3 py-2 rounded-lg text-left font-medium transition-colors flex items-center gap-2 ${
+              isActive
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-slate-700 hover:bg-slate-50'
+            }`}
+            style={{ paddingLeft: `${12 + depth * 16}px` }}
+          >
+            {hasChildren && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFolder(folder.id);
+                }}
+                className="flex-shrink-0"
+              >
+                <span className="text-xs">{isExpanded ? '▼' : '▶'}</span>
+              </button>
+            )}
+            {!hasChildren && <span className="w-3" />}
+            <div
+              className="w-3 h-3 rounded-full flex-shrink-0"
+              style={{ backgroundColor: folder.color || '#6366f1' }}
+            />
+            <span className="truncate flex-1">{folder.name}</span>
+          </button>
+        </div>
+      ];
+
+      if (hasChildren && isExpanded) {
+        children.forEach(child => {
+          result.push(...renderFolder(child, depth + 1));
+        });
+      }
+
+      return result;
+    };
+
+    return rootFolders.flatMap(folder => renderFolder(folder));
+  };
+
+  // Get breadcrumb path
+  const getBreadcrumbs = () => {
+    if (!currentFolderId) return [];
+
+    const path: AssetFolder[] = [];
+    let current = folders.find(f => f.id === currentFolderId);
+
+    while (current) {
+      path.unshift(current);
+      current = current.parent_folder_id
+        ? folders.find(f => f.id === current!.parent_folder_id)
+        : undefined;
+    }
+
+    return path;
+  };
+
   // Get current folder
   const currentFolder = folders.find(f => f.id === currentFolderId);
+  const breadcrumbs = getBreadcrumbs();
+
+  // Render folder options for move dropdown (hierarchical)
+  const renderFolderOptions = (parentId: string | null = null, depth: number = 0): JSX.Element[] => {
+    const folderList = folders.filter(f => f.parent_folder_id === parentId);
+
+    return folderList.flatMap(folder => [
+      <option key={folder.id} value={folder.id}>
+        {'  '.repeat(depth)}
+        {folder.name}
+      </option>,
+      ...renderFolderOptions(folder.id, depth + 1)
+    ]);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <div className="flex">
         {/* Folder Sidebar */}
         <div className="w-64 min-h-screen bg-white border-r border-slate-200 p-4">
-          <div className="mb-4">
+          <div className="mb-4 space-y-2">
             <button
-              onClick={() => setShowCreateFolder(true)}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              onClick={() => {
+                setParentFolderId(currentFolderId);
+                setShowCreateFolder(true);
+              }}
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
             >
-              + New Folder
+              + New {currentFolderId ? 'Subfolder' : 'Folder'}
             </button>
           </div>
 
@@ -268,7 +422,7 @@ function AssetsContent() {
           <button
             onClick={() => router.push('/dashboard/assets')}
             className={`w-full px-3 py-2 rounded-lg text-left font-medium transition-colors mb-2 ${
-              !currentFolderId
+              !currentFolderId && !activeTag
                 ? 'bg-blue-50 text-blue-700'
                 : 'text-slate-700 hover:bg-slate-50'
             }`}
@@ -276,50 +430,70 @@ function AssetsContent() {
             📁 All Files
           </button>
 
-          {/* Folders List */}
+          {/* Folders Tree */}
           <div className="space-y-1">
-            {folders.map((folder) => (
-              <button
-                key={folder.id}
-                onClick={() => router.push(`/dashboard/assets?folder=${folder.id}`)}
-                className={`w-full px-3 py-2 rounded-lg text-left font-medium transition-colors flex items-center gap-2 ${
-                  currentFolderId === folder.id
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: folder.color || '#6366f1' }}
-                />
-                <span className="truncate">{folder.name}</span>
-              </button>
-            ))}
+            {buildFolderTree()}
           </div>
+
+          {/* Tags Section */}
+          {allTags.length > 0 && (
+            <>
+              <div className="mt-6 mb-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Tags
+              </div>
+              <div className="space-y-1">
+                {allTags.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => router.push(`/dashboard/assets?tag=${tag}`)}
+                    className={`w-full px-3 py-2 rounded-lg text-left font-medium transition-colors flex items-center gap-2 text-sm ${
+                      activeTag === tag
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-xs">🏷️</span>
+                    <span className="truncate">{tag}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Main Content */}
         <div className="flex-1 p-6">
-          {/* Header */}
+          {/* Header with Breadcrumbs */}
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-2 text-sm text-slate-600">
               <button
                 onClick={() => router.push('/dashboard/assets')}
-                className="hover:text-slate-900"
+                className="hover:text-slate-900 hover:underline"
               >
                 All Files
               </button>
-              {currentFolder && (
+              {breadcrumbs.map((folder, idx) => (
+                <span key={folder.id} className="flex items-center gap-2">
+                  <span>/</span>
+                  <button
+                    onClick={() => router.push(`/dashboard/assets?folder=${folder.id}`)}
+                    className={`hover:text-slate-900 hover:underline ${
+                      idx === breadcrumbs.length - 1 ? 'font-medium text-slate-900' : ''
+                    }`}
+                  >
+                    {folder.name}
+                  </button>
+                </span>
+              ))}
+              {activeTag && (
                 <>
                   <span>/</span>
-                  <span className="font-medium text-slate-900">
-                    {currentFolder.name}
-                  </span>
+                  <span className="font-medium text-blue-700">🏷️ {activeTag}</span>
                 </>
               )}
             </div>
             <h1 className="text-4xl font-bold text-slate-900">
-              {currentFolder ? currentFolder.name : 'Digital Assets'}
+              {activeTag ? `Tagged: ${activeTag}` : currentFolder ? currentFolder.name : 'Digital Assets'}
             </h1>
             {currentFolder?.description && (
               <p className="mt-2 text-slate-600">{currentFolder.description}</p>
@@ -328,13 +502,15 @@ function AssetsContent() {
 
           {/* Alerts */}
           {error && (
-            <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-800 border border-red-200">
-              {error}
+            <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-800 border border-red-200 flex items-start gap-2">
+              <button onClick={() => setError('')} className="text-red-600 hover:text-red-800 font-bold">×</button>
+              <span>{error}</span>
             </div>
           )}
           {success && (
-            <div className="mb-6 rounded-lg bg-green-50 p-4 text-green-800 border border-green-200">
-              {success}
+            <div className="mb-6 rounded-lg bg-green-50 p-4 text-green-800 border border-green-200 flex items-start gap-2">
+              <button onClick={() => setSuccess('')} className="text-green-600 hover:text-green-800 font-bold">×</button>
+              <span>{success}</span>
             </div>
           )}
 
@@ -361,6 +537,18 @@ function AssetsContent() {
                   {currentFolder && ` • Uploading to ${currentFolder.name}`}
                 </p>
               </div>
+
+              {/* Tags Input */}
+              <div className="w-full max-w-md">
+                <input
+                  type="text"
+                  value={uploadTags}
+                  onChange={(e) => setUploadTags(e.target.value)}
+                  placeholder="Add tags (comma-separated): logo, brand, social"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
               <label className="cursor-pointer">
                 <input
                   type="file"
@@ -455,17 +643,59 @@ function AssetsContent() {
                     </p>
 
                     {/* Tags */}
-                    {asset.tags && asset.tags.length > 0 && (
+                    {editingAssetId === asset.id ? (
+                      <div className="mt-2 flex gap-1">
+                        <input
+                          type="text"
+                          value={editTags}
+                          onChange={(e) => setEditTags(e.target.value)}
+                          placeholder="tag1, tag2, tag3"
+                          className="flex-1 text-xs px-2 py-1 border border-slate-300 rounded"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleUpdateTags(asset.id)}
+                          className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingAssetId(null);
+                            setEditTags('');
+                          }}
+                          className="px-2 py-1 bg-slate-200 text-slate-700 text-xs rounded hover:bg-slate-300"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : asset.tags && asset.tags.length > 0 ? (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {asset.tags.slice(0, 3).map((tag, idx) => (
-                          <span
+                          <button
                             key={idx}
-                            className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded"
+                            onClick={() => router.push(`/dashboard/assets?tag=${tag}`)}
+                            className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
                           >
                             {tag}
-                          </span>
+                          </button>
                         ))}
+                        {asset.tags.length > 3 && (
+                          <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">
+                            +{asset.tags.length - 3}
+                          </span>
+                        )}
                       </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditingAssetId(asset.id);
+                          setEditTags('');
+                        }}
+                        className="mt-2 text-xs text-slate-500 hover:text-slate-700"
+                      >
+                        + Add tags
+                      </button>
                     )}
                   </div>
 
@@ -480,18 +710,26 @@ function AssetsContent() {
                     >
                       👁️
                     </a>
+                    <button
+                      onClick={() => {
+                        setEditingAssetId(asset.id);
+                        setEditTags(asset.tags?.join(', ') || '');
+                      }}
+                      className="p-2 bg-white rounded-lg shadow-lg hover:bg-slate-50 transition-colors"
+                      title="Edit Tags"
+                    >
+                      🏷️
+                    </button>
                     {movingAssetId === asset.id ? (
                       <div className="p-2 bg-white rounded-lg shadow-lg">
                         <select
                           onChange={(e) => handleMoveAsset(asset.id, e.target.value || null)}
                           className="text-xs"
+                          defaultValue=""
                         >
-                          <option value="">No Folder</option>
-                          {folders.map((folder) => (
-                            <option key={folder.id} value={folder.id}>
-                              {folder.name}
-                            </option>
-                          ))}
+                          <option value="">Select folder...</option>
+                          <option value="">📁 No Folder</option>
+                          {renderFolderOptions()}
                         </select>
                       </div>
                     ) : (
@@ -529,7 +767,15 @@ function AssetsContent() {
       {showCreateFolder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full m-4">
-            <h2 className="text-2xl font-bold text-slate-900 mb-4">Create Folder</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">
+              Create {parentFolderId ? 'Subfolder' : 'Folder'}
+            </h2>
+
+            {parentFolderId && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                Creating subfolder in: <strong>{currentFolder?.name}</strong>
+              </div>
+            )}
 
             <div className="space-y-4">
               <div>
@@ -541,7 +787,7 @@ function AssetsContent() {
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Client Assets"
+                  placeholder={parentFolderId ? "Logos" : "Client Assets"}
                 />
               </div>
 
@@ -592,6 +838,7 @@ function AssetsContent() {
                   setNewFolderDescription('');
                   setNewFolderColor('#6366f1');
                   setShowColorPicker(false);
+                  setParentFolderId(null);
                 }}
                 className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
               >
@@ -601,7 +848,7 @@ function AssetsContent() {
                 onClick={handleCreateFolder}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
-                Create Folder
+                Create {parentFolderId ? 'Subfolder' : 'Folder'}
               </button>
             </div>
           </div>
