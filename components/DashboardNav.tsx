@@ -20,7 +20,7 @@ export default function DashboardNav() {
     { href: '/dashboard/pipeline', label: 'Pipeline' },
     { href: '/dashboard/strategies', label: 'Strategies' },
     { href: '/dashboard/posts', label: 'Posts' },
-    { href: '/dashboard/assets', label: 'Assets' },
+    { href: '/dashboard/assets', label: 'Vault' },
     { href: '/dashboard/audit', label: 'AISO Audit' },
   ];
 

@@ -31,7 +31,7 @@ Use your own domain for sending emails instead of Clerk's default. This is the m
 
    **Option B: Use Resend (RECOMMENDED - Free tier available)**
    - Go to https://resend.com and sign up
-   - Add your domain (e.g., `aiso.studio`)
+   - Add your domain (e.g., `fireflygrove.app`)
    - Add DNS records to verify domain:
      ```
      Type: TXT
@@ -51,7 +51,7 @@ Use your own domain for sending emails instead of Clerk's default. This is the m
      Username: resend
      Password: [Your Resend API key]
      ```
-   - Set "From" email: `noreply@aiso.studio`
+   - Set "From" email: `noreply@fireflygrove.app`
    - Set "From" name: `AISO Studio`
 
    **Option C: Use SendGrid (Enterprise option)**
@@ -61,8 +61,8 @@ Use your own domain for sending emails instead of Clerk's default. This is the m
 4. **Configure "From" Details:**
    ```
    From Name: AISO Studio
-   From Email: noreply@aiso.studio
-   Reply-To: support@aiso.studio (optional)
+   From Email: noreply@fireflygrove.app
+   Reply-To: support@fireflygrove.app (optional)
    ```
 
 5. **Test:**
@@ -72,7 +72,7 @@ Use your own domain for sending emails instead of Clerk's default. This is the m
    - Verify email headers show your domain
 
 #### Expected Result:
-- Emails sent from `noreply@aiso.studio`
+- Emails sent from `noreply@fireflygrove.app`
 - Much higher deliverability
 - Professional appearance
 - Better spam score
@@ -115,11 +115,11 @@ Improve email content and branding without custom domain.
 
    This code expires in 10 minutes.
 
-   Need help? Reply to this email or visit https://aiso.studio/support
+   Need help? Reply to this email or visit https://fireflygrove.app/support
 
    Best regards,
    The AISO Studio Team
-   https://aiso.studio
+   https://fireflygrove.app
    ```
 
 4. **Update Application Name:**
@@ -168,7 +168,7 @@ If you've set up a custom email domain, improve deliverability with proper DNS a
    ```
    Type: TXT
    Name: _dmarc
-   Value: v=DMARC1; p=none; rua=mailto:dmarc@aiso.studio
+   Value: v=DMARC1; p=none; rua=mailto:dmarc@fireflygrove.app
    ```
 
 3. **Wait for DNS Propagation:**
@@ -230,7 +230,7 @@ Best regards,
 
 ### Short-term (This Week):
 1. **Sign up for Resend** (free tier)
-2. **Verify domain** `aiso.studio` in Resend
+2. **Verify domain** `fireflygrove.app` in Resend
 3. **Configure custom email in Clerk** (Option 1)
 4. **Test thoroughly** with multiple email providers
 5. **Add SPF/DKIM records** (Option 3)
@@ -254,7 +254,7 @@ Best regards,
 ### 2. Add Domain
 - Click "Domains" in sidebar
 - Click "Add Domain"
-- Enter: `aiso.studio`
+- Enter: `fireflygrove.app`
 - Click "Add"
 
 ### 3. Add DNS Records
@@ -262,7 +262,7 @@ Resend will show you 3 records to add. Go to your DNS provider:
 
 **If using Cloudflare:**
 1. Log in to Cloudflare
-2. Select `aiso.studio` domain
+2. Select `fireflygrove.app` domain
 3. Click "DNS" → "Records"
 4. Add the 3 records Resend provides
 5. Wait 5-10 minutes for verification
@@ -290,7 +290,7 @@ Resend will show you 3 records to add. Go to your DNS provider:
   SMTP Port: 587
   Username: resend
   Password: [Your Resend API key from step 4]
-  From Email: noreply@aiso.studio
+  From Email: noreply@fireflygrove.app
   From Name: AISO Studio
   ```
 - Click "Save"
@@ -299,7 +299,7 @@ Resend will show you 3 records to add. Go to your DNS provider:
 - In Clerk dashboard, click "Send Test Email"
 - Enter your email address
 - Check inbox (should arrive in 1-2 seconds)
-- Verify it shows from "AISO Studio <noreply@aiso.studio>"
+- Verify it shows from "AISO Studio <noreply@fireflygrove.app>"
 
 ---
 
@@ -348,7 +348,7 @@ Resend will show you 3 records to add. Go to your DNS provider:
 
 After implementing the fix, verify:
 
-- [ ] Test email received from `noreply@aiso.studio` (not Clerk domain)
+- [ ] Test email received from `noreply@fireflygrove.app` (not Clerk domain)
 - [ ] Email doesn't land in spam folder
 - [ ] Email branding shows "AISO Studio"
 - [ ] Reply-to address is set (optional)
@@ -381,11 +381,11 @@ If you run into problems:
 **TL;DR for Quick Fix:**
 
 1. Sign up at https://resend.com
-2. Add domain `aiso.studio` and verify with DNS records
+2. Add domain `fireflygrove.app` and verify with DNS records
 3. Get API key from Resend
 4. In Clerk dashboard → Email & SMS → Custom Email
 5. Enter Resend SMTP details (host: smtp.resend.com, port: 587, username: resend, password: [API key])
-6. Set from email to `noreply@aiso.studio`
+6. Set from email to `noreply@fireflygrove.app`
 7. Test and verify
 
 **Time estimate:** 15-30 minutes (plus DNS propagation wait time)

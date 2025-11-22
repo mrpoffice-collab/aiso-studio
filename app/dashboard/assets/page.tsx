@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Asset, AssetFolder } from '@/types';
 import { HexColorPicker } from 'react-colorful';
+import DashboardNav from '@/components/DashboardNav';
 
 function AssetsContent() {
   const router = useRouter();
@@ -701,8 +702,10 @@ function AssetsContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <div className="flex">
+    <>
+      <DashboardNav />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        <div className="flex">
         {/* Folder Sidebar */}
         <div className="w-64 min-h-screen bg-white border-r border-slate-200 p-4">
           <div className="mb-4 space-y-2">
@@ -824,7 +827,7 @@ function AssetsContent() {
               )}
             </div>
             <h1 className="text-4xl font-bold text-slate-900">
-              {activeTag ? `Tagged: ${activeTag}` : currentFolder ? currentFolder.name : 'Digital Assets'}
+              {activeTag ? `Tagged: ${activeTag}` : currentFolder ? currentFolder.name : 'Vault'}
             </h1>
             {currentFolder?.description && (
               <p className="mt-2 text-slate-600">{currentFolder.description}</p>
@@ -1475,7 +1478,8 @@ function AssetsContent() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

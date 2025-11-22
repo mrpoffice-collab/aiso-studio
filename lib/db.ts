@@ -1681,4 +1681,52 @@ export const db = {
       `;
     }
   },
+
+  // Free Audit Tracking
+  async getFreeAuditsByIP(ipAddress: string, hoursAgo: number = 24) {
+    const result = await query(
+      `SELECT * FROM free_audit_usage
+       WHERE ip_address = $1
+       AND created_at > NOW() - INTERVAL '${hoursAgo} hours'
+       ORDER BY created_at DESC`,
+      [ipAddress]
+    );
+    return result;
+  },
+
+  async getFreeAuditByDomain(domain: string) {
+    const result = await query(
+      `SELECT * FROM free_audit_usage
+       WHERE domain = $1
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [domain]
+    );
+    return result[0] || null;
+  },
+
+  async createFreeAuditRecord(data: {
+    ip_address: string;
+    domain: string;
+    url: string;
+    audit_data?: any;
+  }) {
+    const result = await query(
+      `INSERT INTO free_audit_usage (ip_address, domain, url, audit_data)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [data.ip_address, data.domain, data.url, data.audit_data ? JSON.stringify(data.audit_data) : null]
+    );
+    return result[0];
+  },
+
+  async getFreeAuditCount(ipAddress: string, hoursAgo: number = 24) {
+    const result = await query(
+      `SELECT COUNT(*) as count FROM free_audit_usage
+       WHERE ip_address = $1
+       AND created_at > NOW() - INTERVAL '${hoursAgo} hours'`,
+      [ipAddress]
+    );
+    return parseInt(result[0]?.count || '0', 10);
+  },
 };
