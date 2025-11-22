@@ -40,6 +40,15 @@ function AssetsContent() {
   // Folder expand/collapse state
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [minSize, setMinSize] = useState('');
+  const [maxSize, setMaxSize] = useState('');
+  const [smartCollection, setSmartCollection] = useState<string | null>(null);
+
   // Load assets and folders on mount
   useEffect(() => {
     loadAssets();
@@ -285,10 +294,69 @@ function AssetsContent() {
     handleFileUpload(files);
   }, []);
 
-  // Filter assets
-  const filteredAssets = filterType === 'all'
-    ? assets
-    : assets.filter(asset => asset.file_type === filterType);
+  // Filter assets with search, advanced filters, and smart collections
+  const filteredAssets = assets.filter(asset => {
+    // File type filter
+    if (filterType !== 'all' && asset.file_type !== filterType) {
+      return false;
+    }
+
+    // Search filter (filename, description, alt_text, tags)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesFilename = asset.original_filename.toLowerCase().includes(query);
+      const matchesDescription = asset.description?.toLowerCase().includes(query);
+      const matchesAltText = asset.alt_text?.toLowerCase().includes(query);
+      const matchesTags = asset.tags?.some(tag => tag.toLowerCase().includes(query));
+
+      if (!matchesFilename && !matchesDescription && !matchesAltText && !matchesTags) {
+        return false;
+      }
+    }
+
+    // Date range filter
+    if (dateFrom) {
+      const assetDate = new Date(asset.created_at);
+      const fromDate = new Date(dateFrom);
+      if (assetDate < fromDate) return false;
+    }
+    if (dateTo) {
+      const assetDate = new Date(asset.created_at);
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999); // End of day
+      if (assetDate > toDate) return false;
+    }
+
+    // File size filter (in bytes)
+    if (minSize) {
+      const minBytes = parseFloat(minSize) * 1024 * 1024; // Convert MB to bytes
+      if (asset.file_size < minBytes) return false;
+    }
+    if (maxSize) {
+      const maxBytes = parseFloat(maxSize) * 1024 * 1024; // Convert MB to bytes
+      if (asset.file_size > maxBytes) return false;
+    }
+
+    // Smart collection filters
+    if (smartCollection === 'recent') {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const assetDate = new Date(asset.created_at);
+      if (assetDate < sevenDaysAgo) return false;
+    }
+    if (smartCollection === 'large') {
+      const fiveMB = 5 * 1024 * 1024;
+      if (asset.file_size < fiveMB) return false;
+    }
+    if (smartCollection === 'untagged') {
+      if (asset.tags && asset.tags.length > 0) return false;
+    }
+    if (smartCollection === 'images') {
+      if (asset.file_type !== 'image') return false;
+    }
+
+    return true;
+  });
 
   // Format file size
   const formatFileSize = (bytes: number): string => {
@@ -459,6 +527,38 @@ function AssetsContent() {
               </div>
             </>
           )}
+
+          {/* Smart Collections */}
+          <div className="mt-6 mb-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            Smart Collections
+          </div>
+          <div className="space-y-1">
+            {[
+              { id: 'recent', label: 'Recently Uploaded', icon: '🕐', desc: 'Last 7 days' },
+              { id: 'large', label: 'Large Files', icon: '📦', desc: 'Over 5MB' },
+              { id: 'untagged', label: 'Untagged', icon: '🏷️', desc: 'No tags' },
+              { id: 'images', label: 'All Images', icon: '🖼️', desc: 'Images only' },
+            ].map((collection) => (
+              <button
+                key={collection.id}
+                onClick={() => {
+                  setSmartCollection(smartCollection === collection.id ? null : collection.id);
+                  router.push('/dashboard/assets');
+                }}
+                className={`w-full px-3 py-2 rounded-lg text-left font-medium transition-colors text-sm ${
+                  smartCollection === collection.id
+                    ? 'bg-purple-50 text-purple-700'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+                title={collection.desc}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">{collection.icon}</span>
+                  <span className="truncate flex-1">{collection.label}</span>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Main Content */}
@@ -513,6 +613,112 @@ function AssetsContent() {
               <span>{success}</span>
             </div>
           )}
+
+          {/* Search and Filters */}
+          <div className="mb-6 bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex gap-3">
+              {/* Search Bar */}
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search files, tags, descriptions..."
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Filter Toggle Button */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                  showFilters || dateFrom || dateTo || minSize || maxSize
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <span>🔍</span>
+                <span>Filters</span>
+                {(dateFrom || dateTo || minSize || maxSize) && (
+                  <span className="px-2 py-0.5 bg-white text-blue-600 rounded-full text-xs font-bold">
+                    •
+                  </span>
+                )}
+              </button>
+
+              {/* Clear All Filters */}
+              {(searchQuery || dateFrom || dateTo || minSize || maxSize || smartCollection) && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setDateFrom('');
+                    setDateTo('');
+                    setMinSize('');
+                    setMaxSize('');
+                    setSmartCollection(null);
+                  }}
+                  className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+
+            {/* Advanced Filters Panel */}
+            {showFilters && (
+              <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Date Range */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Date Range
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                      placeholder="From"
+                    />
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                      placeholder="To"
+                    />
+                  </div>
+                </div>
+
+                {/* File Size Range */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    File Size (MB)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={minSize}
+                      onChange={(e) => setMinSize(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                      placeholder="Min"
+                      min="0"
+                      step="0.1"
+                    />
+                    <input
+                      type="number"
+                      value={maxSize}
+                      onChange={(e) => setMaxSize(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                      placeholder="Max"
+                      min="0"
+                      step="0.1"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Upload Area */}
           <div
