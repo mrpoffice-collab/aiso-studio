@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Asset, AssetFolder } from '@/types';
 import { HexColorPicker } from 'react-colorful';
 
-export default function AssetsPage() {
+function AssetsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentFolderId = searchParams.get('folder');
@@ -608,5 +608,20 @@ export default function AssetsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AssetsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">⏳</div>
+          <p className="text-slate-600 text-lg">Loading assets...</p>
+        </div>
+      </div>
+    }>
+      <AssetsContent />
+    </Suspense>
   );
 }
