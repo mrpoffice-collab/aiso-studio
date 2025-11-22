@@ -49,6 +49,21 @@ function AssetsContent() {
   const [maxSize, setMaxSize] = useState('');
   const [smartCollection, setSmartCollection] = useState<string | null>(null);
 
+  // Batch selection state
+  const [selectedAssets, setSelectedAssets] = useState<Set<string>>(new Set());
+  const [showBatchToolbar, setShowBatchToolbar] = useState(false);
+  const [batchAction, setBatchAction] = useState<'tag' | 'move' | 'delete' | null>(null);
+  const [batchTags, setBatchTags] = useState('');
+  const [batchFolderId, setBatchFolderId] = useState<string>('');
+
+  // Bulk upload state
+  const [uploadQueue, setUploadQueue] = useState<Array<{
+    file: File;
+    status: 'pending' | 'uploading' | 'success' | 'error';
+    progress: number;
+    error?: string;
+  }>>([]);
+
   // Load assets and folders on mount
   useEffect(() => {
     loadAssets();
@@ -106,48 +121,85 @@ function AssetsContent() {
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    const file = files[0];
-
-    // Validate file size (25MB)
     const MAX_SIZE = 25 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      setError('File too large. Maximum size is 25MB.');
-      return;
+    const filesToUpload = Array.from(files);
+
+    // Validate all files
+    for (const file of filesToUpload) {
+      if (file.size > MAX_SIZE) {
+        setError(`File "${file.name}" is too large. Maximum size is 25MB.`);
+        return;
+      }
     }
 
-    try {
-      setUploading(true);
-      setError('');
-      setSuccess('');
+    // Initialize upload queue
+    const queue = filesToUpload.map(file => ({
+      file,
+      status: 'pending' as const,
+      progress: 0,
+    }));
+    setUploadQueue(queue);
+    setUploading(true);
 
-      const formData = new FormData();
-      formData.append('file', file);
-      if (currentFolderId) {
-        formData.append('folderId', currentFolderId);
+    // Upload files sequentially
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const file = filesToUpload[i];
+
+      // Update status to uploading
+      setUploadQueue(prev => prev.map((item, idx) =>
+        idx === i ? { ...item, status: 'uploading', progress: 0 } : item
+      ));
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (currentFolderId) {
+          formData.append('folderId', currentFolderId);
+        }
+        if (uploadTags.trim()) {
+          formData.append('tags', uploadTags);
+        }
+
+        const response = await fetch('/api/assets/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          setUploadQueue(prev => prev.map((item, idx) =>
+            idx === i ? { ...item, status: 'success', progress: 100 } : item
+          ));
+        } else {
+          setUploadQueue(prev => prev.map((item, idx) =>
+            idx === i ? { ...item, status: 'error', progress: 0, error: data.error } : item
+          ));
+        }
+      } catch (err: any) {
+        setUploadQueue(prev => prev.map((item, idx) =>
+          idx === i ? { ...item, status: 'error', progress: 0, error: err.message } : item
+        ));
       }
-      if (uploadTags.trim()) {
-        formData.append('tags', uploadTags);
-      }
-
-      const response = await fetch('/api/assets/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setSuccess(`Successfully uploaded ${file.name}`);
-        setUploadTags(''); // Clear tags after upload
-        loadAssets();
-      } else {
-        setError(data.error || 'Upload failed');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Upload failed');
-    } finally {
-      setUploading(false);
     }
+
+    // Show summary
+    const successCount = queue.filter(q => q.status === 'success').length;
+    const failCount = queue.filter(q => q.status === 'error').length;
+
+    if (successCount > 0) {
+      setSuccess(`Successfully uploaded ${successCount} file(s)`);
+    }
+    if (failCount > 0) {
+      setError(`Failed to upload ${failCount} file(s)`);
+    }
+
+    setUploading(false);
+    setUploadTags('');
+    loadAssets();
+
+    // Clear queue after 3 seconds
+    setTimeout(() => setUploadQueue([]), 3000);
   };
 
   const handleDelete = async (assetId: string, filename: string) => {
@@ -181,6 +233,168 @@ function AssetsContent() {
     } catch (err: any) {
       setError(err.message || 'Delete failed');
     }
+  };
+
+  // Batch selection handlers
+  const toggleAssetSelection = (assetId: string) => {
+    const newSelection = new Set(selectedAssets);
+    if (newSelection.has(assetId)) {
+      newSelection.delete(assetId);
+    } else {
+      newSelection.add(assetId);
+    }
+    setSelectedAssets(newSelection);
+    setShowBatchToolbar(newSelection.size > 0);
+  };
+
+  const selectAllAssets = () => {
+    const newSelection = new Set(filteredAssets.map(a => a.id));
+    setSelectedAssets(newSelection);
+    setShowBatchToolbar(true);
+  };
+
+  const clearSelection = () => {
+    setSelectedAssets(new Set());
+    setShowBatchToolbar(false);
+    setBatchAction(null);
+  };
+
+  const handleBatchTag = async () => {
+    if (!batchTags.trim()) {
+      setError('Please enter tags');
+      return;
+    }
+
+    try {
+      const tagArray = batchTags.split(',').map(t => t.trim()).filter(Boolean);
+
+      for (const assetId of selectedAssets) {
+        await fetch(`/api/assets/${assetId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tags: tagArray }),
+        });
+      }
+
+      setSuccess(`Tagged ${selectedAssets.size} asset(s)`);
+      setBatchTags('');
+      setBatchAction(null);
+      clearSelection();
+      loadAssets();
+    } catch (err: any) {
+      setError(err.message || 'Batch tag failed');
+    }
+  };
+
+  const handleBatchMove = async () => {
+    if (!batchFolderId && batchFolderId !== '') {
+      setError('Please select a folder');
+      return;
+    }
+
+    try {
+      for (const assetId of selectedAssets) {
+        await fetch(`/api/assets/${assetId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folder_id: batchFolderId || null }),
+        });
+      }
+
+      setSuccess(`Moved ${selectedAssets.size} asset(s)`);
+      setBatchFolderId('');
+      setBatchAction(null);
+      clearSelection();
+      loadAssets();
+    } catch (err: any) {
+      setError(err.message || 'Batch move failed');
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedAssets.size} asset(s)?`)) {
+      return;
+    }
+
+    try {
+      const results = await Promise.allSettled(
+        Array.from(selectedAssets).map(assetId =>
+          fetch(`/api/assets/${assetId}`, { method: 'DELETE' })
+        )
+      );
+
+      const failed = results.filter(r => r.status === 'rejected').length;
+      const succeeded = results.length - failed;
+
+      if (succeeded > 0) {
+        setSuccess(`Deleted ${succeeded} asset(s)`);
+      }
+      if (failed > 0) {
+        setError(`Failed to delete ${failed} asset(s) (may be in use)`);
+      }
+
+      setBatchAction(null);
+      clearSelection();
+      loadAssets();
+    } catch (err: any) {
+      setError(err.message || 'Batch delete failed');
+    }
+  };
+
+  const handleExportCSV = () => {
+    // Prepare CSV data
+    const headers = [
+      'Filename',
+      'Type',
+      'Size (MB)',
+      'Tags',
+      'Description',
+      'Alt Text',
+      'Folder',
+      'Upload Date',
+      'Usage Count',
+      'URL',
+    ];
+
+    const rows = filteredAssets.map(asset => {
+      const folderName = asset.folder_id
+        ? folders.find(f => f.id === asset.folder_id)?.name || ''
+        : 'All Files';
+
+      return [
+        asset.original_filename,
+        asset.file_type,
+        (asset.file_size / 1024 / 1024).toFixed(2),
+        asset.tags?.join('; ') || '',
+        asset.description || '',
+        asset.alt_text || '',
+        folderName,
+        new Date(asset.created_at).toLocaleDateString(),
+        asset.usage_count?.toString() || '0',
+        asset.public_url || asset.blob_url,
+      ];
+    });
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `assets-export-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setSuccess('CSV export downloaded');
   };
 
   const handleCreateFolder = async () => {
@@ -768,15 +982,46 @@ function AssetsContent() {
               <label className="cursor-pointer">
                 <input
                   type="file"
+                  multiple
                   className="hidden"
                   onChange={(e) => handleFileUpload(e.target.files)}
                   disabled={uploading}
                 />
                 <span className="inline-block rounded-lg bg-blue-600 px-6 py-3 text-white font-medium hover:bg-blue-700 transition-colors">
-                  {uploading ? 'Uploading...' : 'Choose File'}
+                  {uploading ? 'Uploading...' : 'Choose Files'}
                 </span>
               </label>
             </div>
+
+            {/* Upload Progress Queue */}
+            {uploadQueue.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
+                <h4 className="font-semibold text-slate-900 mb-2">Upload Progress</h4>
+                {uploadQueue.map((upload, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">{upload.file.name}</p>
+                      <p className="text-xs text-slate-500">{(upload.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                      {upload.error && <p className="text-xs text-red-600 mt-1">{upload.error}</p>}
+                    </div>
+                    <div className="flex-shrink-0">
+                      {upload.status === 'pending' && (
+                        <span className="text-xs px-2 py-1 bg-slate-200 text-slate-600 rounded">Pending</span>
+                      )}
+                      {upload.status === 'uploading' && (
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded animate-pulse">Uploading...</span>
+                      )}
+                      {upload.status === 'success' && (
+                        <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">✓ Done</span>
+                      )}
+                      {upload.status === 'error' && (
+                        <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">✗ Failed</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Filter Tabs */}
@@ -803,6 +1048,139 @@ function AssetsContent() {
             ))}
           </div>
 
+          {/* Batch Operations Toolbar */}
+          {filteredAssets.length > 0 && (
+            <div className="mb-4 flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4">
+              <button
+                onClick={selectAllAssets}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
+              >
+                Select All ({filteredAssets.length})
+              </button>
+
+              <button
+                onClick={handleExportCSV}
+                className="px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <span>📊</span>
+                Export CSV
+              </button>
+
+              {selectedAssets.size > 0 && (
+                <>
+                  <div className="px-3 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium">
+                    {selectedAssets.size} selected
+                  </div>
+
+                  <button
+                    onClick={() => setBatchAction('tag')}
+                    className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg font-medium transition-colors"
+                  >
+                    Tag
+                  </button>
+
+                  <button
+                    onClick={() => setBatchAction('move')}
+                    className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium transition-colors"
+                  >
+                    Move
+                  </button>
+
+                  <button
+                    onClick={() => setBatchAction('delete')}
+                    className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-medium transition-colors"
+                  >
+                    Delete
+                  </button>
+
+                  <button
+                    onClick={clearSelection}
+                    className="ml-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
+                  >
+                    Clear
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Batch Action Modals */}
+          {batchAction === 'tag' && (
+            <div className="mb-4 bg-white rounded-xl border border-slate-200 p-4">
+              <h3 className="font-semibold text-slate-900 mb-3">Add Tags to {selectedAssets.size} Asset(s)</h3>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={batchTags}
+                  onChange={(e) => setBatchTags(e.target.value)}
+                  placeholder="tag1, tag2, tag3"
+                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+                <button
+                  onClick={handleBatchTag}
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Apply Tags
+                </button>
+                <button
+                  onClick={() => setBatchAction(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {batchAction === 'move' && (
+            <div className="mb-4 bg-white rounded-xl border border-slate-200 p-4">
+              <h3 className="font-semibold text-slate-900 mb-3">Move {selectedAssets.size} Asset(s) to Folder</h3>
+              <div className="flex gap-2">
+                <select
+                  value={batchFolderId}
+                  onChange={(e) => setBatchFolderId(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Files (Root)</option>
+                  {renderFolderOptions()}
+                </select>
+                <button
+                  onClick={handleBatchMove}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Move
+                </button>
+                <button
+                  onClick={() => setBatchAction(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {batchAction === 'delete' && (
+            <div className="mb-4 bg-white rounded-xl border border-red-200 p-4 bg-red-50">
+              <h3 className="font-semibold text-red-900 mb-3">Delete {selectedAssets.size} Asset(s)?</h3>
+              <p className="text-sm text-red-700 mb-4">This action cannot be undone. Assets in use will not be deleted.</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBatchDelete}
+                  className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Confirm Delete
+                </button>
+                <button
+                  onClick={() => setBatchAction(null)}
+                  className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Assets Grid */}
           {loading ? (
             <div className="text-center py-12">
@@ -826,8 +1204,20 @@ function AssetsContent() {
               {filteredAssets.map((asset) => (
                 <div
                   key={asset.id}
-                  className="group relative rounded-xl bg-white border border-slate-200 overflow-hidden hover:shadow-lg transition-all"
+                  className={`group relative rounded-xl bg-white border-2 overflow-hidden hover:shadow-lg transition-all ${
+                    selectedAssets.has(asset.id) ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'
+                  }`}
                 >
+                  {/* Selection Checkbox */}
+                  <div className="absolute top-3 left-3 z-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedAssets.has(asset.id)}
+                      onChange={() => toggleAssetSelection(asset.id)}
+                      className="w-5 h-5 rounded border-2 border-white shadow-lg cursor-pointer accent-blue-600"
+                    />
+                  </div>
+
                   {/* Asset Preview */}
                   <div className="aspect-square bg-slate-100 flex items-center justify-center">
                     {asset.file_type === 'image' ? (
