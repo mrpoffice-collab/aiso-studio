@@ -5,9 +5,30 @@ export interface User {
   email: string;
   name: string | null;
   agency_name: string | null;
+  agency_logo_url: string | null;
+  agency_primary_color: string;
+  agency_secondary_color: string;
+  agency_email: string | null;
+  agency_phone: string | null;
+  agency_website: string | null;
+  agency_address: string | null;
+  agency_tagline: string | null;
   timezone: string;
   created_at: string;
   updated_at: string;
+}
+
+// Agency branding interface for API requests/responses
+export interface AgencyBranding {
+  agency_name: string | null;
+  agency_logo_url: string | null;
+  agency_primary_color: string;
+  agency_secondary_color: string;
+  agency_email: string | null;
+  agency_phone: string | null;
+  agency_website: string | null;
+  agency_address: string | null;
+  agency_tagline: string | null;
 }
 
 export interface Strategy {

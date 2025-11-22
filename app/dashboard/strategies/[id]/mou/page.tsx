@@ -20,10 +20,15 @@ export default function MOUPage({ params }: { params: Promise<{ id: string }> })
     };
     deliveryTimeframe: string;
     topicsCount: number;
+    branding?: any;
   } | null>(null);
   const [pricePerWord, setPricePerWord] = useState(0.10);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [topics, setTopics] = useState<any[]>([]);
+  const [brandColors, setBrandColors] = useState({
+    primary: '#6366f1',
+    secondary: '#3b82f6',
+  });
 
   useEffect(() => {
     // Fetch topics for this strategy only if id is defined
@@ -78,6 +83,14 @@ export default function MOUPage({ params }: { params: Promise<{ id: string }> })
 
       const data = await response.json();
       setMouData(data);
+
+      // Update brand colors if branding is available
+      if (data.branding) {
+        setBrandColors({
+          primary: data.branding.agency_primary_color || '#6366f1',
+          secondary: data.branding.agency_secondary_color || '#3b82f6',
+        });
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -116,7 +129,15 @@ export default function MOUPage({ params }: { params: Promise<{ id: string }> })
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div
+      className="min-h-screen bg-gradient-to-br"
+      style={{
+        background: `linear-gradient(to bottom right,
+          ${brandColors.primary}08,
+          white,
+          ${brandColors.secondary}08)`
+      }}
+    >
       <DashboardNav />
 
       <main className="container mx-auto px-6 py-12">
@@ -131,7 +152,15 @@ export default function MOUPage({ params }: { params: Promise<{ id: string }> })
         </div>
 
         <div className="mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-deep-indigo via-blue-600 to-deep-indigo bg-clip-text text-transparent mb-4">
+          <h1
+            className="text-5xl font-bold bg-gradient-to-r bg-clip-text text-transparent mb-4"
+            style={{
+              backgroundImage: `linear-gradient(to right,
+                ${brandColors.primary},
+                ${brandColors.secondary},
+                ${brandColors.primary})`
+            }}
+          >
             Generate Proposal
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl">

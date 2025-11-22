@@ -71,6 +71,9 @@ export async function POST(
       strategy.frequency
     );
 
+    // Get user branding for MOU
+    const agencyBranding = await db.getUserBranding(user.id);
+
     // Generate MOU
     const mouContent = await generateMOU({
       clientName: strategy.client_name,
@@ -88,6 +91,7 @@ export async function POST(
       pricePerWord: pricing.pricePerWord,
       totalPrice: pricing.totalPrice,
       deliveryTimeframe,
+      agencyBranding: agencyBranding || undefined,
     });
 
     // Log MOU generation usage
@@ -114,6 +118,7 @@ export async function POST(
       },
       deliveryTimeframe,
       topicsCount: selectedTopics.length,
+      branding: agencyBranding, // Include branding in response for UI styling
     });
   } catch (error: any) {
     console.error('MOU generation error:', error);

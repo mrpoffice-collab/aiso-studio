@@ -1211,6 +1211,86 @@ export const db = {
     );
   },
 
+  // Agency Branding
+  async getUserBranding(userId: number | string) {
+    const result = await query(
+      `SELECT
+        agency_name, agency_logo_url, agency_primary_color, agency_secondary_color,
+        agency_email, agency_phone, agency_website, agency_address, agency_tagline
+       FROM users
+       WHERE id = $1`,
+      [userId]
+    );
+    return result[0] || null;
+  },
+
+  async updateUserBranding(userId: number | string, branding: {
+    agency_name?: string;
+    agency_logo_url?: string;
+    agency_primary_color?: string;
+    agency_secondary_color?: string;
+    agency_email?: string;
+    agency_phone?: string;
+    agency_website?: string;
+    agency_address?: string;
+    agency_tagline?: string;
+  }) {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+
+    if (branding.agency_name !== undefined) {
+      updates.push(`agency_name = $${paramCount++}`);
+      values.push(branding.agency_name);
+    }
+    if (branding.agency_logo_url !== undefined) {
+      updates.push(`agency_logo_url = $${paramCount++}`);
+      values.push(branding.agency_logo_url);
+    }
+    if (branding.agency_primary_color !== undefined) {
+      updates.push(`agency_primary_color = $${paramCount++}`);
+      values.push(branding.agency_primary_color);
+    }
+    if (branding.agency_secondary_color !== undefined) {
+      updates.push(`agency_secondary_color = $${paramCount++}`);
+      values.push(branding.agency_secondary_color);
+    }
+    if (branding.agency_email !== undefined) {
+      updates.push(`agency_email = $${paramCount++}`);
+      values.push(branding.agency_email);
+    }
+    if (branding.agency_phone !== undefined) {
+      updates.push(`agency_phone = $${paramCount++}`);
+      values.push(branding.agency_phone);
+    }
+    if (branding.agency_website !== undefined) {
+      updates.push(`agency_website = $${paramCount++}`);
+      values.push(branding.agency_website);
+    }
+    if (branding.agency_address !== undefined) {
+      updates.push(`agency_address = $${paramCount++}`);
+      values.push(branding.agency_address);
+    }
+    if (branding.agency_tagline !== undefined) {
+      updates.push(`agency_tagline = $${paramCount++}`);
+      values.push(branding.agency_tagline);
+    }
+
+    if (updates.length === 0) {
+      return await this.getUserBranding(userId);
+    }
+
+    values.push(userId);
+    const result = await query(
+      `UPDATE users SET ${updates.join(', ')}, updated_at = NOW()
+       WHERE id = $${paramCount}
+       RETURNING agency_name, agency_logo_url, agency_primary_color, agency_secondary_color,
+                 agency_email, agency_phone, agency_website, agency_address, agency_tagline`,
+      values
+    );
+    return result[0];
+  },
+
   // Accessibility Audits (WCAG)
   async createAccessibilityAudit(data: {
     user_id: number | string;

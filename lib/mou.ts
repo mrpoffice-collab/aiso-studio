@@ -1,4 +1,5 @@
 import { anthropic } from './claude';
+import { AgencyBranding } from '@/types';
 
 export interface MOUData {
   clientName: string;
@@ -16,10 +17,26 @@ export interface MOUData {
   pricePerWord: number;
   totalPrice: number;
   deliveryTimeframe: string;
+  agencyBranding?: AgencyBranding;
 }
 
 export async function generateMOU(data: MOUData): Promise<string> {
+  const agencyName = data.agencyBranding?.agency_name || 'The Agency';
+  const agencyEmail = data.agencyBranding?.agency_email || '[Agency Email]';
+  const agencyPhone = data.agencyBranding?.agency_phone || '[Agency Phone]';
+  const agencyWebsite = data.agencyBranding?.agency_website || '[Agency Website]';
+  const agencyAddress = data.agencyBranding?.agency_address || '[Agency Address]';
+  const agencyTagline = data.agencyBranding?.agency_tagline;
+
   const prompt = `You are a professional proposal writer for a content marketing agency. Generate a professional, legally-sound Memorandum of Understanding (MOU) document based on the following details:
+
+AGENCY INFORMATION:
+- Agency Name: ${agencyName}
+- Email: ${agencyEmail}
+- Phone: ${agencyPhone}
+- Website: ${agencyWebsite}
+- Address: ${agencyAddress}
+${agencyTagline ? `- Tagline: "${agencyTagline}"` : ''}
 
 CLIENT INFORMATION:
 - Client Name: ${data.clientName}
@@ -44,8 +61,17 @@ PRICING:
 
 Generate a professional 1-page MOU that includes:
 
-1. HEADER with "MEMORANDUM OF UNDERSTANDING" and date
-2. PARTIES section identifying the agency and client
+1. HEADER with:
+   - "MEMORANDUM OF UNDERSTANDING"
+   ${agencyTagline ? `- Agency tagline: "${agencyTagline}"` : ''}
+   - Current date
+2. PARTIES section with full details:
+   - BETWEEN: ${agencyName} ("Agency")
+     ${agencyAddress}
+     Email: ${agencyEmail}
+     Phone: ${agencyPhone}
+     Website: ${agencyWebsite}
+   - AND: ${data.clientName} ("Client")
 3. PURPOSE section describing the content marketing services
 4. SCOPE OF WORK section with:
    - Detailed deliverables (${data.selectedTopics.length} blog posts)
