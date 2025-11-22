@@ -467,7 +467,7 @@ function AssetsContent() {
   const breadcrumbs = getBreadcrumbs();
 
   // Render folder options for move dropdown (hierarchical)
-  const renderFolderOptions = (parentId: string | null = null, depth: number = 0): JSX.Element[] => {
+  const renderFolderOptions = (parentId: string | null = null, depth: number = 0): React.JSX.Element[] => {
     const folderList = folders.filter(f => f.parent_folder_id === parentId);
 
     return folderList.flatMap(folder => [
