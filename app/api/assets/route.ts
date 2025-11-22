@@ -58,10 +58,21 @@ export async function GET(request: NextRequest) {
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
+    // Add usage counts to each asset
+    const assetsWithUsage = await Promise.all(
+      assets.map(async (asset) => {
+        const usageCount = await db.getAssetUsageCount(asset.id);
+        return {
+          ...asset,
+          usage_count: usageCount,
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      assets,
-      count: assets.length,
+      assets: assetsWithUsage,
+      count: assetsWithUsage.length,
     });
 
   } catch (error: any) {

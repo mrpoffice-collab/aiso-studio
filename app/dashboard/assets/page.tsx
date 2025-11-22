@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Asset, AssetFolder } from '@/types';
 import { HexColorPicker } from 'react-colorful';
@@ -165,6 +165,16 @@ function AssetsContent() {
       if (data.success) {
         setSuccess(`Deleted ${filename}`);
         loadAssets();
+      } else if (response.status === 409) {
+        // Asset is in use
+        const usageDetails = data.usage?.map((u: any) =>
+          `${u.entity_type} (${u.usage_type || 'unknown'})`
+        ).join(', ') || 'unknown locations';
+
+        setError(
+          `Cannot delete "${filename}": This asset is being used in ${data.usageCount} location(s): ${usageDetails}. ` +
+          `Please remove it from these locations before deleting.`
+        );
       } else {
         setError(data.error || 'Delete failed');
       }
@@ -847,6 +857,14 @@ function AssetsContent() {
                     <p className="text-xs text-slate-500 mt-1">
                       {new Date(asset.created_at).toLocaleDateString()}
                     </p>
+
+                    {/* Usage Count */}
+                    {asset.usage_count !== undefined && asset.usage_count > 0 && (
+                      <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium">
+                        <span>📊</span>
+                        <span>Used {asset.usage_count}×</span>
+                      </div>
+                    )}
 
                     {/* Tags */}
                     {editingAssetId === asset.id ? (

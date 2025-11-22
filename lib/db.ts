@@ -1611,4 +1611,74 @@ export const db = {
     `;
     return result[0];
   },
+
+  async getAssetUsage(assetId: string) {
+    const result = await sql`
+      SELECT * FROM asset_usage
+      WHERE asset_id = ${assetId}
+      ORDER BY created_at DESC
+    `;
+    return result;
+  },
+
+  async getAssetUsageCount(assetId: string) {
+    const result = await sql`
+      SELECT COUNT(*) as count FROM asset_usage
+      WHERE asset_id = ${assetId}
+    `;
+    return parseInt(result[0].count);
+  },
+
+  async createAssetUsage(data: {
+    asset_id: string;
+    entity_type: string;
+    entity_id: string;
+    usage_type?: string;
+  }) {
+    const result = await sql`
+      INSERT INTO asset_usage (
+        asset_id, entity_type, entity_id, usage_type
+      ) VALUES (
+        ${data.asset_id},
+        ${data.entity_type},
+        ${data.entity_id},
+        ${data.usage_type || null}
+      )
+      RETURNING *
+    `;
+    return result[0];
+  },
+
+  async deleteAssetUsage(assetId: string, entityType?: string, entityId?: string) {
+    if (entityType && entityId) {
+      await sql`
+        DELETE FROM asset_usage
+        WHERE asset_id = ${assetId}
+          AND entity_type = ${entityType}
+          AND entity_id = ${entityId}
+      `;
+    } else {
+      await sql`
+        DELETE FROM asset_usage
+        WHERE asset_id = ${assetId}
+      `;
+    }
+  },
+
+  async deleteAssetUsageByEntity(entityType: string, entityId: string, usageType?: string) {
+    if (usageType) {
+      await sql`
+        DELETE FROM asset_usage
+        WHERE entity_type = ${entityType}
+          AND entity_id = ${entityId}
+          AND usage_type = ${usageType}
+      `;
+    } else {
+      await sql`
+        DELETE FROM asset_usage
+        WHERE entity_type = ${entityType}
+          AND entity_id = ${entityId}
+      `;
+    }
+  },
 };

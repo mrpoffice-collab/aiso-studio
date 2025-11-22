@@ -49,6 +49,22 @@ export async function DELETE(
       );
     }
 
+    // Check if asset is in use
+    const usageCount = await db.getAssetUsageCount(assetId);
+    if (usageCount > 0) {
+      const usage = await db.getAssetUsage(assetId);
+      return NextResponse.json(
+        {
+          error: 'Asset is currently in use',
+          message: `This asset is being used in ${usageCount} location(s). Please remove it from these locations before deleting.`,
+          usage,
+          usageCount,
+          canDelete: false,
+        },
+        { status: 409 }
+      );
+    }
+
     // Delete from Vercel Blob storage
     try {
       await del(asset.blob_url);

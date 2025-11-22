@@ -172,6 +172,7 @@ export interface Asset {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  usage_count?: number;
 }
 
 export interface AssetFolder {

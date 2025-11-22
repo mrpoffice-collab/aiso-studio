@@ -101,6 +101,28 @@ export async function PATCH(
     if (body.title !== undefined) {
       updates.title = body.title;
     }
+    if (body.featured_image_url !== undefined) {
+      updates.featured_image_url = body.featured_image_url;
+    }
+    if (body.image_attribution !== undefined) {
+      updates.image_attribution = body.image_attribution;
+    }
+
+    // Track asset usage if a DAM asset is being set as featured image
+    if (body.asset_id !== undefined) {
+      // Remove old featured image asset usage for this post
+      await db.deleteAssetUsageByEntity('post', postId, 'featured_image');
+
+      // Add new asset usage tracking if asset_id is provided
+      if (body.asset_id) {
+        await db.createAssetUsage({
+          asset_id: body.asset_id,
+          entity_type: 'post',
+          entity_id: postId,
+          usage_type: 'featured_image',
+        });
+      }
+    }
 
     // Update post
     const updatedPost = await db.updatePost(postId, updates);
