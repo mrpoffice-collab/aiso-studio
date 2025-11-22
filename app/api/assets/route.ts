@@ -27,7 +27,10 @@ export async function GET(request: NextRequest) {
     const tags = searchParams.get('tags');
 
     // Get all assets for the user
-    let assets = await db.getAssetsByUserId(user.id);
+    const allAssets = await db.getAssetsByUserId(user.id);
+
+    // Convert to array and apply filters
+    let assets = [...allAssets];
 
     // Apply filters if provided
     if (folderId) {
