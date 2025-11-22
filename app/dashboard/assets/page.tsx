@@ -183,20 +183,27 @@ function AssetsContent() {
       }
     }
 
-    // Show summary
-    const successCount = queue.filter(q => q.status === 'success').length;
-    const failCount = queue.filter(q => q.status === 'error').length;
-
-    if (successCount > 0) {
-      setSuccess(`Successfully uploaded ${successCount} file(s)`);
-    }
-    if (failCount > 0) {
-      setError(`Failed to upload ${failCount} file(s)`);
-    }
-
+    // Show summary after all uploads complete
     setUploading(false);
     setUploadTags('');
     loadAssets();
+
+    // Get final counts from state and show summary
+    setTimeout(() => {
+      setUploadQueue(currentQueue => {
+        const successCount = currentQueue.filter(q => q.status === 'success').length;
+        const failCount = currentQueue.filter(q => q.status === 'error').length;
+
+        if (successCount > 0) {
+          setSuccess(`Successfully uploaded ${successCount} file(s)`);
+        }
+        if (failCount > 0) {
+          setError(`Failed to upload ${failCount} file(s)`);
+        }
+
+        return currentQueue;
+      });
+    }, 100);
 
     // Clear queue after 3 seconds
     setTimeout(() => setUploadQueue([]), 3000);
