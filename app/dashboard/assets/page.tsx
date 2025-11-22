@@ -395,13 +395,13 @@ function AssetsContent() {
   const buildFolderTree = () => {
     const rootFolders = folders.filter(f => !f.parent_folder_id);
 
-    const renderFolder = (folder: AssetFolder, depth: number = 0): JSX.Element[] => {
+    const renderFolder = (folder: AssetFolder, depth: number = 0): React.JSX.Element[] => {
       const children = folders.filter(f => f.parent_folder_id === folder.id);
       const hasChildren = children.length > 0;
       const isExpanded = expandedFolders.has(folder.id);
       const isActive = currentFolderId === folder.id;
 
-      const result: JSX.Element[] = [
+      const result: React.JSX.Element[] = [
         <div key={folder.id} className="relative">
           <button
             onClick={() => router.push(`/dashboard/assets?folder=${folder.id}`)}
