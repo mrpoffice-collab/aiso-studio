@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       const tagArray = tags.split(',').map(t => t.trim()).filter(Boolean);
       if (tagArray.length > 0) {
         assets = assets.filter(asset =>
-          asset.tags && asset.tags.some(tag => tagArray.includes(tag))
+          asset.tags && asset.tags.some((tag: string) => tagArray.includes(tag))
         );
       }
     }
