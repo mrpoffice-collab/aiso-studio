@@ -1966,6 +1966,9 @@ export const db = {
     client_count?: number;
     base_audit_price_cents?: number;
     hourly_rate_cents?: number;
+    max_active_clients?: number;
+    certification_status?: string;
+    accepting_leads?: boolean;
   }) {
     const result = await query(
       `INSERT INTO agencies (
@@ -1974,8 +1977,8 @@ export const db = {
         vertical_specialization, services_offered,
         portfolio_url, case_studies, client_count,
         base_audit_price_cents, hourly_rate_cents,
-        certification_status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'pending')
+        max_active_clients, certification_status, accepting_leads
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *`,
       [
         data.user_id,
@@ -1993,6 +1996,9 @@ export const db = {
         data.client_count || 0,
         data.base_audit_price_cents || null,
         data.hourly_rate_cents || null,
+        data.max_active_clients || 10,
+        data.certification_status || 'pending',
+        data.accepting_leads !== undefined ? data.accepting_leads : false,
       ]
     );
     return result[0];
