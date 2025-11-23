@@ -177,8 +177,31 @@ function FreeAuditContent() {
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 p-4">
-                <p className="text-sm text-red-800">{error}</p>
+              <div className="rounded-lg bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 p-6">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="text-2xl">⚠️</span>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-slate-900 mb-2">AI Searchability Issue Detected</h3>
+                    <p className="text-sm text-slate-700 mb-3">{error}</p>
+                    <p className="text-sm text-slate-600 mb-4">
+                      <strong>This means ChatGPT, Perplexity, and Google SGE can't access this content either.</strong> Your site may be invisible to AI search engines due to technical barriers (robots.txt, JavaScript rendering, bot detection, or CAPTCHA).
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-orange-200">
+                  <Link
+                    href="/sign-up"
+                    className="flex-1 text-center rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+                  >
+                    Sign Up to Fix This Issue
+                  </Link>
+                  <a
+                    href="mailto:support@aiso.studio?subject=Need%20Agency%20Help%20with%20AI%20Searchability"
+                    className="flex-1 text-center rounded-lg border-2 border-orange-600 bg-white px-6 py-3 font-bold text-orange-600 hover:bg-orange-50 transition-all"
+                  >
+                    Find an Agency to Help
+                  </a>
+                </div>
               </div>
             )}
 

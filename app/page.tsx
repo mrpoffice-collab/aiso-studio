@@ -61,18 +61,18 @@ export default function LandingPage() {
               {/* Left Column - Copy + Audit Input */}
               <div>
                 <div className="inline-block mb-6 px-4 py-2 rounded-full bg-orange-100 border border-orange-200">
-                  <span className="text-sm font-bold text-orange-700">Transparent & Precise Scoring • Real Results</span>
+                  <span className="text-sm font-bold text-orange-700">Unlimited AI Searchability Diagnostics • Zero Caps</span>
                 </div>
 
                 <h1 className="text-5xl lg:text-6xl font-black text-slate-900 mb-6 leading-tight">
-                  Stop Guessing If Your Content Is Good Enough.{' '}
+                  Find Clients Invisible to AI Search.{' '}
                   <span className="bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
-                    Know.
+                    Fix It. Charge $5K-$10K.
                   </span>
                 </h1>
 
                 <p className="text-xl text-slate-600 mb-8 leading-relaxed max-w-xl">
-                  The only platform that scores content transparently and precisely (0-100), rewrites it to perform, and equips your agency with client management, assets, and proof-of-work reports.
+                  60% of websites can't be scraped by ChatGPT or Perplexity. AISO Studio finds them with unlimited diagnostics, shows you exactly what's broken, and gives you the fix to sell. All while 10x'ing your content output.
                 </p>
 
                 {/* Integrated Audit Input */}
