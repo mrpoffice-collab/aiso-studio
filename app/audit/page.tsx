@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 interface AuditResult {
@@ -25,11 +26,20 @@ interface AuditResult {
 }
 
 export default function FreeAuditPage() {
+  const searchParams = useSearchParams();
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<AuditResult | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Pre-fill URL from query parameter
+  useEffect(() => {
+    const urlParam = searchParams.get('url');
+    if (urlParam) {
+      setUrl(urlParam);
+    }
+  }, [searchParams]);
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-600';
@@ -401,63 +411,144 @@ export default function FreeAuditPage() {
 
       {/* Upgrade Modal */}
       {showUpgradeModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-0 relative overflow-hidden animate-in zoom-in-95 duration-300">
             <button
               onClick={() => setShowUpgradeModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+              className="absolute top-6 right-6 z-10 text-slate-400 hover:text-slate-700 transition-colors bg-white/80 rounded-full w-8 h-8 flex items-center justify-center hover:bg-slate-100"
             >
-              <span className="text-2xl">×</span>
+              <span className="text-2xl leading-none">×</span>
             </button>
 
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-sunset-orange to-orange-600 flex items-center justify-center">
-                <span className="text-4xl">🚀</span>
+            {/* Header Banner */}
+            <div className="bg-gradient-to-br from-sunset-orange via-orange-500 to-orange-600 px-8 pt-12 pb-8 text-white text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30"></div>
+
+              <div className="relative">
+                <div className="inline-block mb-3 px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-semibold">
+                  LIMITED TIME OFFER
+                </div>
+                <h2 className="text-4xl md:text-5xl font-black mb-3 drop-shadow-lg">
+                  You've Discovered<br />Something Powerful
+                </h2>
+                <p className="text-xl md:text-2xl font-medium opacity-95 max-w-xl mx-auto">
+                  Join 1,000+ agencies using AISO Studio to optimize content 10x faster
+                </p>
+              </div>
+            </div>
+
+            <div className="px-8 py-8">
+              {/* Stats Bar */}
+              <div className="grid grid-cols-3 gap-4 mb-8 -mt-16 relative z-10">
+                <div className="bg-white rounded-xl shadow-lg border border-slate-100 p-4 text-center">
+                  <div className="text-3xl font-black text-sunset-orange mb-1">10M+</div>
+                  <div className="text-xs text-slate-600 font-semibold">Words Optimized</div>
+                </div>
+                <div className="bg-white rounded-xl shadow-lg border border-slate-100 p-4 text-center">
+                  <div className="text-3xl font-black text-sunset-orange mb-1">95%</div>
+                  <div className="text-xs text-slate-600 font-semibold">Avg Score Increase</div>
+                </div>
+                <div className="bg-white rounded-xl shadow-lg border border-slate-100 p-4 text-center">
+                  <div className="text-3xl font-black text-sunset-orange mb-1">24/7</div>
+                  <div className="text-xs text-slate-600 font-semibold">AI Optimization</div>
+                </div>
               </div>
 
-              <h2 className="text-3xl font-bold text-slate-900 mb-3">
-                Ready for More?
-              </h2>
-              <p className="text-lg text-slate-600 mb-6">
-                Create a free account to unlock unlimited audits and powerful features
-              </p>
+              {/* Special Offer Box */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-sunset-orange to-orange-600 flex items-center justify-center text-2xl">
+                    🎁
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900">Special First-Time Offer</h3>
+                    <p className="text-sm text-slate-600">Start your 7-day free trial today</p>
+                  </div>
+                </div>
 
-              <div className="bg-slate-50 rounded-xl p-6 mb-6 text-left space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-green-600 text-xl">✓</span>
-                  <span className="text-slate-700">Unlimited AISO content audits</span>
+                <div className="space-y-2.5 mb-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                    <span className="text-slate-700 font-medium">Unlimited AISO content audits + AI rewrites</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                    <span className="text-slate-700 font-medium">Batch audit 50+ URLs simultaneously</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                    <span className="text-slate-700 font-medium">Full content strategy generator (15 topics/strategy)</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                    <span className="text-slate-700 font-medium">Lead discovery + pipeline management tools</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                    <span className="text-slate-700 font-medium">Digital asset vault (Unlimited storage)</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-green-600 text-xl">✓</span>
-                  <span className="text-slate-700">AI-powered content rewriting</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-green-600 text-xl">✓</span>
-                  <span className="text-slate-700">Batch audit multiple URLs</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-green-600 text-xl">✓</span>
-                  <span className="text-slate-700">Save and compare reports</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-green-600 text-xl">✓</span>
-                  <span className="text-slate-700">Full content strategy tools</span>
+
+                <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-blue-200">
+                  <div>
+                    <div className="text-sm text-slate-600">Starting at</div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-slate-900">$39</span>
+                      <span className="text-slate-500 font-medium">/month</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-slate-500">After 7-day free trial</div>
+                    <div className="text-sm font-bold text-green-600">Cancel anytime</div>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3">
+              {/* CTA Buttons */}
+              <div className="space-y-3">
                 <Link
                   href="/sign-up"
-                  className="rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-8 py-4 font-bold text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
+                  className="block w-full rounded-xl bg-gradient-to-r from-sunset-orange to-orange-600 px-8 py-4 font-black text-lg text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] text-center"
                 >
-                  Sign Up Free - No Credit Card Required
+                  Start Your Free Trial Now
                 </Link>
+                <p className="text-center text-xs text-slate-500">
+                  No credit card required • Cancel anytime • 7-day money-back guarantee
+                </p>
                 <Link
                   href="/sign-in"
-                  className="text-sm font-semibold text-slate-600 hover:text-sunset-orange transition-colors"
+                  className="block text-center text-sm font-semibold text-slate-600 hover:text-sunset-orange transition-colors pt-2"
                 >
                   Already have an account? Sign in
                 </Link>
+              </div>
+
+              {/* Trust Badges */}
+              <div className="mt-6 pt-6 border-t border-slate-200">
+                <div className="flex items-center justify-center gap-6 text-xs text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-green-600">🔒</span>
+                    <span>Secure Checkout</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-blue-600">⚡</span>
+                    <span>Instant Access</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-purple-600">💯</span>
+                    <span>Money-Back Guarantee</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
