@@ -329,6 +329,13 @@ function AuditPageContent() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard/audit/technical-seo"
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all hover:scale-105 flex items-center gap-2 font-semibold"
+              >
+                <span className="text-lg">🤖</span>
+                AI Searchability Diagnostic
+              </Link>
               <button
                 onClick={() => window.history.back()}
                 className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors flex items-center gap-2"

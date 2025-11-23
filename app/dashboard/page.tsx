@@ -113,6 +113,40 @@ export default async function DashboardPage() {
           </div>
         </div>
 
+        {/* NEW FEATURE: AI Searchability Diagnostic */}
+        <div className="mb-12">
+          <div className="rounded-2xl border-2 border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 p-8 shadow-xl">
+            <div className="flex items-start gap-6">
+              <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-3xl">🤖</span>
+              </div>
+              <div className="flex-1">
+                <div className="inline-block mb-2 px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full">
+                  NEW FEATURE
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                  AI Searchability Diagnostic
+                </h2>
+                <p className="text-slate-700 mb-4">
+                  Discover if ChatGPT, Perplexity, and AI search engines can access your content. Get actionable fixes categorized as <strong>"Agency Can Fix"</strong> (billable services $500-$5K) vs <strong>"Owner Must Change"</strong> (business decisions).
+                </p>
+                <ul className="text-sm text-slate-600 space-y-1 mb-4">
+                  <li>✅ Check 14 different AI searchability factors</li>
+                  <li>✅ See estimated costs for each fix</li>
+                  <li>✅ Get matched with certified agencies if needed</li>
+                  <li>✅ Unlimited diagnostics on your plan</li>
+                </ul>
+                <Link
+                  href="/dashboard/audit/technical-seo"
+                  className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                >
+                  Run AI Searchability Diagnostic →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid gap-8 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200/60 bg-white p-8 shadow-xl shadow-slate-200/50">
             <div className="mb-6 flex items-center gap-3">
