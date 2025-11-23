@@ -574,13 +574,21 @@ export default function LandingPage() {
                     <td className="text-center p-4 text-slate-300">✗</td>
                     <td className="text-center p-4 bg-orange-50 text-green-600 font-bold">✓</td>
                   </tr>
+                  <tr className="border-b border-slate-100">
+                    <td className="p-4 text-slate-700">Unlimited AI Searchability</td>
+                    <td className="text-center p-4 text-slate-300">✗</td>
+                    <td className="text-center p-4 text-slate-300">✗</td>
+                    <td className="text-center p-4 text-slate-300">✗</td>
+                    <td className="text-center p-4 text-slate-300">✗</td>
+                    <td className="text-center p-4 bg-orange-50 text-green-600 font-bold">✓</td>
+                  </tr>
                   <tr className="border-b-2 border-slate-200 font-bold">
                     <td className="p-4 text-slate-900">Monthly Cost</td>
                     <td className="text-center p-4 text-slate-600">$99+</td>
                     <td className="text-center p-4 text-slate-600">$150+</td>
                     <td className="text-center p-4 text-slate-600">$200+</td>
                     <td className="text-center p-4 text-slate-600">$50+</td>
-                    <td className="text-center p-4 bg-orange-50 text-sunset-orange text-xl">$39-299</td>
+                    <td className="text-center p-4 bg-orange-50 text-sunset-orange text-xl">$249-599</td>
                   </tr>
                 </tbody>
               </table>
@@ -588,7 +596,7 @@ export default function LandingPage() {
 
             <div className="text-center mt-8">
               <p className="text-sm text-slate-500">
-                Replace $500+/month in separate tools with one unified platform starting at $39/month
+                Replace $500+/month in separate tools with one unified platform. Pro tier includes unlimited AI searchability diagnostics.
               </p>
             </div>
           </div>
@@ -599,10 +607,10 @@ export default function LandingPage() {
           <div className="container mx-auto px-6">
             <div className="text-center mb-16 max-w-3xl mx-auto">
               <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-4">
-                Simple Plans for Agencies of All Sizes
+                Unlimited AI Searchability. Zero Artificial Caps.
               </h2>
               <p className="text-xl text-slate-600">
-                Start with a 7-day free trial. Scale as you grow. Cancel anytime.
+                Find unlimited clients. Generate unlimited reports. Scale when you're ready.
               </p>
             </div>
 
@@ -610,7 +618,7 @@ export default function LandingPage() {
               {/* Starter */}
               <div className="rounded-2xl border-2 border-slate-200 bg-white p-8 shadow-lg hover:shadow-xl transition-all">
                 <h3 className="text-2xl font-black text-slate-900 mb-2">Starter</h3>
-                <p className="text-slate-600 mb-6">Perfect for solo marketers</p>
+                <p className="text-slate-600 mb-6">Solo creators & DIYers</p>
                 <div className="mb-6">
                   <span className="text-5xl font-black text-slate-900">$39</span>
                   <span className="text-slate-600">/month</span>
@@ -622,7 +630,7 @@ export default function LandingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited audits</span>
+                    <span className="text-slate-700">Unlimited content audits</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 text-lg">✓</span>
@@ -634,7 +642,7 @@ export default function LandingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">Basic pipeline (1 project)</span>
+                    <span className="text-slate-700">1 pipeline project</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 text-lg">✓</span>
@@ -644,6 +652,10 @@ export default function LandingPage() {
                     <span className="text-green-600 text-lg">✓</span>
                     <span className="text-slate-700">1 seat</span>
                   </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-600 text-lg">✗</span>
+                    <span className="text-slate-500">No AI searchability</span>
+                  </li>
                 </ul>
                 <Link
                   href="/sign-up"
@@ -656,37 +668,111 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              {/* Agency - Recommended */}
-              <div className="rounded-2xl border-4 border-sunset-orange bg-white p-8 shadow-2xl relative scale-105">
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-sunset-orange to-orange-600 text-white text-sm font-bold shadow-lg">
-                  RECOMMENDED
+              {/* Professional - Recommended */}
+              <div className="rounded-2xl border-4 border-blue-500 bg-white p-8 shadow-2xl relative scale-105">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold shadow-lg">
+                  MOST POPULAR
                 </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-2">Agency</h3>
-                <p className="text-slate-600 mb-6">For multi-client agencies</p>
+                <h3 className="text-2xl font-black text-slate-900 mb-2">Professional</h3>
+                <p className="text-slate-600 mb-6">Freelancers & small agencies</p>
                 <div className="mb-6">
-                  <span className="text-5xl font-black bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">$299</span>
+                  <span className="text-5xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">$249</span>
                   <span className="text-slate-600">/month</span>
                 </div>
+
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs font-bold text-blue-900 mb-1">UNLIMITED MONEY-MAKING TOOLS:</p>
+                </div>
+
                 <ul className="space-y-3 mb-8 text-sm">
                   <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700"><strong>250 articles</strong> per month</span>
+                    <span className="text-blue-600 text-lg">∞</span>
+                    <span className="text-slate-900 font-bold">Unlimited AI searchability diagnostics</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited audits</span>
+                    <span className="text-blue-600 text-lg">∞</span>
+                    <span className="text-slate-900 font-bold">Unlimited AI Invisibility Reports</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited strategies</span>
+                    <span className="text-blue-600 text-lg">∞</span>
+                    <span className="text-slate-900 font-bold">Unlimited lead searches</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited lead searches</span>
+                    <span className="text-blue-600 text-lg">∞</span>
+                    <span className="text-slate-900 font-bold">Unlimited content audits</span>
                   </li>
                   <li className="flex items-start gap-2">
+                    <span className="text-blue-600 text-lg">∞</span>
+                    <span className="text-slate-900 font-bold">Unlimited strategies</span>
+                  </li>
+                  <li className="border-t border-slate-200 pt-3 mt-3 flex items-start gap-2">
+                    <span className="text-blue-600 text-lg">✓</span>
+                    <span className="text-slate-700"><strong>100 articles/month</strong></span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 text-lg">✓</span>
+                    <span className="text-slate-700">5 pipeline projects</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 text-lg">✓</span>
+                    <span className="text-slate-700">25GB Vault storage</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 text-lg">✓</span>
+                    <span className="text-slate-700">3 seats</span>
+                  </li>
+                </ul>
+                <Link
+                  href="/sign-up"
+                  className="block w-full text-center rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                >
+                  Start Free Trial
+                </Link>
+                <p className="text-xs text-center text-blue-700 mt-4 font-semibold">
+                  Close 1 client ($5K) = 20 months paid
+                </p>
+              </div>
+
+              {/* Agency */}
+              <div className="rounded-2xl border-4 border-sunset-orange bg-white p-8 shadow-2xl relative scale-105">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-sunset-orange to-orange-600 text-white text-sm font-bold shadow-lg">
+                  SMELLS LIKE FREEDOM
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 mb-2">Agency</h3>
+                <p className="text-slate-600 mb-6">Multi-client agencies</p>
+                <div className="mb-6">
+                  <span className="text-5xl font-black bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">$599</span>
+                  <span className="text-slate-600">/month</span>
+                </div>
+
+                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-xs font-bold text-orange-900 mb-1">EVERYTHING UNLIMITED:</p>
+                </div>
+
+                <ul className="space-y-3 mb-8 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span className="text-sunset-orange text-lg">∞</span>
+                    <span className="text-slate-900 font-bold">Unlimited AI searchability diagnostics</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-sunset-orange text-lg">∞</span>
+                    <span className="text-slate-900 font-bold">Unlimited AI Invisibility Reports (white-label!)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-sunset-orange text-lg">∞</span>
+                    <span className="text-slate-900 font-bold">Unlimited lead searches</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-sunset-orange text-lg">∞</span>
+                    <span className="text-slate-900 font-bold">Unlimited pipeline projects</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-sunset-orange text-lg">∞</span>
+                    <span className="text-slate-900 font-bold">Unlimited concurrent sessions</span>
+                  </li>
+                  <li className="border-t border-slate-200 pt-3 mt-3 flex items-start gap-2">
                     <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited pipeline projects</span>
+                    <span className="text-slate-700"><strong>500 articles/month</strong></span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-sunset-orange text-lg">✓</span>
@@ -694,15 +780,27 @@ export default function LandingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">Accessibility audits (WCAG)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">White-label PDF reports</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
                     <span className="text-slate-700">10 seats</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-sunset-orange text-lg">✓</span>
+                    <span className="text-slate-700">White-label reports</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-sunset-orange text-lg">✓</span>
+                    <span className="text-slate-700">Technical SEO toolkit</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-sunset-orange text-lg">✓</span>
+                    <span className="text-slate-700">WCAG accessibility audits</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-sunset-orange text-lg">✓</span>
+                    <span className="text-slate-700">Marketplace lead access</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-sunset-orange text-lg">✓</span>
+                    <span className="text-slate-700">Priority support (4-hour)</span>
                   </li>
                 </ul>
                 <Link
@@ -711,72 +809,18 @@ export default function LandingPage() {
                 >
                   Start Free Trial
                 </Link>
-                <p className="text-xs text-center text-slate-500 mt-4">
-                  7-day free trial • No credit card
-                </p>
-              </div>
-
-              {/* Enterprise */}
-              <div className="rounded-2xl border-2 border-slate-200 bg-white p-8 shadow-lg hover:shadow-xl transition-all">
-                <h3 className="text-2xl font-black text-slate-900 mb-2">Enterprise</h3>
-                <p className="text-slate-600 mb-6">For large organizations</p>
-                <div className="mb-6">
-                  <span className="text-5xl font-black text-slate-900">$799</span>
-                  <span className="text-slate-600">/month</span>
-                </div>
-                <ul className="space-y-3 mb-8 text-sm">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700"><strong>1,000 articles</strong> per month</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited audits</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited strategies</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited everything</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited Vault storage</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">API access</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">Custom integrations</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">Dedicated account manager</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited seats</span>
-                  </li>
-                </ul>
-                <Link
-                  href="/sign-up"
-                  className="block w-full text-center rounded-lg border-2 border-slate-300 bg-white px-6 py-3 font-bold text-slate-700 hover:bg-slate-50 transition-all"
-                >
-                  Start Free Trial
-                </Link>
-                <p className="text-xs text-center text-slate-500 mt-4">
-                  7-day free trial • No credit card
+                <p className="text-xs text-center text-orange-700 mt-4 font-semibold">
+                  Close 1 client ($10K) = 16 months paid
                 </p>
               </div>
             </div>
 
             <div className="text-center mt-12">
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 mb-2">
                 All plans include a 7-day free trial. No credit card required. Cancel anytime.
+              </p>
+              <p className="text-sm font-semibold text-slate-700">
+                Professional & Agency: Unlimited AI searchability diagnostics. Find every client in your market.
               </p>
             </div>
           </div>
