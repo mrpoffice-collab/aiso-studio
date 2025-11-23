@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -25,7 +25,7 @@ interface AuditResult {
   upgradePrompt: string;
 }
 
-export default function FreeAuditPage() {
+function FreeAuditContent() {
   const searchParams = useSearchParams();
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -555,5 +555,20 @@ export default function FreeAuditPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function FreeAuditPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-sunset-orange border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-600">Loading audit page...</p>
+        </div>
+      </div>
+    }>
+      <FreeAuditContent />
+    </Suspense>
   );
 }
