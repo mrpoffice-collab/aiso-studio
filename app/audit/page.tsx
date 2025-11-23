@@ -133,10 +133,10 @@ function FreeAuditContent() {
             Try Before You Buy
           </div>
           <h1 className="text-5xl font-bold text-slate-900 mb-4">
-            Free AISO Content Audit
+            Free AISO Content Audit + AI Search Visibility Check
           </h1>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto mb-6">
-            Get instant AI-powered insights on your blog posts. Check SEO, readability, and engagement scores in seconds.
+            Get instant AI-powered insights on your blog posts. Check SEO, readability, engagement scores, and <strong>discover if your content is visible to ChatGPT & AI search engines</strong>.
           </p>
           <p className="text-sm text-slate-500">
             <span className="font-semibold text-sunset-orange">3 Free Audits</span> • No Credit Card Required • No Sign-Up Needed
@@ -377,32 +377,53 @@ function FreeAuditContent() {
 
         {/* Features Section */}
         {!result && (
-          <div className="mt-16 grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-                <span className="text-3xl">🎯</span>
+          <div className="mt-16">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-3xl">🎯</span>
+                </div>
+                <h3 className="font-bold text-slate-900 mb-2">SEO Analysis</h3>
+                <p className="text-sm text-slate-600">
+                  Get insights on headers, keywords, meta tags, and search optimization
+                </p>
               </div>
-              <h3 className="font-bold text-slate-900 mb-2">SEO Analysis</h3>
-              <p className="text-sm text-slate-600">
-                Get insights on headers, keywords, meta tags, and search optimization
-              </p>
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+                  <span className="text-3xl">📖</span>
+                </div>
+                <h3 className="font-bold text-slate-900 mb-2">Readability Check</h3>
+                <p className="text-sm text-slate-600">
+                  Analyze sentence structure, complexity, and Flesch reading score
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-100 flex items-center justify-center">
+                  <span className="text-3xl">✨</span>
+                </div>
+                <h3 className="font-bold text-slate-900 mb-2">Engagement Score</h3>
+                <p className="text-sm text-slate-600">
+                  Evaluate hooks, CTAs, formatting, and reader engagement
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-100 flex items-center justify-center border-2 border-orange-300">
+                  <span className="text-3xl">🤖</span>
+                </div>
+                <h3 className="font-bold text-slate-900 mb-2">AI Search Visibility</h3>
+                <p className="text-sm text-slate-600">
+                  If we can't scrape it, ChatGPT can't find it. Get instant visibility diagnostics.
+                </p>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-                <span className="text-3xl">📖</span>
+
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl p-6 text-center">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <span className="text-2xl">⚠️</span>
+                <h3 className="text-lg font-black text-slate-900">Unscrape-able = Invisible to AI Search</h3>
               </div>
-              <h3 className="font-bold text-slate-900 mb-2">Readability Check</h3>
-              <p className="text-sm text-slate-600">
-                Analyze sentence structure, complexity, and Flesch reading score
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-100 flex items-center justify-center">
-                <span className="text-3xl">✨</span>
-              </div>
-              <h3 className="font-bold text-slate-900 mb-2">Engagement Score</h3>
-              <p className="text-sm text-slate-600">
-                Evaluate hooks, CTAs, formatting, and reader engagement
+              <p className="text-sm text-slate-700 max-w-2xl mx-auto">
+                If your URL won't audit, it means <strong>ChatGPT, Perplexity, and Google SGE can't access your content either</strong>. We'll diagnose the issue and show you how to fix it for maximum AI search visibility.
               </p>
             </div>
           </div>

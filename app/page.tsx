@@ -61,7 +61,7 @@ export default function LandingPage() {
               {/* Left Column - Copy + Audit Input */}
               <div>
                 <div className="inline-block mb-6 px-4 py-2 rounded-full bg-orange-100 border border-orange-200">
-                  <span className="text-sm font-bold text-orange-700">Honest Scoring • Real Results</span>
+                  <span className="text-sm font-bold text-orange-700">Transparent & Precise Scoring • Real Results</span>
                 </div>
 
                 <h1 className="text-5xl lg:text-6xl font-black text-slate-900 mb-6 leading-tight">
@@ -72,7 +72,7 @@ export default function LandingPage() {
                 </h1>
 
                 <p className="text-xl text-slate-600 mb-8 leading-relaxed max-w-xl">
-                  The only platform that scores content honestly (0-100), rewrites it to perform, and equips your agency with client management, assets, and proof-of-work reports.
+                  The only platform that scores content transparently and precisely (0-100), rewrites it to perform, and equips your agency with client management, assets, and proof-of-work reports.
                 </p>
 
                 {/* Integrated Audit Input */}
@@ -175,12 +175,12 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* PROOF BLOCK - Honest Scoring */}
+        {/* PROOF BLOCK - Transparent & Precise Scoring */}
         <section className="py-20 bg-gradient-to-br from-slate-50 to-white">
           <div className="container mx-auto px-6">
             <div className="text-center mb-16 max-w-3xl mx-auto">
               <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-4">
-                Brutally Transparent 0-100 Scoring
+                Transparent & Precise 0-100 Scoring
               </h2>
               <p className="text-xl text-slate-600">
                 No grade inflation. No BS. Our AISO scoring system tells you exactly what's wrong and how to fix it.
@@ -465,7 +465,7 @@ export default function LandingPage() {
                   <div className="flex-1">
                     <h3 className="text-2xl font-bold text-slate-900 mb-2">Audit & Optimize</h3>
                     <p className="text-slate-600">
-                      Batch audit client content → Get honest 0-100 AISO scores → Rewrite to 75+ target scores with selective optimization passes
+                      Batch audit client content → Get transparent 0-100 AISO scores → Rewrite to 75+ target scores with selective optimization passes
                     </p>
                   </div>
                 </div>
@@ -517,7 +517,7 @@ export default function LandingPage() {
                 One Platform. Five Tools Replaced.
               </h2>
               <p className="text-xl text-slate-600">
-                Stop paying for separate tools. Get everything in one honest platform.
+                Stop paying for separate tools. Get everything in one transparent platform.
               </p>
             </div>
 
@@ -567,7 +567,7 @@ export default function LandingPage() {
                     <td className="text-center p-4 bg-orange-50 text-green-600 font-bold">✓</td>
                   </tr>
                   <tr className="border-b border-slate-100">
-                    <td className="p-4 text-slate-700">Honest Scoring</td>
+                    <td className="p-4 text-slate-700">Transparent & Precise Scoring</td>
                     <td className="text-center p-4 text-slate-300">✗</td>
                     <td className="text-center p-4 text-slate-300">✗</td>
                     <td className="text-center p-4 text-slate-300">✗</td>
@@ -782,37 +782,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* TECHNOLOGY CREDIBILITY */}
-        <section className="py-16 bg-white border-y border-slate-200">
-          <div className="container mx-auto px-6">
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">Powered by Industry-Leading AI</h3>
-              <p className="text-slate-600">Built on the most advanced technology stack</p>
-            </div>
-            <div className="flex flex-wrap justify-center items-center gap-8 text-slate-400">
-              <div className="text-center">
-                <div className="text-lg font-bold text-slate-700">Claude Sonnet 4</div>
-                <div className="text-xs">Content Generation</div>
-              </div>
-              <div className="text-2xl">•</div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-slate-700">GPT-4</div>
-                <div className="text-xs">Strategy & Analysis</div>
-              </div>
-              <div className="text-2xl">•</div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-slate-700">Brave Search</div>
-                <div className="text-xs">Fact-Checking</div>
-              </div>
-              <div className="text-2xl">•</div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-slate-700">Playwright + axe-core</div>
-                <div className="text-xs">Accessibility</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* FAQ SECTION */}
         <section id="faq" className="py-20 bg-gradient-to-br from-slate-50 to-white">
           <div className="container mx-auto px-6">
@@ -829,7 +798,7 @@ export default function LandingPage() {
                   <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
                 </summary>
                 <p className="text-slate-600 mt-4">
-                  AISO = Answer Engine Optimization + Intent-based Readability + SEO + Overall optimization. It's a brutally honest 0-100 scoring system that evaluates content across 6 dimensions: AEO (30%), SEO (20%), Readability (20%), Engagement (15%), GEO (10%), and Fact-Check (30%). Unlike other tools that inflate scores, we tell you the truth.
+                  AISO = Answer Engine Optimization + Intent-based Readability + SEO + Overall optimization. It's a completely transparent 0-100 scoring system that evaluates content across 6 dimensions: AEO (30%), SEO (20%), Readability (20%), Engagement (15%), GEO (10%), and Fact-Check (30%). Unlike other tools that inflate scores, we tell you the truth.
                 </p>
               </details>
 
@@ -865,11 +834,19 @@ export default function LandingPage() {
 
               <details className="bg-white rounded-lg border border-slate-200 p-6 group">
                 <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
-                  Can I import existing content?
+                  Can I import existing content? What if a URL won't scrape?
                   <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
                 </summary>
                 <p className="text-slate-600 mt-4">
-                  Yes. You can paste content directly, enter URLs (we'll scrape them), or batch audit 50+ URLs at once. The batch audit feature automatically detects local intent and applies appropriate GEO scoring.
+                  Yes. You have three import options:
+                </p>
+                <ul className="text-slate-600 mt-3 space-y-2 ml-4 list-disc">
+                  <li><strong>Paste content directly</strong> - Always works, gives you full control</li>
+                  <li><strong>Enter URLs</strong> - We'll scrape them automatically (works for most sites)</li>
+                  <li><strong>Batch audit 50+ URLs</strong> - Process multiple pages simultaneously</li>
+                </ul>
+                <p className="text-slate-600 mt-3">
+                  <strong>Why some sites won't scrape:</strong> Websites may block automated access through CAPTCHA, JavaScript rendering, rate limiting, or bot detection. AI search engines like Google and Perplexity bypass this through partnerships, whitelisted IPs, and advanced rendering engines. If scraping fails, simply copy/paste the content directly for instant analysis.
                 </p>
               </details>
 
@@ -951,7 +928,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span>💯</span>
-                  <span>Honest Scoring</span>
+                  <span>Transparent & Precise Scoring</span>
                 </div>
               </div>
             </div>
@@ -968,7 +945,7 @@ export default function LandingPage() {
                 AISO Studio
               </h3>
               <p className="text-sm text-slate-600">
-                Professional content optimization and agency management platform. Built for agencies that value honest results.
+                Professional content optimization and agency management platform. Built for agencies that value transparent, precise results.
               </p>
             </div>
             <div>
