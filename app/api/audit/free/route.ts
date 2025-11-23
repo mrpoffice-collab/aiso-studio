@@ -169,8 +169,12 @@ export async function POST(request: NextRequest) {
       undefined // Skip expensive fact-checking for free audits
     );
 
+    // Capture user agent and referrer for analytics
+    const userAgent = request.headers.get('user-agent') || '';
+    const referrer = request.headers.get('referer') || request.headers.get('referrer') || '';
+
     // Save audit record
-    await db.createFreeAuditRecord({
+    const auditRecord = await db.createFreeAuditRecord({
       ip_address: ipAddress,
       domain,
       url,
@@ -181,6 +185,13 @@ export async function POST(request: NextRequest) {
         contentLength: content.length,
       },
     });
+
+    // Update metadata asynchronously (non-blocking)
+    if (auditRecord?.id) {
+      db.updateFreeAuditMetadata(auditRecord.id, userAgent, referrer).catch(err =>
+        console.error('Failed to update audit metadata:', err)
+      );
+    }
 
     // Calculate remaining audits for this IP
     const newIpAuditCount = ipAuditCount + 1;

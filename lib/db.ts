@@ -1729,4 +1729,134 @@ export const db = {
     );
     return parseInt(result[0]?.count || '0', 10);
   },
+
+  // Admin Analytics Functions
+  async getAllFreeAudits(limit: number = 100, offset: number = 0) {
+    return await query(
+      `SELECT
+        fa.*,
+        u.email as converted_user_email,
+        u.name as converted_user_name,
+        u.subscription_tier
+       FROM free_audit_usage fa
+       LEFT JOIN users u ON fa.converted_user_id = u.id
+       ORDER BY fa.created_at DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+  },
+
+  async getFreeAuditAnalytics() {
+    const result = await query(`
+      SELECT
+        COUNT(*) as total_audits,
+        COUNT(DISTINCT ip_address) as unique_ips,
+        COUNT(DISTINCT domain) as unique_domains,
+        COUNT(CASE WHEN converted = true THEN 1 END) as converted_count,
+        COUNT(CASE WHEN converted = true AND is_domain_owner = true THEN 1 END) as domain_owner_conversions,
+        COUNT(CASE WHEN converted = true AND is_domain_owner = false THEN 1 END) as agency_conversions,
+        ROUND(
+          (COUNT(CASE WHEN converted = true THEN 1 END)::DECIMAL /
+          COUNT(DISTINCT ip_address)::DECIMAL) * 100,
+          2
+        ) as conversion_rate
+      FROM free_audit_usage
+    `);
+    return result[0];
+  },
+
+  async getFreeAuditsByDateRange(startDate: string, endDate: string) {
+    return await query(
+      `SELECT
+        DATE(created_at) as date,
+        COUNT(*) as audits,
+        COUNT(DISTINCT ip_address) as unique_users,
+        COUNT(CASE WHEN converted = true THEN 1 END) as conversions
+       FROM free_audit_usage
+       WHERE created_at >= $1 AND created_at < $2
+       GROUP BY DATE(created_at)
+       ORDER BY date DESC`,
+      [startDate, endDate]
+    );
+  },
+
+  async getTopAuditedDomains(limit: number = 20) {
+    return await query(
+      `SELECT
+        domain,
+        COUNT(*) as audit_count,
+        COUNT(DISTINCT ip_address) as unique_auditors,
+        COUNT(CASE WHEN converted = true THEN 1 END) as conversions,
+        AVG((audit_data->>'scores'->>'seo')::DECIMAL) as avg_seo_score,
+        AVG((audit_data->'scores'->>'readability')::DECIMAL) as avg_readability_score
+       FROM free_audit_usage
+       GROUP BY domain
+       ORDER BY audit_count DESC
+       LIMIT $1`,
+      [limit]
+    );
+  },
+
+  async getScoringIssues() {
+    return await query(`
+      SELECT
+        url,
+        domain,
+        audit_data->'scores' as scores,
+        audit_data->'details' as details,
+        created_at
+       FROM free_audit_usage
+       WHERE
+        (audit_data->'scores'->>'seo')::DECIMAL < 30 OR
+        (audit_data->'scores'->>'readability')::DECIMAL < 30 OR
+        (audit_data->'scores'->>'engagement')::DECIMAL < 30
+       ORDER BY created_at DESC
+       LIMIT 50
+    `);
+  },
+
+  async markFreeAuditConverted(ipAddress: string, userId: number, email: string) {
+    // Get all free audits from this IP in the last 30 days
+    const audits = await query(
+      `SELECT * FROM free_audit_usage
+       WHERE ip_address = $1
+       AND created_at > NOW() - INTERVAL '30 days'
+       AND converted = false`,
+      [ipAddress]
+    );
+
+    if (audits.length === 0) {
+      return { updated: 0 };
+    }
+
+    // Determine if user owns the domains they audited
+    const emailDomain = email.split('@')[1]?.toLowerCase();
+
+    for (const audit of audits) {
+      const auditDomain = audit.domain?.toLowerCase();
+      const isDomainOwner = emailDomain && auditDomain &&
+        (auditDomain.includes(emailDomain) || emailDomain.includes(auditDomain));
+
+      await query(
+        `UPDATE free_audit_usage
+         SET converted = true,
+             converted_user_id = $1,
+             converted_at = NOW(),
+             is_domain_owner = $2
+         WHERE id = $3`,
+        [userId, isDomainOwner, audit.id]
+      );
+    }
+
+    return { updated: audits.length, audits };
+  },
+
+  async updateFreeAuditMetadata(id: number, userAgent: string, referrer: string) {
+    await query(
+      `UPDATE free_audit_usage
+       SET user_agent = $1, referrer = $2
+       WHERE id = $3`,
+      [userAgent, referrer, id]
+    );
+  },
 };
