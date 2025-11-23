@@ -1859,4 +1859,366 @@ export const db = {
       [userAgent, referrer, id]
     );
   },
+
+  // ============================================================================
+  // Technical SEO Audits
+  // ============================================================================
+
+  async createTechnicalSeoAudit(data: {
+    user_id: number | string;
+    content_audit_id?: number;
+    url: string;
+    overall_score: number;
+    ai_searchability_score: number;
+    technical_seo_score: number;
+    agency_fixable_count: number;
+    owner_action_count: number;
+    estimated_min_cost?: number;
+    estimated_max_cost?: number;
+    agency_can_fix: any;
+    owner_must_change: any;
+    checks: any;
+    recommendations: any;
+    scan_version?: string;
+  }) {
+    const result = await query(
+      `INSERT INTO technical_seo_audits (
+        user_id, content_audit_id, url,
+        overall_score, ai_searchability_score, technical_seo_score,
+        agency_fixable_count, owner_action_count,
+        estimated_min_cost, estimated_max_cost,
+        agency_can_fix, owner_must_change, checks, recommendations,
+        scan_version
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *`,
+      [
+        data.user_id,
+        data.content_audit_id || null,
+        data.url,
+        data.overall_score,
+        data.ai_searchability_score,
+        data.technical_seo_score,
+        data.agency_fixable_count,
+        data.owner_action_count,
+        data.estimated_min_cost || null,
+        data.estimated_max_cost || null,
+        JSON.stringify(data.agency_can_fix),
+        JSON.stringify(data.owner_must_change),
+        JSON.stringify(data.checks),
+        JSON.stringify(data.recommendations),
+        data.scan_version || '1.0.0',
+      ]
+    );
+    return result[0];
+  },
+
+  async getTechnicalSeoAuditsByUserId(userId: number | string, limit = 50) {
+    return await query(
+      `SELECT * FROM technical_seo_audits
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [userId, limit]
+    );
+  },
+
+  async getTechnicalSeoAuditById(id: number) {
+    const result = await query(
+      'SELECT * FROM technical_seo_audits WHERE id = $1',
+      [id]
+    );
+    return result[0] || null;
+  },
+
+  async getTechnicalSeoAuditByContentAuditId(contentAuditId: number) {
+    const result = await query(
+      'SELECT * FROM technical_seo_audits WHERE content_audit_id = $1 ORDER BY created_at DESC LIMIT 1',
+      [contentAuditId]
+    );
+    return result[0] || null;
+  },
+
+  async getTechnicalSeoAuditByUrl(url: string, userId: number | string) {
+    const result = await query(
+      'SELECT * FROM technical_seo_audits WHERE url = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 1',
+      [url, userId]
+    );
+    return result[0] || null;
+  },
+
+  // ============================================================================
+  // Agencies (Marketplace)
+  // ============================================================================
+
+  async createAgency(data: {
+    user_id: number | string;
+    agency_name: string;
+    contact_email: string;
+    contact_phone?: string;
+    website_url?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    vertical_specialization?: string[];
+    services_offered?: string[];
+    portfolio_url?: string;
+    case_studies?: any[];
+    client_count?: number;
+    base_audit_price_cents?: number;
+    hourly_rate_cents?: number;
+  }) {
+    const result = await query(
+      `INSERT INTO agencies (
+        user_id, agency_name, contact_email, contact_phone, website_url,
+        city, state, country,
+        vertical_specialization, services_offered,
+        portfolio_url, case_studies, client_count,
+        base_audit_price_cents, hourly_rate_cents,
+        certification_status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'pending')
+      RETURNING *`,
+      [
+        data.user_id,
+        data.agency_name,
+        data.contact_email,
+        data.contact_phone || null,
+        data.website_url || null,
+        data.city || null,
+        data.state || null,
+        data.country || 'USA',
+        data.vertical_specialization || [],
+        data.services_offered || [],
+        data.portfolio_url || null,
+        JSON.stringify(data.case_studies || []),
+        data.client_count || 0,
+        data.base_audit_price_cents || null,
+        data.hourly_rate_cents || null,
+      ]
+    );
+    return result[0];
+  },
+
+  async getAgencyByUserId(userId: number | string) {
+    const result = await query(
+      'SELECT * FROM agencies WHERE user_id = $1',
+      [userId]
+    );
+    return result[0] || null;
+  },
+
+  async getAgencyById(id: number) {
+    const result = await query(
+      'SELECT * FROM agencies WHERE id = $1',
+      [id]
+    );
+    return result[0] || null;
+  },
+
+  async getApprovedAgencies(limit = 100) {
+    return await query(
+      `SELECT * FROM agencies
+       WHERE certification_status = 'approved'
+       AND accepting_leads = true
+       ORDER BY client_satisfaction_score DESC NULLS LAST, leads_converted DESC
+       LIMIT $1`,
+      [limit]
+    );
+  },
+
+  async getPendingAgencies() {
+    return await query(
+      `SELECT * FROM agencies
+       WHERE certification_status = 'pending'
+       ORDER BY application_submitted_at ASC`,
+      []
+    );
+  },
+
+  async updateAgencyCertification(
+    agencyId: number,
+    status: 'approved' | 'rejected' | 'suspended',
+    approvedBy: number | string,
+    notes?: string
+  ) {
+    const result = await query(
+      `UPDATE agencies
+       SET
+         certification_status = $1,
+         certified_at = CASE WHEN $1 = 'approved' THEN NOW() ELSE certified_at END,
+         approved_by = $2,
+         certification_notes = $3
+       WHERE id = $4
+       RETURNING *`,
+      [status, approvedBy, notes || null, agencyId]
+    );
+    return result[0];
+  },
+
+  async updateAgencyAcceptingLeads(agencyId: number, accepting: boolean) {
+    const result = await query(
+      `UPDATE agencies
+       SET accepting_leads = $1
+       WHERE id = $2
+       RETURNING *`,
+      [accepting, agencyId]
+    );
+    return result[0];
+  },
+
+  async updateAgencyProfile(agencyId: number, data: {
+    agency_name?: string;
+    contact_email?: string;
+    contact_phone?: string;
+    website_url?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    vertical_specialization?: string[];
+    services_offered?: string[];
+    portfolio_url?: string;
+    client_count?: number;
+    base_audit_price_cents?: number;
+    hourly_rate_cents?: number;
+  }) {
+    const fields: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined) {
+        fields.push(`${key} = $${paramIndex}`);
+        values.push(value);
+        paramIndex++;
+      }
+    });
+
+    if (fields.length === 0) {
+      throw new Error('No fields to update');
+    }
+
+    values.push(agencyId);
+
+    const result = await query(
+      `UPDATE agencies SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+    return result[0];
+  },
+
+  // ============================================================================
+  // Agency Lead Referrals
+  // ============================================================================
+
+  async createAgencyLeadReferral(data: {
+    agency_id: number;
+    lead_email: string;
+    lead_name?: string;
+    lead_phone?: string;
+    lead_company?: string;
+    lead_url?: string;
+    technical_seo_audit_id?: number;
+    issue_summary?: string;
+    estimated_deal_value_cents?: number;
+    commission_percentage?: number;
+  }) {
+    const result = await query(
+      `INSERT INTO agency_lead_referrals (
+        agency_id, lead_email, lead_name, lead_phone, lead_company, lead_url,
+        technical_seo_audit_id, issue_summary, estimated_deal_value_cents,
+        commission_percentage
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *`,
+      [
+        data.agency_id,
+        data.lead_email,
+        data.lead_name || null,
+        data.lead_phone || null,
+        data.lead_company || null,
+        data.lead_url || null,
+        data.technical_seo_audit_id || null,
+        data.issue_summary || null,
+        data.estimated_deal_value_cents || null,
+        data.commission_percentage || 20.0,
+      ]
+    );
+
+    // Increment leads_received count
+    await query(
+      'UPDATE agencies SET leads_received = leads_received + 1 WHERE id = $1',
+      [data.agency_id]
+    );
+
+    return result[0];
+  },
+
+  async getLeadReferralsByAgencyId(agencyId: number, limit = 50) {
+    return await query(
+      `SELECT * FROM agency_lead_referrals
+       WHERE agency_id = $1
+       ORDER BY sent_at DESC
+       LIMIT $2`,
+      [agencyId, limit]
+    );
+  },
+
+  async updateLeadReferralStatus(
+    referralId: number,
+    status: 'sent' | 'accepted' | 'declined' | 'converted' | 'lost',
+    actualDealValue?: number,
+    notes?: string
+  ) {
+    const result = await query(
+      `UPDATE agency_lead_referrals
+       SET
+         status = $1,
+         responded_at = CASE WHEN $1 IN ('accepted', 'declined') AND responded_at IS NULL THEN NOW() ELSE responded_at END,
+         converted_at = CASE WHEN $1 = 'converted' THEN NOW() ELSE converted_at END,
+         actual_deal_value_cents = COALESCE($2, actual_deal_value_cents),
+         commission_amount_cents = CASE
+           WHEN $1 = 'converted' AND $2 IS NOT NULL
+           THEN ROUND($2 * commission_percentage / 100)
+           ELSE commission_amount_cents
+         END,
+         agency_notes = COALESCE($3, agency_notes)
+       WHERE id = $4
+       RETURNING *`,
+      [status, actualDealValue || null, notes || null, referralId]
+    );
+    return result[0];
+  },
+
+  async getUnpaidCommissions() {
+    return await query(
+      `SELECT alr.*, a.agency_name, a.contact_email
+       FROM agency_lead_referrals alr
+       JOIN agencies a ON a.id = alr.agency_id
+       WHERE alr.status = 'converted'
+       AND alr.commission_paid = false
+       AND alr.commission_amount_cents > 0
+       ORDER BY alr.converted_at DESC`,
+      []
+    );
+  },
+
+  async markCommissionPaid(referralId: number) {
+    const result = await query(
+      `UPDATE agency_lead_referrals
+       SET commission_paid = true, commission_paid_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [referralId]
+    );
+
+    // Update agency's total commission paid
+    if (result[0]) {
+      await query(
+        `UPDATE agencies
+         SET total_commission_paid_cents = total_commission_paid_cents + $1
+         WHERE id = $2`,
+        [result[0].commission_amount_cents, result[0].agency_id]
+      );
+    }
+
+    return result[0];
+  },
 };
