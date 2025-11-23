@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS agencies (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- The user who owns this agency
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE, -- The user who owns this agency
 
   -- Agency profile
   agency_name TEXT NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS agencies (
 
   -- Metadata
   application_submitted_at TIMESTAMP DEFAULT NOW(),
-  approved_by INTEGER REFERENCES users(id) ON DELETE SET NULL, -- Admin who approved
+  approved_by UUID REFERENCES users(id) ON DELETE SET NULL, -- Admin who approved
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );

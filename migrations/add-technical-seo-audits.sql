@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS technical_seo_audits (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   content_audit_id INTEGER REFERENCES content_audits(id) ON DELETE SET NULL,
   url TEXT NOT NULL,
 
