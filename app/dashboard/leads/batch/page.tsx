@@ -88,8 +88,14 @@ export default function BatchLeadDiscoveryPage() {
 
       alert(`✓ ${data.message}\n\nYou can track progress below. This may take 10-30 minutes.`);
 
-      // Clear saved form data after successful creation
-      clearFormData();
+      // Clear form but preserve filter preference
+      setFormData({
+        industry: '',
+        city: '',
+        state: '',
+        targetCount: 50,
+        filterRange: formData.filterRange, // Keep user's filter selection
+      });
 
       // Refresh batches
       fetchBatches();
