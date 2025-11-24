@@ -248,6 +248,11 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
         const savedCount = await step.run(`save-leads-${iteration}`, async () => {
           let count = 0;
           for (const lead of businesses) {
+            // Stop if we've reached the target count
+            if (sweetSpotFound >= target_count) {
+              break;
+            }
+
             if (matchesFilter(lead)) {
               try {
                 // Save to pipeline
