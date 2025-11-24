@@ -64,6 +64,9 @@ export default function PipelinePage() {
   const [newProjectLocation, setNewProjectLocation] = useState('');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [deletingLeadId, setDeletingLeadId] = useState<number | null>(null);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -134,6 +137,75 @@ export default function PipelinePage() {
       }
     } catch (error) {
       console.error('Failed to update lead:', error);
+    }
+  };
+
+  const deleteLead = async (leadId: number, businessName: string) => {
+    if (!confirm(`Are you sure you want to delete "${businessName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingLeadId(leadId);
+    try {
+      const res = await fetch(`/api/leads/pipeline?lead_id=${leadId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        loadData();
+      } else {
+        const data = await res.json();
+        alert(`Failed to delete lead: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to delete lead:', error);
+      alert('Failed to delete lead. Please try again.');
+    } finally {
+      setDeletingLeadId(null);
+    }
+  };
+
+  const toggleLeadSelection = (leadId: number) => {
+    const newSelection = new Set(selectedLeadIds);
+    if (newSelection.has(leadId)) {
+      newSelection.delete(leadId);
+    } else {
+      newSelection.add(leadId);
+    }
+    setSelectedLeadIds(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLeadIds.size === filteredLeads.length) {
+      setSelectedLeadIds(new Set());
+    } else {
+      setSelectedLeadIds(new Set(filteredLeads.map(l => l.id)));
+    }
+  };
+
+  const bulkDeleteLeads = async () => {
+    if (selectedLeadIds.size === 0) return;
+
+    if (!confirm(`Are you sure you want to delete ${selectedLeadIds.size} lead(s)? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsBulkDeleting(true);
+    try {
+      const deletePromises = Array.from(selectedLeadIds).map(leadId =>
+        fetch(`/api/leads/pipeline?lead_id=${leadId}`, {
+          method: 'DELETE',
+        })
+      );
+
+      await Promise.all(deletePromises);
+      setSelectedLeadIds(new Set());
+      loadData();
+    } catch (error) {
+      console.error('Failed to bulk delete leads:', error);
+      alert('Failed to delete some leads. Please try again.');
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -277,13 +349,38 @@ export default function PipelinePage() {
               </div>
             </div>
 
-            {/* New Project Button */}
-            <button
-              onClick={() => setShowNewProjectModal(true)}
-              className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all"
-            >
-              + New Project
-            </button>
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              {selectedLeadIds.size > 0 && (
+                <button
+                  onClick={bulkDeleteLeads}
+                  disabled={isBulkDeleting}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                >
+                  {isBulkDeleting ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete Selected ({selectedLeadIds.size})
+                    </>
+                  )}
+                </button>
+              )}
+              <button
+                onClick={() => setShowNewProjectModal(true)}
+                className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all"
+              >
+                + New Project
+              </button>
+            </div>
           </div>
         </div>
 
@@ -300,6 +397,14 @@ export default function PipelinePage() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
+                    <th className="px-6 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        checked={filteredLeads.length > 0 && selectedLeadIds.size === filteredLeads.length}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 text-orange-600 border-slate-300 rounded focus:ring-orange-500"
+                      />
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Business</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Contact</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Score</th>
@@ -312,6 +417,14 @@ export default function PipelinePage() {
                 <tbody className="divide-y divide-slate-200">
                   {filteredLeads.map((lead) => (
                     <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedLeadIds.has(lead.id)}
+                          onChange={() => toggleLeadSelection(lead.id)}
+                          className="w-4 h-4 text-orange-600 border-slate-300 rounded focus:ring-orange-500"
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="font-semibold text-slate-900">{lead.business_name}</div>
                         <div className="text-sm text-slate-600">{lead.domain}</div>
@@ -410,6 +523,23 @@ export default function PipelinePage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
                           </a>
+                          <span className="text-slate-300">|</span>
+                          <button
+                            onClick={() => deleteLead(lead.id, lead.business_name)}
+                            disabled={deletingLeadId === lead.id}
+                            className="text-red-600 hover:text-red-700 text-sm inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Delete lead"
+                          >
+                            {deletingLeadId === lead.id ? (
+                              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
+                          </button>
                         </div>
                       </td>
                     </tr>
