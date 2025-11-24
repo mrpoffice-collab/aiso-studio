@@ -16,6 +16,9 @@ interface LeadResult {
   hasBlog: boolean;
   blogPostCount: number;
   lastBlogUpdate?: string;
+  phone?: string;
+  address?: string;
+  email?: string;
   opportunityRating: 'high' | 'medium' | 'low';
   seoIssues: Array<{
     category: string;
@@ -147,6 +150,9 @@ export async function POST(request: NextRequest) {
             hasBlog: scores.hasBlog,
             blogPostCount: scores.blogPostCount,
             lastBlogUpdate: scores.lastBlogUpdate,
+            phone: scores.phone,
+            address: scores.address,
+            email: scores.email,
             opportunityRating,
             seoIssues: scores.seoIssues,
             opportunityType,
@@ -500,6 +506,9 @@ async function scoreWebsite(domain: string): Promise<{
   hasBlog: boolean;
   blogPostCount: number;
   lastBlogUpdate?: string;
+  phone?: string;
+  address?: string;
+  email?: string;
   seoIssues: Array<{
     category: string;
     issue: string;
@@ -514,6 +523,9 @@ async function scoreWebsite(domain: string): Promise<{
   let hasBlog = false;
   let blogPostCount = 0;
   let lastBlogUpdate: string | undefined;
+  let phone: string | undefined;
+  let address: string | undefined;
+  let email: string | undefined;
   const seoIssues: Array<{
     category: string;
     issue: string;
@@ -794,8 +806,17 @@ async function scoreWebsite(domain: string): Promise<{
     // ============================================
 
     // NAP (Name, Address, Phone) Detection (5 points)
-    const hasPhone = /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(bodyText);
-    const hasAddress = /\d+\s+[\w\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|place|pl)/i.test(bodyText);
+    const phoneMatch = bodyText.match(/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+    const addressMatch = bodyText.match(/\d+\s+[\w\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|place|pl)[.,\s]*/i);
+    const emailMatch = bodyText.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
+
+    // Extract contact info
+    if (phoneMatch) phone = phoneMatch[0].trim();
+    if (addressMatch) address = addressMatch[0].trim();
+    if (emailMatch) email = emailMatch[0].toLowerCase();
+
+    const hasPhone = !!phoneMatch;
+    const hasAddress = !!addressMatch;
 
     if (!hasPhone && !hasAddress) {
       seoIssues.push({
@@ -850,6 +871,9 @@ async function scoreWebsite(domain: string): Promise<{
       hasBlog,
       blogPostCount,
       lastBlogUpdate,
+      phone,
+      address,
+      email,
       seoIssues,
     };
   } catch (error: any) {
@@ -874,6 +898,9 @@ async function scoreWebsite(domain: string): Promise<{
       localSEO: 50,
       hasBlog: false,
       blogPostCount: 0,
+      phone: undefined,
+      address: undefined,
+      email: undefined,
       seoIssues: [{
         category: 'Website Access',
         issue,

@@ -181,7 +181,7 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
     });
 
     try {
-      const { industry, city, state, target_count } = batch;
+      const { industry, city, state, target_count, filter_range } = batch;
       const searchQuery = state ? `${industry} ${city} ${state}` : `${industry} ${city}`;
 
       let totalSearched = 0;
@@ -190,7 +190,24 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
       const maxIterations = 50; // Prevent infinite loops
       let iteration = 0;
 
-      // Keep searching until we have enough sweet spot leads
+      // Helper function to check if lead matches filter
+      const matchesFilter = (lead: any) => {
+        const score = lead.overallScore;
+        switch (filter_range) {
+          case 'sweet-spot':
+            return score >= 45 && score <= 75;
+          case 'high':
+            return score >= 76;
+          case 'low':
+            return score <= 44;
+          case 'all':
+            return true;
+          default:
+            return score >= 45 && score <= 75; // Default to sweet-spot
+        }
+      };
+
+      // Keep searching until we have enough leads matching the filter
       while (sweetSpotFound < target_count && iteration < maxIterations) {
         iteration++;
 
@@ -227,11 +244,11 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
 
         totalSearched += scored;
 
-        // Save sweet spot leads to pipeline
+        // Save leads that match the filter to pipeline
         const savedCount = await step.run(`save-leads-${iteration}`, async () => {
           let count = 0;
           for (const lead of businesses) {
-            if (lead.opportunityRating === 'high') {
+            if (matchesFilter(lead)) {
               try {
                 // Save to pipeline
                 await db.createLead({
@@ -248,8 +265,11 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
                   speed_score: 0,
                   has_blog: lead.hasBlog,
                   blog_post_count: lead.blogPostCount,
+                  phone: lead.phone,
+                  address: lead.address,
+                  email: lead.email,
                   status: 'new',
-                  opportunity_rating: 'high',
+                  opportunity_rating: lead.opportunityRating || 'medium',
                 });
                 count++;
                 sweetSpotFound++;

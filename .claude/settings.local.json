@@ -63,7 +63,8 @@
       "Bash(npx tsc:*)",
       "Bash(npx inngest-cli@latest dev)",
       "Bash(find:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

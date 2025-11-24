@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
+    "@aws-sdk/client-ses": "^3.936.0",
     "@axe-core/playwright": "^4.11.0",
     "@axe-core/puppeteer": "^4.11.0",
     "@azure/cognitiveservices-websearch": "^3.0.1",
@@ -47,6 +48,7 @@
     "react-markdown": "^10.1.0",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
+    "resend": "^6.5.2",
     "stripe": "^19.2.0",
     "svix": "^1.81.0",
     "tailwind-merge": "^3.3.1",

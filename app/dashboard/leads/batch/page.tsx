@@ -29,6 +29,7 @@ export default function BatchLeadDiscoveryPage() {
     city: '',
     state: '',
     targetCount: 50,
+    filterRange: 'sweet-spot' as 'all' | 'sweet-spot' | 'high' | 'low',
   }, 120);
 
   const [isCreating, setIsCreating] = useState(false);
@@ -75,6 +76,7 @@ export default function BatchLeadDiscoveryPage() {
           city: formData.city,
           state: formData.state,
           targetCount: formData.targetCount,
+          filterRange: formData.filterRange,
         }),
       });
 
@@ -203,7 +205,7 @@ export default function BatchLeadDiscoveryPage() {
 
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">
-                Target Sweet Spot Leads (50-200)
+                Target Lead Count (50-200)
               </label>
               <input
                 type="number"
@@ -215,7 +217,27 @@ export default function BatchLeadDiscoveryPage() {
                 style={{ color: '#0f172a' }}
               />
               <p className="mt-2 text-xs text-slate-600">
-                Estimated: ${estimatedCost.toFixed(2)} • ~{estimatedTime} minutes
+                Estimated: ~{estimatedTime} minutes
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                Filter Type
+              </label>
+              <select
+                value={formData.filterRange}
+                onChange={(e) => setFormData({ ...formData, filterRange: e.target.value as 'all' | 'sweet-spot' | 'high' | 'low' })}
+                className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
+                style={{ color: '#0f172a' }}
+              >
+                <option value="sweet-spot">Sweet Spot (45-75 score)</option>
+                <option value="high">High Scores (76-100)</option>
+                <option value="low">Low Scores (0-44)</option>
+                <option value="all">All Results</option>
+              </select>
+              <p className="mt-2 text-xs text-slate-600">
+                Choose which leads to save based on AISO score
               </p>
             </div>
           </div>
@@ -233,7 +255,7 @@ export default function BatchLeadDiscoveryPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold text-blue-600">3.</span>
-                <span>Saves only sweet spot leads (45-75 score) to your pipeline</span>
+                <span>Saves leads matching your selected filter to your pipeline</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold text-blue-600">4.</span>

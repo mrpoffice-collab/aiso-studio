@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { industry, city, state, targetCount = 50 } = body;
+    const { industry, city, state, targetCount = 50, filterRange = 'sweet-spot' } = body;
 
     if (!industry || !city) {
       return NextResponse.json(
@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       city,
       state,
       target_count: targetCount,
+      filter_range: filterRange,
     });
 
     // Trigger background processing via Inngest
@@ -47,10 +48,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    const filterLabels: Record<string, string> = {
+      'sweet-spot': 'sweet spot (45-75 score)',
+      'high': 'high score (76-100)',
+      'low': 'low score (0-44)',
+      'all': 'all'
+    };
+    const filterLabel = filterLabels[filterRange] || 'sweet spot';
+
     return NextResponse.json({
       success: true,
       batchId: batch.id,
-      message: `Batch discovery started! Searching for ${targetCount} sweet spot leads in ${city}${state ? `, ${state}` : ''}.`,
+      message: `Batch discovery started! Searching for ${targetCount} ${filterLabel} leads in ${city}${state ? `, ${state}` : ''}.`,
     });
   } catch (error: any) {
     console.error('Batch discovery creation error:', error);

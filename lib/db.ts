@@ -568,6 +568,9 @@ export const db = {
     has_blog?: boolean;
     blog_post_count?: number;
     last_blog_update?: string;
+    phone?: string;
+    address?: string;
+    email?: string;
     status?: string;
     opportunity_rating?: string;
   }) {
@@ -576,8 +579,9 @@ export const db = {
         `INSERT INTO leads (
           user_id, project_id, domain, business_name, city, state, industry,
           overall_score, content_score, seo_score, design_score, speed_score,
-          has_blog, blog_post_count, last_blog_update, status, opportunity_rating
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+          has_blog, blog_post_count, last_blog_update, phone, address, email,
+          status, opportunity_rating
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
         RETURNING *`,
         [
           data.user_id,
@@ -595,6 +599,9 @@ export const db = {
           data.has_blog || false,
           data.blog_post_count || 0,
           data.last_blog_update || null,
+          data.phone || null,
+          data.address || null,
+          data.email || null,
           data.status || 'new',
           data.opportunity_rating || null,
         ]
@@ -742,10 +749,11 @@ export const db = {
     city: string;
     state?: string;
     target_count: number;
+    filter_range?: string;
   }) {
     const result = await sql`
-      INSERT INTO batch_lead_discovery (user_id, industry, city, state, target_count, status)
-      VALUES (${data.user_id}, ${data.industry}, ${data.city}, ${data.state || null}, ${data.target_count}, 'queued')
+      INSERT INTO batch_lead_discovery (user_id, industry, city, state, target_count, filter_range, status)
+      VALUES (${data.user_id}, ${data.industry}, ${data.city}, ${data.state || null}, ${data.target_count}, ${data.filter_range || 'sweet-spot'}, 'queued')
       RETURNING *
     `;
     return result[0];

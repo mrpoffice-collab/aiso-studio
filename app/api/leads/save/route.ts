@@ -36,6 +36,9 @@ export async function POST(request: NextRequest) {
       has_blog,
       blog_post_count,
       last_blog_update,
+      phone,
+      address,
+      email,
       opportunity_rating,
     } = body;
 
@@ -81,6 +84,9 @@ export async function POST(request: NextRequest) {
     if (has_blog !== undefined) leadData.has_blog = has_blog;
     if (blog_post_count !== undefined) leadData.blog_post_count = blog_post_count;
     if (last_blog_update !== undefined) leadData.last_blog_update = last_blog_update;
+    if (phone !== undefined) leadData.phone = phone;
+    if (address !== undefined) leadData.address = address;
+    if (email !== undefined) leadData.email = email;
 
     const lead = await db.createLead(leadData);
 

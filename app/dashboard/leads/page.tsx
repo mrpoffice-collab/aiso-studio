@@ -340,9 +340,6 @@ export default function LeadsPage() {
                   className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                   style={{ color: '#0f172a' }}
                 />
-                <p className="mt-2 text-xs text-slate-600">
-                  Estimated cost: ${(limit * 0.05).toFixed(2)} (5¢ per prospect)
-                </p>
               </div>
             </div>
 
