@@ -36,7 +36,15 @@ export async function GET(request: NextRequest) {
     // Get leads with filters
     const leads = await db.getLeadsByUserId(user.id, filters);
 
-    return NextResponse.json({ leads });
+    // Parse discovery_data from JSON string to object
+    const parsedLeads = leads.map(lead => ({
+      ...lead,
+      discovery_data: lead.discovery_data && typeof lead.discovery_data === 'string'
+        ? JSON.parse(lead.discovery_data)
+        : lead.discovery_data
+    }));
+
+    return NextResponse.json({ leads: parsedLeads });
 
   } catch (error: any) {
     console.error('Get pipeline error:', error);
