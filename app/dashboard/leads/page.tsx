@@ -21,6 +21,9 @@ interface LeadResult {
   hasBlog: boolean;
   blogPostCount: number;
   lastBlogUpdate?: string;
+  phone?: string;
+  address?: string;
+  email?: string;
   opportunityRating: 'high' | 'medium' | 'low';
   seoIssues: Array<{
     category: string;
@@ -159,7 +162,16 @@ export default function LeadsPage() {
           has_blog: lead.hasBlog,
           blog_post_count: lead.blogPostCount,
           last_blog_update: lead.lastBlogUpdate,
+          phone: lead.phone,
+          address: lead.address,
+          email: lead.email,
           opportunity_rating: lead.opportunityRating,
+          seoIssues: lead.seoIssues,
+          opportunityType: lead.opportunityType,
+          technicalSEO: lead.technicalSEO,
+          onPageSEO: lead.onPageSEO,
+          contentMarketing: lead.contentMarketing,
+          localSEO: lead.localSEO,
         }),
       });
 

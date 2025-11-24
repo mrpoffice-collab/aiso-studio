@@ -573,6 +573,7 @@ export const db = {
     email?: string;
     status?: string;
     opportunity_rating?: string;
+    discovery_data?: any;
   }) {
     try {
       const result = await query(
@@ -580,8 +581,8 @@ export const db = {
           user_id, project_id, domain, business_name, city, state, industry,
           overall_score, content_score, seo_score, design_score, speed_score,
           has_blog, blog_post_count, last_blog_update, phone, address, email,
-          status, opportunity_rating
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+          status, opportunity_rating, discovery_data
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
         RETURNING *`,
         [
           data.user_id,
@@ -604,6 +605,7 @@ export const db = {
           data.email || null,
           data.status || 'new',
           data.opportunity_rating || null,
+          data.discovery_data ? JSON.stringify(data.discovery_data) : null,
         ]
       );
       return result[0];

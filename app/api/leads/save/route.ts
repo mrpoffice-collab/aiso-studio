@@ -40,6 +40,12 @@ export async function POST(request: NextRequest) {
       address,
       email,
       opportunity_rating,
+      seoIssues,
+      opportunityType,
+      technicalSEO,
+      onPageSEO,
+      contentMarketing,
+      localSEO,
     } = body;
 
     if (!domain || !business_name) {
@@ -87,6 +93,18 @@ export async function POST(request: NextRequest) {
     if (phone !== undefined) leadData.phone = phone;
     if (address !== undefined) leadData.address = address;
     if (email !== undefined) leadData.email = email;
+
+    // Add discovery data (SEO issues, opportunity type, score breakdown)
+    if (seoIssues || opportunityType || technicalSEO !== undefined) {
+      leadData.discovery_data = {
+        seoIssues: seoIssues || [],
+        opportunityType,
+        technicalSEO,
+        onPageSEO,
+        contentMarketing,
+        localSEO,
+      };
+    }
 
     const lead = await db.createLead(leadData);
 

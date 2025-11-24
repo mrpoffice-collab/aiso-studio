@@ -28,6 +28,19 @@ interface Lead {
   notes: string | null;
   discovered_at: string;
   project_id: number | null;
+  discovery_data?: {
+    seoIssues?: Array<{
+      category: string;
+      issue: string;
+      severity: 'critical' | 'high' | 'medium' | 'low';
+      fix: string;
+    }>;
+    opportunityType?: string;
+    technicalSEO?: number;
+    onPageSEO?: number;
+    contentMarketing?: number;
+    localSEO?: number;
+  };
 }
 
 interface Project {
@@ -49,6 +62,8 @@ export default function PipelinePage() {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectIndustry, setNewProjectIndustry] = useState('');
   const [newProjectLocation, setNewProjectLocation] = useState('');
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -162,14 +177,19 @@ export default function PipelinePage() {
     );
   };
 
-  const filteredLeads = leads;
+  // Filter out archived leads unless specifically viewing archived
+  const filteredLeads = selectedStatus === 'archived'
+    ? leads
+    : leads.filter(l => l.status !== 'archived');
+
   const leadsByStatus = {
-    new: filteredLeads.filter(l => l.status === 'new').length,
-    report_generated: filteredLeads.filter(l => l.status === 'report_generated').length,
-    contacted: filteredLeads.filter(l => l.status === 'contacted').length,
-    qualified: filteredLeads.filter(l => l.status === 'qualified').length,
-    won: filteredLeads.filter(l => l.status === 'won').length,
-    lost: filteredLeads.filter(l => l.status === 'lost').length,
+    new: leads.filter(l => l.status === 'new').length,
+    report_generated: leads.filter(l => l.status === 'report_generated').length,
+    contacted: leads.filter(l => l.status === 'contacted').length,
+    qualified: leads.filter(l => l.status === 'qualified').length,
+    won: leads.filter(l => l.status === 'won').length,
+    lost: leads.filter(l => l.status === 'lost').length,
+    archived: leads.filter(l => l.status === 'archived').length,
   };
 
   return (
@@ -252,6 +272,7 @@ export default function PipelinePage() {
                   <option value="qualified">Qualified</option>
                   <option value="won">Won</option>
                   <option value="lost">Lost</option>
+                  <option value="archived">Archived</option>
                 </select>
               </div>
             </div>
@@ -354,6 +375,7 @@ export default function PipelinePage() {
                           <option value="qualified">Qualified</option>
                           <option value="won">Won</option>
                           <option value="lost">Lost</option>
+                          <option value="archived">Archived</option>
                         </select>
                       </td>
                       <td className="px-6 py-4">
@@ -363,17 +385,32 @@ export default function PipelinePage() {
                         {new Date(lead.discovered_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4">
-                        <a
-                          href={`https://${lead.domain}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-orange-600 hover:text-orange-700 font-semibold text-sm inline-flex items-center gap-1"
-                        >
-                          Visit Site
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedLead(lead);
+                              setShowDetailsModal(true);
+                            }}
+                            className="text-orange-600 hover:text-orange-700 font-semibold text-sm inline-flex items-center gap-1"
+                          >
+                            View Details
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </button>
+                          <span className="text-slate-300">|</span>
+                          <a
+                            href={`https://${lead.domain}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-slate-600 hover:text-orange-600 text-sm inline-flex items-center gap-1"
+                          >
+                            Visit Site
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -439,6 +476,238 @@ export default function PipelinePage() {
               >
                 Create Project
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lead Details Modal */}
+      {showDetailsModal && selectedLead && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">{selectedLead.business_name}</h2>
+                <p className="text-slate-600">{selectedLead.domain}</p>
+                {selectedLead.city && selectedLead.state && (
+                  <p className="text-sm text-slate-500">{selectedLead.city}, {selectedLead.state}</p>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedLead(null);
+                }}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Overall Scores */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+              <div className="bg-slate-50 rounded-lg p-4 text-center">
+                <div className={`text-3xl font-bold ${getScoreColor(selectedLead.overall_score)}`}>
+                  {selectedLead.overall_score}
+                </div>
+                <div className="text-xs text-slate-600 mt-1">Overall</div>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-4 text-center">
+                <div className={`text-2xl font-bold ${getScoreColor(selectedLead.content_score)}`}>
+                  {selectedLead.content_score}
+                </div>
+                <div className="text-xs text-slate-600 mt-1">Content</div>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-4 text-center">
+                <div className={`text-2xl font-bold ${getScoreColor(selectedLead.seo_score)}`}>
+                  {selectedLead.seo_score}
+                </div>
+                <div className="text-xs text-slate-600 mt-1">SEO</div>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-4 text-center">
+                <div className={`text-2xl font-bold ${getScoreColor(selectedLead.design_score)}`}>
+                  {selectedLead.design_score}
+                </div>
+                <div className="text-xs text-slate-600 mt-1">Design</div>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-4 text-center">
+                <div className={`text-2xl font-bold ${getScoreColor(selectedLead.speed_score)}`}>
+                  {selectedLead.speed_score}
+                </div>
+                <div className="text-xs text-slate-600 mt-1">Speed</div>
+              </div>
+            </div>
+
+            {/* Discovery Data */}
+            {selectedLead.discovery_data && (
+              <div className="space-y-6">
+                {/* Opportunity Type */}
+                {selectedLead.discovery_data.opportunityType && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-orange-900 mb-2">Opportunity Type</h3>
+                    <p className="text-orange-800 capitalize">
+                      {selectedLead.discovery_data.opportunityType.replace(/-/g, ' ')}
+                    </p>
+                  </div>
+                )}
+
+                {/* Score Breakdown */}
+                {(selectedLead.discovery_data.technicalSEO !== undefined ||
+                  selectedLead.discovery_data.onPageSEO !== undefined ||
+                  selectedLead.discovery_data.contentMarketing !== undefined ||
+                  selectedLead.discovery_data.localSEO !== undefined) && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3">SEO Score Breakdown</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {selectedLead.discovery_data.technicalSEO !== undefined && (
+                        <div className="bg-blue-50 rounded-lg p-3 text-center">
+                          <div className={`text-xl font-bold ${getScoreColor(selectedLead.discovery_data.technicalSEO)}`}>
+                            {selectedLead.discovery_data.technicalSEO}
+                          </div>
+                          <div className="text-xs text-slate-600 mt-1">Technical SEO</div>
+                        </div>
+                      )}
+                      {selectedLead.discovery_data.onPageSEO !== undefined && (
+                        <div className="bg-green-50 rounded-lg p-3 text-center">
+                          <div className={`text-xl font-bold ${getScoreColor(selectedLead.discovery_data.onPageSEO)}`}>
+                            {selectedLead.discovery_data.onPageSEO}
+                          </div>
+                          <div className="text-xs text-slate-600 mt-1">On-Page SEO</div>
+                        </div>
+                      )}
+                      {selectedLead.discovery_data.contentMarketing !== undefined && (
+                        <div className="bg-purple-50 rounded-lg p-3 text-center">
+                          <div className={`text-xl font-bold ${getScoreColor(selectedLead.discovery_data.contentMarketing)}`}>
+                            {selectedLead.discovery_data.contentMarketing}
+                          </div>
+                          <div className="text-xs text-slate-600 mt-1">Content</div>
+                        </div>
+                      )}
+                      {selectedLead.discovery_data.localSEO !== undefined && (
+                        <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                          <div className={`text-xl font-bold ${getScoreColor(selectedLead.discovery_data.localSEO)}`}>
+                            {selectedLead.discovery_data.localSEO}
+                          </div>
+                          <div className="text-xs text-slate-600 mt-1">Local SEO</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* SEO Issues */}
+                {selectedLead.discovery_data.seoIssues && selectedLead.discovery_data.seoIssues.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3">SEO Issues Found</h3>
+                    <div className="space-y-3">
+                      {selectedLead.discovery_data.seoIssues.map((issue, idx) => {
+                        const severityColors = {
+                          critical: 'bg-red-50 border-red-300 text-red-900',
+                          high: 'bg-orange-50 border-orange-300 text-orange-900',
+                          medium: 'bg-yellow-50 border-yellow-300 text-yellow-900',
+                          low: 'bg-blue-50 border-blue-300 text-blue-900',
+                        };
+                        const severityBadgeColors = {
+                          critical: 'bg-red-100 text-red-800',
+                          high: 'bg-orange-100 text-orange-800',
+                          medium: 'bg-yellow-100 text-yellow-800',
+                          low: 'bg-blue-100 text-blue-800',
+                        };
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`border rounded-lg p-4 ${severityColors[issue.severity]}`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="font-semibold">{issue.issue}</div>
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${severityBadgeColors[issue.severity]}`}>
+                                {issue.severity.toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="text-sm opacity-90 mb-2">
+                              <span className="font-medium">Category:</span> {issue.category}
+                            </div>
+                            <div className="text-sm opacity-90">
+                              <span className="font-medium">How to fix:</span> {issue.fix}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* No Discovery Data Message */}
+            {!selectedLead.discovery_data && (
+              <div className="bg-slate-50 rounded-lg p-8 text-center">
+                <p className="text-slate-600">
+                  No detailed SEO analysis available for this lead. The lead may have been added manually or before the discovery feature was enhanced.
+                </p>
+              </div>
+            )}
+
+            {/* Contact Info */}
+            {(selectedLead.phone || selectedLead.email || selectedLead.address) && (
+              <div className="mt-6 pt-6 border-t border-slate-200">
+                <h3 className="text-lg font-semibold text-slate-900 mb-3">Contact Information</h3>
+                <div className="space-y-2">
+                  {selectedLead.phone && (
+                    <div className="flex items-center gap-2 text-slate-700">
+                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      <a href={`tel:${selectedLead.phone}`} className="hover:text-orange-600">
+                        {selectedLead.phone}
+                      </a>
+                    </div>
+                  )}
+                  {selectedLead.email && (
+                    <div className="flex items-center gap-2 text-slate-700">
+                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <a href={`mailto:${selectedLead.email}`} className="hover:text-orange-600">
+                        {selectedLead.email}
+                      </a>
+                    </div>
+                  )}
+                  {selectedLead.address && (
+                    <div className="flex items-start gap-2 text-slate-700">
+                      <svg className="w-5 h-5 text-slate-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>{selectedLead.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedLead(null);
+                }}
+                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition-colors"
+              >
+                Close
+              </button>
+              <a
+                href={`https://${selectedLead.domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-center"
+              >
+                Visit Website
+              </a>
             </div>
           </div>
         </div>
