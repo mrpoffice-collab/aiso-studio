@@ -187,8 +187,9 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
       let totalSearched = 0;
       let sweetSpotFound = 0;
       let offset = 0;
-      const maxIterations = 50; // Prevent infinite loops
+      const maxIterations = 2; // Limit to 2 iterations due to Brave API offset constraint (max 9)
       let iteration = 0;
+      const maxOffset = 9; // Brave API maximum offset
 
       // Helper function to check if lead matches filter
       const matchesFilter = (lead: any) => {
@@ -311,7 +312,10 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
           sweet_spot_found: sweetSpotFound,
         });
 
-        offset += 20;
+        // Use offset=9 for second iteration (Brave API max)
+        if (iteration === 1) {
+          offset = maxOffset;
+        }
 
         // Check if we found enough
         if (sweetSpotFound >= target_count) {

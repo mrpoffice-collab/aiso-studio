@@ -28,7 +28,7 @@ export default function BatchLeadDiscoveryPage() {
     industry: '',
     city: '',
     state: '',
-    targetCount: 50,
+    targetCount: 25,
     filterRange: 'sweet-spot' as 'all' | 'sweet-spot' | 'high' | 'low',
   }, 120);
 
@@ -232,19 +232,19 @@ export default function BatchLeadDiscoveryPage() {
 
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">
-                Target Lead Count (50-200)
+                Target Lead Count (5-25)
               </label>
               <input
                 type="number"
-                min="50"
-                max="200"
+                min="5"
+                max="25"
                 value={formData.targetCount}
                 onChange={(e) => setFormData({ ...formData, targetCount: parseInt(e.target.value) })}
                 className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                 style={{ color: '#0f172a' }}
               />
               <p className="mt-2 text-xs text-slate-600">
-                Estimated: ~{estimatedTime} minutes
+                Max 25 leads per batch. Run multiple batches to get more leads.
               </p>
             </div>
 
