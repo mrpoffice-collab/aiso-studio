@@ -1,10 +1,16 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import DashboardNav from '@/components/DashboardNav';
 import TechnicalSEOResults from '@/components/TechnicalSEOResults';
 import Link from 'next/link';
+
+interface UserData {
+  subscriptionTier: string;
+  isAgency: boolean;
+  agencyStatus?: string;
+}
 
 function TechnicalSEOAuditContent() {
   const searchParams = useSearchParams();
@@ -14,6 +20,23 @@ function TechnicalSEOAuditContent() {
   const [error, setError] = useState('');
   const [pastAudits, setPastAudits] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  // Fetch user data on mount
+  useEffect(() => {
+    fetch('/api/user/profile')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setUserData({
+            subscriptionTier: data.user.subscription_tier || 'trial',
+            isAgency: data.user.agency_id !== null,
+            agencyStatus: data.user.agency_status
+          });
+        }
+      })
+      .catch(err => console.error('Failed to load user data:', err));
+  }, []);
 
   const handleScan = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -229,7 +252,10 @@ function TechnicalSEOAuditContent() {
         {/* Results */}
         {result && (
           <div className="animate-in fade-in duration-500">
-            <TechnicalSEOResults result={result} showFindAgencyButton={true} />
+            <TechnicalSEOResults
+              result={result}
+              userData={userData}
+            />
           </div>
         )}
 
@@ -246,28 +272,75 @@ function TechnicalSEOAuditContent() {
           </div>
         )}
 
-        {/* Features Grid */}
-        <div className="mt-12 grid md:grid-cols-2 gap-6">
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
-            <h3 className="font-bold text-slate-900 mb-3">💰 For Agencies</h3>
-            <ul className="text-sm text-slate-700 space-y-2">
-              <li>• See exact billable opportunities ($5K-$10K per client)</li>
-              <li>• Get time and cost estimates for proposals</li>
-              <li>• Know what you can fix vs what needs owner action</li>
-              <li>• <Link href="/apply-as-agency" className="text-blue-600 hover:text-blue-700 font-semibold">Apply to join marketplace →</Link></li>
-            </ul>
+        {/* Conditional Features Grid - Only show if no results or user is not signed in */}
+        {!result && userData && (
+          <div className="mt-12">
+            {userData.isAgency && userData.agencyStatus === 'certified' ? (
+              /* Certified Agency */
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-8">
+                <h3 className="text-xl font-bold text-slate-900 mb-3">💼 Your Agency Benefits</h3>
+                <ul className="text-sm text-slate-700 space-y-2">
+                  <li>• See exact billable opportunities ($5K-$10K per diagnostic)</li>
+                  <li>• Get time and cost estimates for client proposals</li>
+                  <li>• Know what you can fix vs what needs owner action</li>
+                  <li>• Access lead referrals from AISO Studio marketplace</li>
+                </ul>
+              </div>
+            ) : userData.isAgency && userData.agencyStatus === 'pending' ? (
+              /* Pending Agency */
+              <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-8">
+                <h3 className="text-xl font-bold text-slate-900 mb-3">⏳ Agency Application Pending</h3>
+                <p className="text-sm text-slate-700 mb-4">
+                  Your agency certification is being reviewed. Once approved, you'll be able to receive lead referrals
+                  and appear in our marketplace directory.
+                </p>
+                <p className="text-xs text-slate-600">
+                  You can still use the diagnostic tool to identify billable opportunities with your existing clients.
+                </p>
+              </div>
+            ) : userData.subscriptionTier === 'trial' ? (
+              /* Trial User - Upsell */
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-8">
+                <h3 className="text-xl font-bold text-slate-900 mb-3">🚀 Upgrade for More Features</h3>
+                <ul className="text-sm text-slate-700 space-y-2 mb-4">
+                  <li>• <strong>Unlimited</strong> AI searchability diagnostics</li>
+                  <li>• Track multiple websites and projects</li>
+                  <li>• Get matched with certified agencies for fixes</li>
+                  <li>• Priority support and implementation guidance</li>
+                </ul>
+                <Link
+                  href="/dashboard/settings"
+                  className="inline-block rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+                >
+                  View Plans →
+                </Link>
+              </div>
+            ) : (
+              /* Paid User - Agency Matching */
+              <div className="bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl p-8">
+                <h3 className="text-xl font-bold text-slate-900 mb-3">🔧 Need Help Fixing Issues?</h3>
+                <p className="text-sm text-slate-700 mb-4">
+                  Get matched with certified agencies who specialize in AI searchability fixes.
+                  See cost estimates before committing to anything.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link
+                    href="/find-agency"
+                    className="flex-1 text-center rounded-lg bg-gradient-to-r from-orange-600 to-red-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+                  >
+                    Find an Agency
+                  </Link>
+                  <a
+                    href="mailto:support@aiso.studio?subject=Help%20With%20AI%20Searchability%20Fixes"
+                    className="flex-1 text-center rounded-lg border-2 border-orange-600 bg-white px-6 py-3 font-bold text-orange-600 hover:bg-orange-50 transition-all"
+                  >
+                    Contact Support
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
-
-          <div className="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-xl p-6">
-            <h3 className="font-bold text-slate-900 mb-3">🔧 For DIY Users</h3>
-            <ul className="text-sm text-slate-700 space-y-2">
-              <li>• Understand what's broken and why</li>
-              <li>• See if you need professional help</li>
-              <li>• Get matched with certified agencies</li>
-              <li>• Know estimated costs before contacting anyone</li>
-            </ul>
-          </div>
-        </div>
+        )}
       </main>
     </div>
   );

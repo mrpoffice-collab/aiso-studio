@@ -51,12 +51,18 @@ interface TechnicalSEOResultData {
   createdAt?: string;
 }
 
-interface Props {
-  result: TechnicalSEOResultData;
-  showFindAgencyButton?: boolean;
+interface UserData {
+  subscriptionTier: string;
+  isAgency: boolean;
+  agencyStatus?: string;
 }
 
-export default function TechnicalSEOResults({ result, showFindAgencyButton = true }: Props) {
+interface Props {
+  result: TechnicalSEOResultData;
+  userData?: UserData | null;
+}
+
+export default function TechnicalSEOResults({ result, userData }: Props) {
   // Defensive checks for JSONB fields from database
   const safeAgencyIssues = Array.isArray(result.agencyCanFix?.issues) ? result.agencyCanFix.issues : [];
   const safeOwnerIssues = Array.isArray(result.ownerMustChange?.issues) ? result.ownerMustChange.issues : [];
@@ -169,6 +175,38 @@ export default function TechnicalSEOResults({ result, showFindAgencyButton = tru
         </div>
       </div>
 
+      {/* Next Steps CTA - Show when score is less than perfect */}
+      {result.overallScore < 100 && (
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-xl p-8 text-white">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-2xl">👇</span>
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-2xl font-bold mb-2">Review Your Issues Below</h3>
+              <p className="text-blue-100 mb-4">
+                We found {result.agencyCanFix.count + result.ownerMustChange.count} issues affecting your AI searchability.
+                Scroll down to see detailed fixes categorized by who can implement them.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {result.agencyCanFix.count > 0 && (
+                  <span className="px-4 py-2 bg-white/20 rounded-full text-sm font-semibold">
+                    💰 {result.agencyCanFix.count} Agency Fixable ({result.agencyCanFix.estimatedCost})
+                  </span>
+                )}
+                {result.ownerMustChange.count > 0 && (
+                  <span className="px-4 py-2 bg-white/20 rounded-full text-sm font-semibold">
+                    ⚠️ {result.ownerMustChange.count} Requires Owner Action
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Agency Can Fix Section */}
       {result.agencyCanFix.count > 0 && (
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
@@ -238,29 +276,82 @@ export default function TechnicalSEOResults({ result, showFindAgencyButton = tru
             ))}
           </div>
 
-          {showFindAgencyButton && (
+          {/* Conditional CTA based on user type */}
+          {userData && (
             <div className="mt-6 pt-6 border-t border-slate-200">
-              <div className="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-lg p-6">
-                <h4 className="font-bold text-slate-900 mb-2">Need Help Fixing These Issues?</h4>
-                <p className="text-sm text-slate-700 mb-4">
-                  Get matched with certified agencies who specialize in AI searchability fixes.
-                  Average project value: <strong>{result.agencyCanFix.estimatedCost}</strong>
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href="/apply-as-agency"
-                    className="flex-1 text-center rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+              {userData.isAgency && userData.agencyStatus === 'certified' ? (
+                /* Certified Agency - Highlight opportunity */
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-6">
+                  <h4 className="font-bold text-slate-900 mb-2">💼 Client Opportunity</h4>
+                  <p className="text-sm text-slate-700 mb-4">
+                    This diagnostic shows <strong>{result.agencyCanFix.estimatedCost}</strong> in billable work.
+                    Use these findings to create a proposal or quote for your client.
+                  </p>
+                  <button
+                    onClick={() => window.print()}
+                    className="rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
                   >
-                    I'm an Agency - Get Certified
-                  </Link>
-                  <a
-                    href="mailto:support@aiso.studio?subject=Find%20Agency%20for%20AI%20Searchability%20Fixes"
-                    className="flex-1 text-center rounded-lg border-2 border-orange-600 bg-white px-6 py-3 font-bold text-orange-600 hover:bg-orange-50 transition-all"
-                  >
-                    I Need an Agency
-                  </a>
+                    📄 Print/Save Report
+                  </button>
                 </div>
-              </div>
+              ) : userData.isAgency && userData.agencyStatus === 'pending' ? (
+                /* Pending Agency */
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-lg p-6">
+                  <h4 className="font-bold text-slate-900 mb-2">⏳ Certification Pending</h4>
+                  <p className="text-sm text-slate-700 mb-4">
+                    Once certified, you'll be able to receive referrals for fixes like these (avg. <strong>{result.agencyCanFix.estimatedCost}</strong> per project).
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    We're reviewing your application and will notify you soon.
+                  </p>
+                </div>
+              ) : userData.subscriptionTier === 'trial' ? (
+                /* Trial User - Upsell to paid + agency match */
+                <div className="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-lg p-6">
+                  <h4 className="font-bold text-slate-900 mb-2">🚀 Get These Issues Fixed</h4>
+                  <p className="text-sm text-slate-700 mb-4">
+                    Estimated cost to fix: <strong>{result.agencyCanFix.estimatedCost}</strong><br />
+                    Upgrade to get matched with certified agencies who can implement these fixes.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Link
+                      href="/dashboard/settings"
+                      className="flex-1 text-center rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+                    >
+                      Upgrade Plan
+                    </Link>
+                    <Link
+                      href="/find-agency"
+                      className="flex-1 text-center rounded-lg border-2 border-orange-600 bg-white px-6 py-3 font-bold text-orange-600 hover:bg-orange-50 transition-all"
+                    >
+                      Find an Agency
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                /* Paid User - Agency matching */
+                <div className="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-lg p-6">
+                  <h4 className="font-bold text-slate-900 mb-2">🔧 Need Help Fixing These Issues?</h4>
+                  <p className="text-sm text-slate-700 mb-4">
+                    Get matched with certified agencies who specialize in AI searchability fixes.
+                    Estimated cost: <strong>{result.agencyCanFix.estimatedCost}</strong>
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Link
+                      href="/find-agency"
+                      className="flex-1 text-center rounded-lg bg-gradient-to-r from-orange-600 to-red-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+                    >
+                      Find an Agency
+                    </Link>
+                    <a
+                      href="mailto:support@aiso.studio?subject=Help%20With%20AI%20Searchability%20Fixes"
+                      className="flex-1 text-center rounded-lg border-2 border-orange-600 bg-white px-6 py-3 font-bold text-orange-600 hover:bg-orange-50 transition-all"
+                    >
+                      Contact Support
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
