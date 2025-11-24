@@ -36,7 +36,7 @@ interface LeadResult {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { industry, city, state, limit = 15, internal = false, internalUserId } = body;
+    const { industry, city, state, limit = 15, offset = 0, internal = false, internalUserId } = body;
 
     let user;
 
@@ -78,7 +78,6 @@ export async function POST(request: NextRequest) {
     const allLeads: LeadResult[] = [];
     let searchAttempts = 0;
     const maxSearchAttempts = 3;
-    let searchOffset = 0;
 
     // Keep searching until we have enough qualified leads (sweet spot 50-75)
     while (qualifiedLeads.length < limit && searchAttempts < maxSearchAttempts) {
@@ -87,17 +86,15 @@ export async function POST(request: NextRequest) {
 
       // Search for more businesses (Brave API max is 20 per request)
       const searchLimit = 20;
-      const businesses = await searchBusinesses(searchQuery, searchLimit, searchOffset);
+      const businesses = await searchBusinesses(searchQuery, searchLimit, offset + (searchAttempts - 1) * searchLimit);
 
       if (businesses.length === 0) {
         console.error(`❌ Search returned 0 businesses on attempt ${searchAttempts}/${maxSearchAttempts}`);
-        console.error(`Query: "${searchQuery}", Limit: ${searchLimit}, Offset: ${searchOffset}`);
+        console.error(`Query: "${searchQuery}", Limit: ${searchLimit}, Offset: ${offset + (searchAttempts - 1) * searchLimit}`);
         break;
       }
 
       console.log(`Found ${businesses.length} businesses to score...`);
-
-      searchOffset += businesses.length;
 
       // Score each business
       for (const business of businesses) {

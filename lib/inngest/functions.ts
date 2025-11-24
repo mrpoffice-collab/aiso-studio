@@ -233,6 +233,7 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
               city,
               state,
               limit: 20, // Search 20 at a time
+              offset, // Pass offset for pagination
               internal: true, // Flag for internal calls
               internalUserId: userId, // Pass userId for auth
             }),
