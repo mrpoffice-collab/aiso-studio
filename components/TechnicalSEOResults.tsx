@@ -57,6 +57,11 @@ interface Props {
 }
 
 export default function TechnicalSEOResults({ result, showFindAgencyButton = true }: Props) {
+  // Defensive checks for JSONB fields from database
+  const safeAgencyIssues = Array.isArray(result.agencyCanFix?.issues) ? result.agencyCanFix.issues : [];
+  const safeOwnerIssues = Array.isArray(result.ownerMustChange?.issues) ? result.ownerMustChange.issues : [];
+  const safeRecommendations = Array.isArray(result.recommendations) ? result.recommendations : [];
+
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-600';
     if (score >= 70) return 'text-blue-600';
@@ -185,7 +190,7 @@ export default function TechnicalSEOResults({ result, showFindAgencyButton = tru
           </div>
 
           <div className="space-y-4">
-            {result.agencyCanFix.issues.map((issue, idx) => (
+            {safeAgencyIssues.map((issue, idx) => (
               <div
                 key={idx}
                 className="border border-slate-200 rounded-lg p-5 hover:shadow-md transition-shadow"
@@ -274,7 +279,7 @@ export default function TechnicalSEOResults({ result, showFindAgencyButton = tru
           </div>
 
           <div className="space-y-4">
-            {result.ownerMustChange.issues.map((issue, idx) => (
+            {safeOwnerIssues.map((issue, idx) => (
               <div
                 key={idx}
                 className="border border-yellow-200 bg-yellow-50 rounded-lg p-5"
@@ -317,7 +322,7 @@ export default function TechnicalSEOResults({ result, showFindAgencyButton = tru
       )}
 
       {/* Prioritized Recommendations */}
-      {result.recommendations && result.recommendations.length > 0 && (
+      {safeRecommendations.length > 0 && (
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
           <h3 className="text-xl font-bold text-slate-900 mb-4">
             📋 Prioritized Action Plan
@@ -327,7 +332,7 @@ export default function TechnicalSEOResults({ result, showFindAgencyButton = tru
           </p>
 
           <div className="space-y-3">
-            {result.recommendations.map((rec, idx) => (
+            {safeRecommendations.map((rec, idx) => (
               <div
                 key={idx}
                 className="flex items-start gap-4 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
