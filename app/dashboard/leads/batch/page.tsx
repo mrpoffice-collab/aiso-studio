@@ -58,6 +58,27 @@ export default function BatchLeadDiscoveryPage() {
     }
   };
 
+  const handleCancelBatch = async (batchId: string) => {
+    if (!confirm('Stop this batch? Progress will be saved but no more leads will be added.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/leads/batch/${batchId}/cancel`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        fetchBatches();
+      } else {
+        alert('Failed to cancel batch');
+      }
+    } catch (error) {
+      console.error('Failed to cancel batch:', error);
+      alert('Failed to cancel batch');
+    }
+  };
+
   const handleCreateBatch = async () => {
     if (!formData.industry.trim() || !formData.city.trim()) {
       setError('Industry and city are required');
@@ -383,17 +404,30 @@ export default function BatchLeadDiscoveryPage() {
                     </div>
                   )}
 
-                  {batch.status === 'completed' && (
-                    <Link
-                      href="/dashboard/pipeline"
-                      className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                      View in Pipeline
-                    </Link>
-                  )}
+                  <div className="mt-4 flex gap-3">
+                    {batch.status === 'processing' && (
+                      <button
+                        onClick={() => handleCancelBatch(batch.id)}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Stop Batch
+                      </button>
+                    )}
+                    {batch.status === 'completed' && (
+                      <Link
+                        href="/dashboard/pipeline"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        View in Pipeline
+                      </Link>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

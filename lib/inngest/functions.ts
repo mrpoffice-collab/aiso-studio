@@ -211,6 +211,13 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
       while (sweetSpotFound < target_count && iteration < maxIterations) {
         iteration++;
 
+        // Check if batch has been cancelled
+        const currentBatch = await db.getBatchDiscoveryById(batchId);
+        if (currentBatch?.status === 'cancelled') {
+          console.log(`Batch ${batchId} was cancelled, stopping discovery`);
+          break;
+        }
+
         // Search and score businesses
         const { businesses, scored } = await step.run(`search-batch-${iteration}`, async () => {
           // Determine the API URL (works in both local and production)
@@ -255,7 +262,7 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
 
             if (matchesFilter(lead)) {
               try {
-                // Save to pipeline
+                // Save to pipeline with full discovery data
                 await db.createLead({
                   user_id: userId,
                   domain: lead.domain,
@@ -264,10 +271,10 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
                   state: lead.state,
                   industry,
                   overall_score: lead.overallScore,
-                  content_score: 0,
-                  seo_score: 0,
-                  design_score: 0,
-                  speed_score: 0,
+                  content_score: lead.contentScore || 0,
+                  seo_score: lead.seoScore || 0,
+                  design_score: lead.designScore || 0,
+                  speed_score: lead.speedScore || 0,
                   has_blog: lead.hasBlog,
                   blog_post_count: lead.blogPostCount,
                   phone: lead.phone,
@@ -275,6 +282,14 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
                   email: lead.email,
                   status: 'new',
                   opportunity_rating: lead.opportunityRating || 'medium',
+                  discovery_data: {
+                    seoIssues: lead.seoIssues || [],
+                    opportunityType: lead.opportunityType,
+                    technicalSEO: lead.technicalSEO,
+                    onPageSEO: lead.onPageSEO,
+                    contentMarketing: lead.contentMarketing,
+                    localSEO: lead.localSEO,
+                  },
                 });
                 count++;
                 sweetSpotFound++;
