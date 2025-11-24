@@ -846,6 +846,95 @@ When encountering any production issue:
 
 ---
 
+## User Experience & Conversion Issues
+
+### Issue: Generic CTAs Shown to All Users Regardless of Status
+
+**Symptoms:**
+- Signed-in users see "For Agencies" and "For DIY Users" messaging simultaneously
+- Trial users see same CTAs as paid users
+- Certified agencies don't see relevant actions for their role
+- Confusing user experience with irrelevant options
+
+**Root Cause:**
+- Components showing static CTAs without checking user context
+- No user data passed to display components
+- Treating all authenticated users the same
+- Missing personalization layer
+
+**Real Production Example (2025-11-24):**
+- Technical SEO diagnostic showed both agency and DIY CTAs to everyone
+- Results didn't guide users on what to do next when score < 100
+- Footer displayed all user types instead of relevant messaging
+
+**Fix:**
+1. **Created user profile API endpoint** (`/api/user/profile`)
+   ```typescript
+   // Returns: subscriptionTier, isAgency, agencyStatus
+   export async function GET() {
+     const user = await db.getUserByClerkId(clerkUser.id);
+     return NextResponse.json({
+       user: {
+         subscription_tier: user.subscription_tier,
+         agency_id: user.agency_id,
+         agency_status: user.agency_status
+       }
+     });
+   }
+   ```
+
+2. **Fetched user data in client component**
+   ```typescript
+   const [userData, setUserData] = useState<UserData | null>(null);
+
+   useEffect(() => {
+     fetch('/api/user/profile')
+       .then(res => res.json())
+       .then(data => setUserData({
+         subscriptionTier: data.user.subscription_tier || 'trial',
+         isAgency: data.user.agency_id !== null,
+         agencyStatus: data.user.agency_status
+       }));
+   }, []);
+   ```
+
+3. **Implemented conditional messaging**
+   ```typescript
+   {userData?.isAgency && userData.agencyStatus === 'certified' ? (
+     <AgencyCTA />
+   ) : userData?.subscriptionTier === 'trial' ? (
+     <UpgradeUpsell />
+   ) : (
+     <AgencyMatchingCTA />
+   )}
+   ```
+
+**User-Level Messaging Strategy:**
+- **Certified Agency**: Highlight billable opportunities, show print/save report
+- **Pending Agency**: Show certification status, set expectations
+- **Trial User**: Upsell to paid plan + agency matching benefits
+- **Paid User**: Direct agency matching without upgrade noise
+- **Signed Out**: Generic information about features
+
+**Navigation Improvements:**
+- Added prominent "Review Issues Below" section when score < 100
+- Shows issue count and estimated costs upfront
+- Guides users to scroll and see detailed findings
+- Eliminates confusion about where to find issues
+
+**Benefits:**
+- Higher conversion rates (right message to right user)
+- Better UX (no irrelevant CTAs)
+- Clear next steps for all user types
+- Agency value proposition highlighted appropriately
+
+**Related Files:**
+- `app/api/user/profile/route.ts` - User data endpoint
+- `app/dashboard/audit/technical-seo/page.tsx` - Fetches and passes user data
+- `components/TechnicalSEOResults.tsx` - Conditional display logic
+
+---
+
 ## Contributing to This Document
 
 When you encounter a NEW issue:
