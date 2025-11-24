@@ -240,7 +240,9 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
           });
 
           if (!response.ok) {
-            throw new Error('Discovery search failed');
+            const errorText = await response.text();
+            console.error(`Discovery API error (${response.status}):`, errorText);
+            throw new Error(`Discovery search failed: ${response.status} - ${errorText}`);
           }
 
           const data = await response.json();
