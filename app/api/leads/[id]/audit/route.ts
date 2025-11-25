@@ -134,6 +134,8 @@ export async function POST(
     };
 
     // Run accessibility scan if not already done or if full audit
+    let accessibilityAuditId: number | null = null;
+
     if (auditType === 'full' || auditType === 'accessibility') {
       if (!lead.accessibility_score || auditType === 'full') {
         console.log('Running full accessibility scan with Playwright...');
@@ -147,6 +149,27 @@ export async function POST(
             auditData.wcag_minor_violations = accessibilityResult.minorCount;
             auditData.wcag_total_violations = accessibilityResult.totalViolations;
             auditData.accessibility_details = accessibilityResult;
+
+            // ALSO save to accessibility_audits table for unified reporting
+            const savedAccessibilityAudit = await db.createAccessibilityAudit({
+              user_id: dbUser.id,
+              url: accessibilityResult.url,
+              accessibility_score: accessibilityResult.accessibilityScore,
+              critical_count: accessibilityResult.criticalCount,
+              serious_count: accessibilityResult.seriousCount,
+              moderate_count: accessibilityResult.moderateCount,
+              minor_count: accessibilityResult.minorCount,
+              total_violations: accessibilityResult.totalViolations,
+              total_passes: accessibilityResult.totalPasses,
+              violations: accessibilityResult.violations,
+              passes: accessibilityResult.passes,
+              wcag_breakdown: accessibilityResult.wcagBreakdown,
+              scan_version: accessibilityResult.scanVersion,
+              page_title: accessibilityResult.pageTitle,
+              page_language: accessibilityResult.pageLanguage,
+            });
+            accessibilityAuditId = savedAccessibilityAudit.id;
+            console.log(`Saved accessibility audit #${accessibilityAuditId} to accessibility_audits table`);
           }
         } catch (accessError) {
           console.error('Accessibility scan failed:', accessError);
@@ -162,6 +185,7 @@ export async function POST(
         auditData.wcag_moderate_violations = lead.wcag_moderate_violations;
         auditData.wcag_minor_violations = lead.wcag_minor_violations;
         auditData.wcag_total_violations = lead.wcag_total_violations;
+        accessibilityAuditId = lead.accessibility_audit_id || null;
       }
     }
 
@@ -219,14 +243,14 @@ export async function POST(
     auditData.estimated_monthly_value = aisoResult.estimatedValue;
     auditData.time_to_close = aisoResult.timeToClose;
 
-    // Save audit to lead_audits table
+    // Save audit to lead_audits table (also link to accessibility_audits record)
     const [savedAudit] = await sql`
       INSERT INTO lead_audits (
         user_id, domain, lead_id, audit_type,
         overall_score, content_score, seo_score, design_score, speed_score,
         accessibility_score, wcag_critical_violations, wcag_serious_violations,
         wcag_moderate_violations, wcag_minor_violations, wcag_total_violations,
-        accessibility_details,
+        accessibility_details, accessibility_audit_id,
         ranking_keywords, avg_search_position, estimated_organic_traffic,
         top_keywords, search_details,
         has_blog, blog_post_count,
@@ -240,6 +264,7 @@ export async function POST(
         ${auditData.wcag_serious_violations || 0}, ${auditData.wcag_moderate_violations || 0},
         ${auditData.wcag_minor_violations || 0}, ${auditData.wcag_total_violations || 0},
         ${auditData.accessibility_details ? JSON.stringify(auditData.accessibility_details) : null},
+        ${accessibilityAuditId},
         ${auditData.ranking_keywords || null}, ${auditData.avg_search_position || null},
         ${auditData.estimated_organic_traffic || null},
         ${auditData.top_keywords ? JSON.stringify(auditData.top_keywords) : null},
@@ -262,6 +287,7 @@ export async function POST(
         wcag_moderate_violations = ${auditData.wcag_moderate_violations || 0},
         wcag_minor_violations = ${auditData.wcag_minor_violations || 0},
         wcag_total_violations = ${auditData.wcag_total_violations || 0},
+        accessibility_audit_id = ${accessibilityAuditId},
         ranking_keywords = ${auditData.ranking_keywords || null},
         avg_search_position = ${auditData.avg_search_position || null},
         estimated_organic_traffic = ${auditData.estimated_organic_traffic || null},
@@ -279,6 +305,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       audit: savedAudit,
+      accessibilityAuditId, // Link to full report in accessibility_audits table
       updatedLead: await db.getLeadById(leadId),
     });
 
