@@ -479,14 +479,47 @@ export default function PipelinePage() {
     }
   };
 
-  const runAudit = async (lead: Lead) => {
+  const runAudit = async (lead: Lead, forceNew = false) => {
     setRunningAudit(true);
     try {
+      const domainUrl = `https://${lead.domain}`;
+
+      // Check if recent audit exists (within last 24 hours)
+      if (!forceNew) {
+        const existingResponse = await fetch(`/api/vault/audits?domain=${encodeURIComponent(lead.domain)}`);
+        if (existingResponse.ok) {
+          const existing = await existingResponse.json();
+          const recentAudit = (existing.audits || []).find((a: any) => {
+            const auditAge = Date.now() - new Date(a.createdAt).getTime();
+            const hoursSinceAudit = auditAge / (1000 * 60 * 60);
+            return hoursSinceAudit < 24 && a.url?.includes(lead.domain);
+          });
+
+          if (recentAudit) {
+            // Use existing audit instead of running new one
+            const updatedLead = {
+              ...lead,
+              accessibility_score: recentAudit.accessibilityScore,
+              wcag_critical_violations: recentAudit.criticalCount || 0,
+              wcag_serious_violations: recentAudit.seriousCount || 0,
+              wcag_moderate_violations: recentAudit.moderateCount || 0,
+              wcag_minor_violations: recentAudit.minorCount || 0,
+              wcag_total_violations: recentAudit.totalViolations || 0,
+            };
+            setSelectedLead(updatedLead);
+            setLeads(prev => prev.map(l => l.id === lead.id ? updatedLead : l));
+            alert(`Found existing audit from ${new Date(recentAudit.createdAt).toLocaleString()}. Score: ${recentAudit.accessibilityScore}/100`);
+            setRunningAudit(false);
+            return;
+          }
+        }
+      }
+
       // Call the canonical accessibility audit endpoint (saves to accessibility_audits table)
       const auditResponse = await fetch('/api/audit/accessibility', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: `https://${lead.domain}` }),
+        body: JSON.stringify({ url: domainUrl }),
       });
 
       if (!auditResponse.ok) {

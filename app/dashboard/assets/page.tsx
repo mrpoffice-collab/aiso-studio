@@ -786,10 +786,22 @@ function AssetsContent() {
           {allDomains.length > 0 && (
             <>
               <div className="mt-6 mb-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Domains
+                Domains ({allDomains.length})
               </div>
-              <div className="space-y-1">
-                {allDomains.map((domain) => (
+              <div className="px-2 mb-2">
+                <input
+                  type="text"
+                  value={domainFilter}
+                  onChange={(e) => setDomainFilter(e.target.value)}
+                  placeholder="Search domains..."
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {allDomains
+                  .filter(d => !domainFilter || d.toLowerCase().includes(domainFilter.toLowerCase()))
+                  .slice(0, 15)
+                  .map((domain) => (
                   <button
                     key={domain}
                     onClick={() => router.push(`/dashboard/assets?domain=${domain}`)}
@@ -803,6 +815,11 @@ function AssetsContent() {
                     <span className="truncate">{domain}</span>
                   </button>
                 ))}
+                {allDomains.filter(d => !domainFilter || d.toLowerCase().includes(domainFilter.toLowerCase())).length > 15 && (
+                  <div className="px-3 py-1 text-xs text-slate-500">
+                    + {allDomains.filter(d => !domainFilter || d.toLowerCase().includes(domainFilter.toLowerCase())).length - 15} more (type to filter)
+                  </div>
+                )}
               </div>
             </>
           )}
