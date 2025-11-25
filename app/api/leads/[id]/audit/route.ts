@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { neon } from '@neondatabase/serverless';
-import { scanAccessibilityFull } from '@/lib/accessibility/scanner';
+import { scanAccessibility } from '@/lib/accessibility-scanner';
 import { scoreBusinessForAISO } from '@/lib/scoring/aiso-fit-score';
 
 const sql = neon(process.env.DATABASE_URL!);
@@ -135,14 +135,14 @@ export async function POST(
       if (!lead.accessibility_score || auditType === 'full') {
         console.log('Running accessibility scan...');
         try {
-          const accessibilityResult = await scanAccessibilityFull(`https://${lead.domain}`);
+          const accessibilityResult = await scanAccessibility(`https://${lead.domain}`);
           if (accessibilityResult) {
-            auditData.accessibility_score = accessibilityResult.score;
-            auditData.wcag_critical_violations = accessibilityResult.violations.critical;
-            auditData.wcag_serious_violations = accessibilityResult.violations.serious;
-            auditData.wcag_moderate_violations = accessibilityResult.violations.moderate;
-            auditData.wcag_minor_violations = accessibilityResult.violations.minor;
-            auditData.wcag_total_violations = accessibilityResult.violations.total;
+            auditData.accessibility_score = accessibilityResult.accessibilityScore;
+            auditData.wcag_critical_violations = accessibilityResult.criticalCount;
+            auditData.wcag_serious_violations = accessibilityResult.seriousCount;
+            auditData.wcag_moderate_violations = accessibilityResult.moderateCount;
+            auditData.wcag_minor_violations = accessibilityResult.minorCount;
+            auditData.wcag_total_violations = accessibilityResult.totalViolations;
             auditData.accessibility_details = accessibilityResult;
           }
         } catch (accessError) {
