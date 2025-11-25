@@ -40,7 +40,7 @@ export async function POST(
     const dbUserId = dbUser.id;
 
     const { id } = await params;
-    const leadId = id; // Keep as string for UUID
+    const leadId = parseInt(id, 10); // leads.id is integer
 
     const body = await request.json();
     const { to, subject, body: emailBody, template } = body;
@@ -56,7 +56,7 @@ export async function POST(
     const leadResult = await sql`
       SELECT id, business_name, domain, email
       FROM leads
-      WHERE id = ${leadId}::uuid
+      WHERE id = ${leadId}
     `;
 
     if (leadResult.length === 0) {
@@ -111,7 +111,7 @@ export async function POST(
           status,
           sent_at
         ) VALUES (
-          ${leadId}::uuid,
+          ${leadId},
           ${dbUserId}::uuid,
           ${to},
           ${senderEmail},
@@ -135,7 +135,7 @@ export async function POST(
         SET
           contact_count = COALESCE(contact_count, 0) + 1,
           last_contact_date = NOW()
-        WHERE id = ${leadId}::uuid
+        WHERE id = ${leadId}
       `;
     } catch (updateError) {
       console.error('Failed to update lead:', updateError);
@@ -152,7 +152,7 @@ export async function POST(
           message,
           sent_at
         ) VALUES (
-          ${leadId}::uuid,
+          ${leadId},
           ${dbUserId}::uuid,
           'email',
           ${subject},
