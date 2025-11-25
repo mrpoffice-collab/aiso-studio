@@ -41,6 +41,10 @@ function AssetsContent() {
   const [uploadDomain, setUploadDomain] = useState('');
   const activeDomain = searchParams.get('domain');
 
+  // Domain audits state
+  const [domainAudits, setDomainAudits] = useState<any[]>([]);
+  const [loadingAudits, setLoadingAudits] = useState(false);
+
   // Move asset state
   const [movingAssetId, setMovingAssetId] = useState<string | null>(null);
 
@@ -76,6 +80,35 @@ function AssetsContent() {
     loadAssets();
     loadFolders();
   }, [currentFolderId, activeTag, activeDomain]);
+
+  // Load audits when domain is selected
+  useEffect(() => {
+    if (activeDomain) {
+      loadDomainAudits(activeDomain);
+    } else {
+      setDomainAudits([]);
+    }
+  }, [activeDomain]);
+
+  const loadDomainAudits = async (domain: string) => {
+    setLoadingAudits(true);
+    try {
+      // Fetch audits that match this domain
+      const response = await fetch('/api/audit/accessibility');
+      if (response.ok) {
+        const data = await response.json();
+        // Filter audits by domain
+        const domainAudits = (data.audits || []).filter((audit: any) =>
+          audit.url.toLowerCase().includes(domain.toLowerCase())
+        );
+        setDomainAudits(domainAudits);
+      }
+    } catch (err) {
+      console.error('Failed to load domain audits:', err);
+    } finally {
+      setLoadingAudits(false);
+    }
+  };
 
   const loadAssets = async () => {
     try {
@@ -1294,6 +1327,87 @@ function AssetsContent() {
                   Cancel
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Domain Audits Section - Only shown when domain is selected */}
+          {activeDomain && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <span>♿</span>
+                  Accessibility Audits
+                </h2>
+                <a
+                  href={`/dashboard/audit?url=https://${activeDomain}&wcag=true`}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors text-sm"
+                >
+                  + Run New Audit
+                </a>
+              </div>
+
+              {loadingAudits ? (
+                <div className="text-center py-6 bg-white rounded-xl border border-slate-200">
+                  <div className="text-2xl mb-2">⏳</div>
+                  <p className="text-slate-600 text-sm">Loading audits...</p>
+                </div>
+              ) : domainAudits.length === 0 ? (
+                <div className="text-center py-6 bg-white rounded-xl border border-slate-200">
+                  <div className="text-4xl mb-2">📋</div>
+                  <p className="text-slate-600">No accessibility audits yet for this domain</p>
+                  <a
+                    href={`/dashboard/audit?url=https://${activeDomain}&wcag=true`}
+                    className="mt-3 inline-block px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors text-sm"
+                  >
+                    Run First Audit
+                  </a>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {domainAudits.map((audit) => (
+                    <a
+                      key={audit.id}
+                      href={`/dashboard/audit?auditId=${audit.id}`}
+                      className="block bg-white rounded-xl border-2 border-slate-200 hover:border-purple-400 hover:shadow-lg transition-all p-4"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className={`text-3xl font-bold ${
+                          audit.accessibilityScore >= 90 ? 'text-green-600' :
+                          audit.accessibilityScore >= 70 ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>
+                          {audit.accessibilityScore}
+                        </span>
+                        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                          {new Date(audit.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      <div className="text-sm text-slate-600 mb-2 truncate" title={audit.pageTitle}>
+                        {audit.pageTitle || audit.url}
+                      </div>
+
+                      <div className="flex gap-2 text-xs">
+                        {audit.criticalCount > 0 && (
+                          <span className="px-2 py-1 bg-red-100 text-red-700 rounded">
+                            {audit.criticalCount} Critical
+                          </span>
+                        )}
+                        {audit.seriousCount > 0 && (
+                          <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded">
+                            {audit.seriousCount} Serious
+                          </span>
+                        )}
+                        {audit.totalViolations > 0 && (
+                          <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded">
+                            {audit.totalViolations} Total
+                          </span>
+                        )}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
