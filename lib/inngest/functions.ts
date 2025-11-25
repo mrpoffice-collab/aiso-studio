@@ -2,6 +2,7 @@ import { inngest } from './client';
 import { scanAccessibilityFull, closeBrowser } from '../accessibility-scanner-playwright';
 import { db } from '../db';
 import { scoreBusinessForAISO, calculateAISOOpportunity, type BusinessData } from '../scoring/aiso-fit-score';
+import { getSearchVisibility } from '../serper-client';
 
 // Event types
 export interface AccessibilityAuditRequestedEvent {
@@ -277,6 +278,18 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
                 // Continue without accessibility data if scan fails
               }
 
+              // Run searchability analysis with Serper API
+              let searchVisibility = null;
+              try {
+                searchVisibility = await getSearchVisibility(business.domain);
+                if (searchVisibility) {
+                  console.log(`🔍 Search visibility for ${business.domain}: ${searchVisibility.rankingKeywords} keywords, avg position ${searchVisibility.avgPosition}`);
+                }
+              } catch (error: any) {
+                console.error(`Search visibility check failed for ${business.domain}:`, error.message);
+                // Continue without search visibility data if API fails
+              }
+
               // Prepare business data for AISO scoring
               const businessData: BusinessData = {
                 domain: business.domain,
@@ -297,7 +310,11 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
                   minor: accessibilityData.minorCount,
                   total: accessibilityData.totalViolations,
                 } : undefined,
-                // TODO: Add searchVisibility data from SEO API if available
+                searchVisibility: searchVisibility ? {
+                  rankingKeywords: searchVisibility.rankingKeywords,
+                  avgPosition: searchVisibility.avgPosition,
+                  organicTraffic: searchVisibility.organicTraffic,
+                } : undefined,
               };
 
               // Calculate AISO fit score
@@ -317,9 +334,11 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
                 accessibilityScore: accessibilityData?.accessibilityScore,
                 wcagViolations: businessData.wcagViolations,
                 accessibilityData, // Store full audit for reference
+                // Search visibility data
+                searchVisibility: businessData.searchVisibility,
               });
 
-              console.log(`✅ ${business.businessName}: AISO Score ${aisoFit.aisoScore}, WCAG ${accessibilityData?.accessibilityScore || 'N/A'}`);
+              console.log(`✅ ${business.businessName}: AISO ${aisoFit.aisoScore}, WCAG ${accessibilityData?.accessibilityScore || 'N/A'}, Keywords ${searchVisibility?.rankingKeywords || 'N/A'}`);
             } catch (error: any) {
               console.error(`Failed to enrich ${business.domain}:`, error.message);
               // Include business without enrichment data
@@ -378,6 +397,11 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
                   wcag_moderate_violations: lead.wcagViolations?.moderate || 0,
                   wcag_minor_violations: lead.wcagViolations?.minor || 0,
                   wcag_total_violations: lead.wcagViolations?.total || 0,
+
+                  // Search visibility metrics (from Serper API)
+                  ranking_keywords: lead.searchVisibility?.rankingKeywords,
+                  avg_search_position: lead.searchVisibility?.avgPosition,
+                  estimated_organic_traffic: lead.searchVisibility?.organicTraffic,
 
                   // Standard lead data
                   has_blog: lead.hasBlog,
