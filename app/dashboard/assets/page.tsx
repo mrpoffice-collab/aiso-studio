@@ -93,15 +93,11 @@ function AssetsContent() {
   const loadDomainAudits = async (domain: string) => {
     setLoadingAudits(true);
     try {
-      // Fetch audits that match this domain
-      const response = await fetch('/api/audit/accessibility');
+      // Fetch from vault audits API which combines both tables
+      const response = await fetch(`/api/vault/audits?domain=${encodeURIComponent(domain)}`);
       if (response.ok) {
         const data = await response.json();
-        // Filter audits by domain
-        const domainAudits = (data.audits || []).filter((audit: any) =>
-          audit.url.toLowerCase().includes(domain.toLowerCase())
-        );
-        setDomainAudits(domainAudits);
+        setDomainAudits(data.audits || []);
       }
     } catch (err) {
       console.error('Failed to load domain audits:', err);
