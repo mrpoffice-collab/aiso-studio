@@ -205,6 +205,7 @@ export default function PipelinePage() {
   const [proposalLead, setProposalLead] = useState<Lead | null>(null);
   const [generatingProposal, setGeneratingProposal] = useState(false);
   const [proposalEmailBody, setProposalEmailBody] = useState<string | null>(null);
+  const [runningAudit, setRunningAudit] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -473,6 +474,38 @@ export default function PipelinePage() {
       setEmailLead(proposalLead);
       setShowProposalModal(false);
       setShowEmailModal(true);
+    }
+  };
+
+  const runAudit = async (lead: Lead) => {
+    setRunningAudit(true);
+    try {
+      const response = await fetch(`/api/leads/${lead.id}/audit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auditType: 'full' }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update the selected lead with new audit data
+        if (data.updatedLead) {
+          setSelectedLead(data.updatedLead);
+          // Also update in the leads list
+          setLeads(prev => prev.map(l =>
+            l.id === lead.id ? data.updatedLead : l
+          ));
+        }
+        alert(`Audit completed for ${lead.business_name}! Check the updated scores.`);
+      } else {
+        const error = await response.json();
+        alert(`Audit failed: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to run audit:', error);
+      alert('Failed to run audit. Please try again.');
+    } finally {
+      setRunningAudit(false);
     }
   };
 
@@ -1367,7 +1400,7 @@ export default function PipelinePage() {
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 mt-6">
+            <div className="flex flex-wrap gap-3 mt-6">
               <button
                 onClick={() => {
                   setShowDetailsModal(false);
@@ -1376,6 +1409,27 @@ export default function PipelinePage() {
                 className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition-colors"
               >
                 Close
+              </button>
+              <button
+                onClick={() => runAudit(selectedLead)}
+                disabled={runningAudit}
+                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+              >
+                {runningAudit ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Auditing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Run Audit
+                  </>
+                )}
               </button>
               <button
                 onClick={() => generateProposal(selectedLead)}
