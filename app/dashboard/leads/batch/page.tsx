@@ -30,19 +30,35 @@ export default function BatchLeadDiscoveryPage() {
     state: '',
     targetCount: 25,
     filterRange: 'sweet-spot' as 'all' | 'sweet-spot' | 'high' | 'low',
+    projectId: null as number | null,
+    newProjectName: '',
   }, 120);
 
   const [isCreating, setIsCreating] = useState(false);
   const [batches, setBatches] = useState<BatchJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [projects, setProjects] = useState<Array<{ id: number; name: string }>>([]);
 
   useEffect(() => {
     fetchBatches();
+    fetchProjects();
     // Poll for updates every 5 seconds
     const interval = setInterval(fetchBatches, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const response = await fetch('/api/leads/projects');
+      const data = await response.json();
+      if (data.success) {
+        setProjects(data.projects);
+      }
+    } catch (err) {
+      console.error('Failed to fetch projects:', err);
+    }
+  };
 
   const fetchBatches = async () => {
     try {
@@ -85,10 +101,38 @@ export default function BatchLeadDiscoveryPage() {
       return;
     }
 
+    if (formData.projectId === null && !formData.newProjectName.trim()) {
+      setError('Please enter a project name or select an existing project');
+      return;
+    }
+
     setIsCreating(true);
     setError('');
 
     try {
+      let projectId = formData.projectId;
+
+      // Create new project if needed
+      if (projectId === null && formData.newProjectName.trim()) {
+        const projectResponse = await fetch('/api/leads/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.newProjectName.trim(),
+            industry: formData.industry,
+            location: formData.state ? `${formData.city}, ${formData.state}` : formData.city,
+          }),
+        });
+
+        const projectData = await projectResponse.json();
+        if (!projectResponse.ok) {
+          throw new Error(projectData.error || 'Failed to create project');
+        }
+
+        projectId = projectData.project.id;
+        await fetchProjects(); // Refresh projects list
+      }
+
       const response = await fetch('/api/leads/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,6 +142,7 @@ export default function BatchLeadDiscoveryPage() {
           state: formData.state,
           targetCount: formData.targetCount,
           filterRange: formData.filterRange,
+          projectId,
         }),
       });
 
@@ -107,15 +152,17 @@ export default function BatchLeadDiscoveryPage() {
         throw new Error(data.error || 'Failed to create batch');
       }
 
-      alert(`✓ ${data.message}\n\nYou can track progress below. This may take 10-30 minutes.`);
+      alert(`✓ ${data.message}\n\nYou can track progress below. Leads will be added to your project.`);
 
-      // Clear form but preserve filter preference
+      // Clear form but preserve filter preference and project
       setFormData({
         industry: '',
         city: '',
         state: '',
-        targetCount: 50,
+        targetCount: 25,
         filterRange: formData.filterRange, // Keep user's filter selection
+        projectId: projectId, // Keep project selected for easy "add more"
+        newProjectName: '',
       });
 
       // Refresh batches
@@ -265,6 +312,36 @@ export default function BatchLeadDiscoveryPage() {
               </select>
               <p className="mt-2 text-xs text-slate-600">
                 Choose which leads to save based on AISO score
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                Project
+              </label>
+              <select
+                value={formData.projectId || 'new'}
+                onChange={(e) => setFormData({ ...formData, projectId: e.target.value === 'new' ? null : parseInt(e.target.value) })}
+                className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
+                style={{ color: '#0f172a' }}
+              >
+                <option value="new">+ Create New Project</option>
+                {projects.map(project => (
+                  <option key={project.id} value={project.id}>{project.name}</option>
+                ))}
+              </select>
+              {formData.projectId === null && (
+                <input
+                  type="text"
+                  value={formData.newProjectName}
+                  onChange={(e) => setFormData({ ...formData, newProjectName: e.target.value })}
+                  placeholder="Enter new project name"
+                  className="w-full px-4 py-3 mt-2 rounded-lg border-2 border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
+                  style={{ color: '#0f172a' }}
+                />
+              )}
+              <p className="mt-2 text-xs text-slate-600">
+                Group leads into projects for better organization
               </p>
             </div>
           </div>

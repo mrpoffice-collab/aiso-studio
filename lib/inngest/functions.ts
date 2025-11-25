@@ -155,6 +155,7 @@ export interface BatchLeadDiscoveryRequestedEvent {
   data: {
     batchId: string;
     userId: string;
+    projectId?: number;
   };
 }
 
@@ -166,7 +167,7 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
   },
   { event: 'leads/batch-discovery.requested' },
   async ({ event, step }) => {
-    const { batchId, userId } = event.data;
+    const { batchId, userId, projectId } = event.data;
 
     // Fetch the batch job details
     const batch = await db.getBatchDiscoveryById(batchId);
@@ -269,6 +270,7 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
                 // Save to pipeline with full discovery data
                 await db.createLead({
                   user_id: userId,
+                  project_id: projectId || null,
                   domain: lead.domain,
                   business_name: lead.businessName,
                   city: lead.city,

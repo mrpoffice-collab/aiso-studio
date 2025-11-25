@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { industry, city, state, targetCount = 50, filterRange = 'sweet-spot' } = body;
+    const { industry, city, state, targetCount = 25, filterRange = 'sweet-spot', projectId } = body;
 
     if (!industry || !city) {
       return NextResponse.json(
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       data: {
         batchId: batch.id,
         userId: user.id,
+        projectId, // Pass projectId to Inngest
       },
     });
 
