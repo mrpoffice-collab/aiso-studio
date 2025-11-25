@@ -69,44 +69,28 @@ export async function PATCH(
 
     const body = await request.json();
 
-    // Build dynamic update query for all provided fields
-    const allowedFields = [
-      'status', 'project_id', 'opportunity_rating', 'notes',
-      'accessibility_score', 'wcag_critical_violations', 'wcag_serious_violations',
-      'wcag_moderate_violations', 'wcag_minor_violations', 'wcag_total_violations',
-      'accessibility_audit_id', 'aiso_opportunity_score', 'primary_pain_point',
-      'estimated_monthly_value', 'time_to_close'
-    ];
-
-    const updates: string[] = [];
-    const values: any[] = [];
-    let paramIndex = 1;
-
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updates.push(`${field} = $${paramIndex}`);
-        values.push(body[field]);
-        paramIndex++;
-      }
-    }
-
-    if (updates.length === 0) {
-      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
-    }
-
-    // Add updated_at
-    updates.push(`updated_at = NOW()`);
-
-    // Add lead ID as final parameter
-    values.push(leadId);
-
-    const updateQuery = `
-      UPDATE leads SET ${updates.join(', ')}
-      WHERE id = $${paramIndex}
+    // Update lead with provided fields using tagged template
+    const [updatedLead] = await sql`
+      UPDATE leads SET
+        status = COALESCE(${body.status ?? null}, status),
+        project_id = COALESCE(${body.project_id ?? null}, project_id),
+        opportunity_rating = COALESCE(${body.opportunity_rating ?? null}, opportunity_rating),
+        notes = COALESCE(${body.notes ?? null}, notes),
+        accessibility_score = COALESCE(${body.accessibility_score ?? null}, accessibility_score),
+        wcag_critical_violations = COALESCE(${body.wcag_critical_violations ?? null}, wcag_critical_violations),
+        wcag_serious_violations = COALESCE(${body.wcag_serious_violations ?? null}, wcag_serious_violations),
+        wcag_moderate_violations = COALESCE(${body.wcag_moderate_violations ?? null}, wcag_moderate_violations),
+        wcag_minor_violations = COALESCE(${body.wcag_minor_violations ?? null}, wcag_minor_violations),
+        wcag_total_violations = COALESCE(${body.wcag_total_violations ?? null}, wcag_total_violations),
+        accessibility_audit_id = COALESCE(${body.accessibility_audit_id ?? null}, accessibility_audit_id),
+        aiso_opportunity_score = COALESCE(${body.aiso_opportunity_score ?? null}, aiso_opportunity_score),
+        primary_pain_point = COALESCE(${body.primary_pain_point ?? null}, primary_pain_point),
+        estimated_monthly_value = COALESCE(${body.estimated_monthly_value ?? null}, estimated_monthly_value),
+        time_to_close = COALESCE(${body.time_to_close ?? null}, time_to_close),
+        updated_at = NOW()
+      WHERE id = ${leadId}
       RETURNING *
     `;
-
-    const [updatedLead] = await sql(updateQuery, values);
 
     return NextResponse.json({ success: true, lead: updatedLead });
   } catch (error) {
