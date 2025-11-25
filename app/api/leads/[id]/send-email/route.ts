@@ -1,16 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import nodemailer from 'nodemailer';
 import { sql } from '@/lib/db';
 
-// Initialize AWS SES client
-const sesClient = new SESClient({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-});
+// Create SMTP transporter for AWS SES
+const createTransporter = () => {
+  const host = process.env.AWS_SES_SMTP_HOST;
+  const port = parseInt(process.env.AWS_SES_SMTP_PORT || '587');
+  const user = process.env.AWS_SES_SMTP_USER;
+  const pass = process.env.AWS_SES_SMTP_PASS;
+
+  if (!host || !user || !pass) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
+};
 
 export async function POST(
   request: NextRequest,
@@ -23,11 +33,7 @@ export async function POST(
     }
 
     const { id } = await params;
-    const leadId = parseInt(id);
-
-    if (isNaN(leadId)) {
-      return NextResponse.json({ error: 'Invalid lead ID' }, { status: 400 });
-    }
+    const leadId = id; // Keep as string for UUID
 
     const body = await request.json();
     const { to, subject, body: emailBody, template } = body;
@@ -43,7 +49,7 @@ export async function POST(
     const leadResult = await sql`
       SELECT id, business_name, domain, email
       FROM leads
-      WHERE id = ${leadId} AND user_id = ${userId}
+      WHERE id = ${leadId}::uuid
     `;
 
     if (leadResult.length === 0) {
@@ -62,106 +68,114 @@ export async function POST(
       );
     }
 
-    // Send email via AWS SES
-    const sendEmailCommand = new SendEmailCommand({
-      Source: senderEmail,
-      Destination: {
-        ToAddresses: [to],
-      },
-      Message: {
-        Subject: {
-          Data: subject,
-          Charset: 'UTF-8',
-        },
-        Body: {
-          Text: {
-            Data: emailBody,
-            Charset: 'UTF-8',
-          },
-          Html: {
-            Data: formatEmailAsHtml(emailBody, senderEmail),
-            Charset: 'UTF-8',
-          },
-        },
-      },
+    // Create transporter
+    const transporter = createTransporter();
+    if (!transporter) {
+      console.error('AWS SES SMTP credentials not configured');
+      return NextResponse.json(
+        { error: 'Email service not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Send email via SMTP
+    const mailResult = await transporter.sendMail({
+      from: `"AISO Studio" <${senderEmail}>`,
+      to: to,
+      subject: subject,
+      text: emailBody,
+      html: formatEmailAsHtml(emailBody, senderEmail),
     });
 
-    const sesResponse = await sesClient.send(sendEmailCommand);
+    console.log(`✅ Email sent to ${to} - MessageID: ${mailResult.messageId}`);
 
     // Log the email in the database
-    await sql`
-      INSERT INTO lead_emails (
-        lead_id,
-        user_id,
-        to_email,
-        from_email,
-        subject,
-        body,
-        template_used,
-        ses_message_id,
-        status,
-        sent_at
-      ) VALUES (
-        ${leadId},
-        ${userId},
-        ${to},
-        ${senderEmail},
-        ${subject},
-        ${emailBody},
-        ${template || 'custom'},
-        ${sesResponse.MessageId || null},
-        'sent',
-        NOW()
-      )
-    `;
+    try {
+      await sql`
+        INSERT INTO lead_emails (
+          lead_id,
+          user_id,
+          to_email,
+          from_email,
+          subject,
+          body,
+          template_used,
+          ses_message_id,
+          status,
+          sent_at
+        ) VALUES (
+          ${leadId}::uuid,
+          ${userId},
+          ${to},
+          ${senderEmail},
+          ${subject},
+          ${emailBody},
+          ${template || 'custom'},
+          ${mailResult.messageId || null},
+          'sent',
+          NOW()
+        )
+      `;
+    } catch (logError) {
+      // Email sent but logging failed - don't fail the request
+      console.error('Failed to log email:', logError);
+    }
 
     // Update lead contact count and last contact date
-    await sql`
-      UPDATE leads
-      SET
-        contact_count = COALESCE(contact_count, 0) + 1,
-        last_contact_date = NOW()
-      WHERE id = ${leadId}
-    `;
+    try {
+      await sql`
+        UPDATE leads
+        SET
+          contact_count = COALESCE(contact_count, 0) + 1,
+          last_contact_date = NOW()
+        WHERE id = ${leadId}::uuid
+      `;
+    } catch (updateError) {
+      console.error('Failed to update lead:', updateError);
+    }
 
     // Log in lead_outreach table
-    await sql`
-      INSERT INTO lead_outreach (
-        lead_id,
-        user_id,
-        outreach_type,
-        subject,
-        message,
-        sent_at
-      ) VALUES (
-        ${leadId},
-        ${userId},
-        'email',
-        ${subject},
-        ${emailBody},
-        NOW()
-      )
-    `;
+    try {
+      await sql`
+        INSERT INTO lead_outreach (
+          lead_id,
+          user_id,
+          outreach_type,
+          subject,
+          message,
+          sent_at
+        ) VALUES (
+          ${leadId}::uuid,
+          ${userId},
+          'email',
+          ${subject},
+          ${emailBody},
+          NOW()
+        )
+      `;
+    } catch (outreachError) {
+      console.error('Failed to log outreach:', outreachError);
+    }
 
     return NextResponse.json({
       success: true,
-      messageId: sesResponse.MessageId,
+      messageId: mailResult.messageId,
       message: `Email sent to ${to}`,
     });
   } catch (error) {
     console.error('Failed to send email:', error);
 
-    // Check for specific AWS SES errors
+    // Check for specific errors
     if (error instanceof Error) {
-      if (error.name === 'MessageRejected') {
+      if (error.message.includes('Message rejected')) {
         return NextResponse.json(
-          { error: 'Email rejected by AWS SES. Check sender verification.' },
+          { error: 'Email rejected. You may still be in SES sandbox mode.' },
           { status: 400 }
         );
       }
-      if (error.name === 'MailFromDomainNotVerifiedException') {
+      if (error.message.includes('Invalid login')) {
         return NextResponse.json(
-          { error: 'Sender email domain not verified in AWS SES.' },
+          { error: 'Invalid SMTP credentials. Check your AWS SES settings.' },
           { status: 400 }
         );
       }
