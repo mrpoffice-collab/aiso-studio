@@ -226,6 +226,18 @@ function generateAISOPitch(
                                  primaryPainPoint.includes('keywords') ||
                                  primaryPainPoint.includes('SEO');
 
+  // Calculate time to close based on score
+  let timeToClose: string;
+  if (score >= 70) {
+    timeToClose = 'immediate';
+  } else if (score >= 50) {
+    timeToClose = 'short';
+  } else if (score >= 30) {
+    timeToClose = 'medium';
+  } else {
+    timeToClose = 'long';
+  }
+
   // Accessibility-focused pitches (high urgency due to legal + SEO)
   if (hasAccessibilityIssue && business.wcagViolations?.critical && business.wcagViolations.critical > 0) {
     return `"${business.businessName} - I ran an accessibility audit and found ${business.wcagViolations.critical} critical WCAG violations. This affects SEO rankings AND opens you to ADA lawsuits. AISO's content automatically meets WCAG 2.1 AA standards. Can I send you the full report?"`;
