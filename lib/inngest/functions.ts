@@ -448,11 +448,6 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
           sweet_spot_found: sweetSpotFound,
         });
 
-        // Use offset=9 for second iteration (Brave API max)
-        if (iteration === 1) {
-          offset = maxOffset;
-        }
-
         // Check if we found enough
         if (sweetSpotFound >= target_count) {
           break;
