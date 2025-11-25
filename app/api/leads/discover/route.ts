@@ -277,122 +277,129 @@ function isLikelyHighAuthority(domain: string): boolean {
 }
 
 /**
- * Search for businesses using Brave Search API
+ * Search for businesses using Serper API (preferred) or Brave API (fallback)
+ * Serper: Up to 100 results per call, 1 credit each
  */
 async function searchBusinesses(
   query: string,
   limit: number,
   offset: number = 0
 ): Promise<Array<{ name: string; domain: string; city?: string; state?: string }>> {
-  const businesses: Array<{ name: string; domain: string; city?: string; state?: string }> = [];
+  // Prefer Serper API - better results, up to 100 per call
+  const serperApiKey = process.env.SERPER_API_KEY;
 
-  // Check if Brave API key is configured
-  const braveApiKey = process.env.BRAVE_SEARCH_API_KEY;
+  if (serperApiKey) {
+    console.log('✓ Using Serper API for business search');
+    try {
+      const response = await fetch('https://google.serper.dev/search', {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': serperApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: query,
+          num: Math.min(limit, 100), // Serper max is 100
+        }),
+      });
 
-  if (!braveApiKey) {
-    console.warn('⚠️  BRAVE_SEARCH_API_KEY not configured. Using fallback method.');
-    return fallbackBusinessSearch(query, limit);
-  }
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Serper API error (${response.status}):`, errorText);
+        // Fall through to Brave/fallback
+      } else {
+        const data = await response.json();
+        const organicResults = data.organic || [];
+        const businesses: Array<{ name: string; domain: string; city?: string; state?: string }> = [];
+        const seenDomains = new Set<string>();
 
-  console.log('✓ Brave API key found, using Brave Search');
+        const skipDomains = [
+          'yelp.com', 'yellowpages.com', 'facebook.com', 'linkedin.com',
+          'instagram.com', 'twitter.com', 'x.com', 'healthgrades.com',
+          'vitals.com', 'wikipedia.org', 'tripadvisor.com', 'google.com',
+          'maps.google.com', 'mapquest.com', 'foursquare.com', 'bbb.org',
+          'angieslist.com', 'thumbtack.com', 'houzz.com', 'zillow.com',
+          'realtor.com', 'apartments.com', 'glassdoor.com', 'indeed.com',
+          'youtube.com', 'pinterest.com', 'tiktok.com', 'reddit.com',
+          'nextdoor.com', 'alignable.com', 'manta.com', 'chamberofcommerce.com',
+        ];
 
-  try {
-    // Use Brave Search API
-    const endpoint = 'https://api.search.brave.com/res/v1/web/search';
-    const searchUrl = `${endpoint}?q=${encodeURIComponent(query)}&count=${limit}&offset=${offset}`;
+        for (const result of organicResults) {
+          try {
+            const url = new URL(result.link);
+            const domain = url.hostname.replace('www.', '').toLowerCase();
 
-    console.log('🔍 Calling Brave API with query:', query);
+            if (seenDomains.has(domain)) continue;
+            if (skipDomains.some(skip => domain.includes(skip))) continue;
+            if (domain.length < 4) continue;
 
-    const response = await fetch(searchUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'X-Subscription-Token': braveApiKey,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Brave API error:', response.status, errorText);
-      console.error('Falling back to DuckDuckGo...');
-      return fallbackBusinessSearch(query, limit);
-    }
-
-    const data = await response.json();
-    console.log('✓ Brave API returned', data.web?.results?.length || 0, 'raw results');
-
-    // Extract domains from web results
-    const domains = new Set<string>();
-
-    if (data.web?.results) {
-      for (const result of data.web.results) {
-        try {
-          const url = new URL(result.url);
-          const domain = url.hostname.replace('www.', '');
-
-          // Filter out directories, social media, review sites, aggregators, etc.
-          const isDirectory =
-            domain.includes('yelp.') ||
-            domain.includes('yellowpages.') ||
-            domain.includes('facebook.') ||
-            domain.includes('linkedin.') ||
-            domain.includes('instagram.') ||
-            domain.includes('twitter.') ||
-            domain.includes('healthgrades.') ||
-            domain.includes('vitals.') ||
-            domain.includes('wikipedia.') ||
-            domain.includes('tripadvisor.') ||
-            domain.includes('google.') ||
-            domain.includes('maps.') ||
-            domain.includes('mapquest.') ||
-            domain.includes('foursquare.') ||
-            domain.includes('bbb.org') ||
-            domain.includes('angieslist.') ||
-            domain.includes('thumbtack.') ||
-            domain.includes('houzz.') ||
-            domain.includes('zillow.') ||
-            domain.includes('realtor.') ||
-            domain.includes('apartments.') ||
-            domain.includes('glassdoor.') ||
-            domain.includes('indeed.');
-
-          // Smart filtering: Skip high-authority domains likely to score >75
-          const isHighAuthority = isLikelyHighAuthority(domain);
-
-          if (
-            !isDirectory &&
-            !isHighAuthority &&
-            domain.length > 4 &&
-            domains.size < limit
-          ) {
-            domains.add(domain);
+            seenDomains.add(domain);
             businesses.push({
-              name: result.title || domain.split('.')[0].charAt(0).toUpperCase() + domain.split('.')[0].slice(1),
+              name: result.title || domain,
               domain,
             });
-          } else if (isHighAuthority) {
-            console.log(`⚡ Skipping high-authority domain: ${domain}`);
+          } catch {
+            // Invalid URL, skip
           }
-        } catch (e) {
-          // Invalid URL, skip
+        }
+
+        console.log(`✅ Serper found ${businesses.length} businesses (1 credit used)`);
+        if (businesses.length > 0) {
+          return businesses;
         }
       }
+    } catch (error: any) {
+      console.error('❌ Serper search error:', error.message);
     }
-
-    console.log(`✓ Brave API found ${businesses.length} businesses after filtering`);
-
-    if (businesses.length === 0) {
-      console.warn('⚠️  All Brave results were filtered out! Raw result count:', data.web?.results?.length || 0);
-      console.warn('Falling back to DuckDuckGo...');
-      return fallbackBusinessSearch(query, limit);
-    }
-
-    return businesses;
-
-  } catch (error: any) {
-    console.error('❌ Brave search error:', error.message);
-    console.error('Falling back to DuckDuckGo...');
-    return fallbackBusinessSearch(query, limit);
   }
+
+  // Fallback to Brave API
+  const braveApiKey = process.env.BRAVE_SEARCH_API_KEY;
+
+  if (braveApiKey) {
+    console.log('⚠️ Falling back to Brave API');
+    try {
+      const endpoint = 'https://api.search.brave.com/res/v1/web/search';
+      const searchUrl = `${endpoint}?q=${encodeURIComponent(query)}&count=${Math.min(limit, 20)}&offset=${Math.min(offset, 9)}`;
+
+      const response = await fetch(searchUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'X-Subscription-Token': braveApiKey,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const businesses: Array<{ name: string; domain: string; city?: string; state?: string }> = [];
+        const domains = new Set<string>();
+
+        for (const result of data.web?.results || []) {
+          try {
+            const url = new URL(result.url);
+            const domain = url.hostname.replace('www.', '');
+            if (!domains.has(domain) && domain.length > 4) {
+              domains.add(domain);
+              businesses.push({
+                name: result.title || domain,
+                domain,
+              });
+            }
+          } catch {
+            // Skip
+          }
+        }
+        console.log(`✓ Brave found ${businesses.length} businesses`);
+        if (businesses.length > 0) return businesses;
+      }
+    } catch (error: any) {
+      console.error('❌ Brave search error:', error.message);
+    }
+  }
+
+  // Final fallback to DuckDuckGo
+  console.warn('⚠️ Falling back to DuckDuckGo search');
+  return fallbackBusinessSearch(query, limit);
 }
 
 /**

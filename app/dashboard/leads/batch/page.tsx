@@ -28,8 +28,8 @@ export default function BatchLeadDiscoveryPage() {
     industry: '',
     city: '',
     state: '',
-    targetCount: 25,
-    filterRange: 'sweet-spot' as 'all' | 'sweet-spot' | 'high' | 'low',
+    targetCount: 50,
+    filterRange: 'all' as 'all' | 'sweet-spot' | 'high' | 'low',
     projectId: null as number | null,
     newProjectName: '',
   }, 120);

@@ -88,6 +88,89 @@ export async function getSearchVisibility(domain: string): Promise<SerperResult 
 }
 
 /**
+ * Search for businesses using Serper (Google results)
+ * Returns up to 100 businesses per search (1 credit)
+ */
+export async function searchBusinesses(
+  query: string,
+  limit: number = 100
+): Promise<Array<{ name: string; domain: string; url: string }>> {
+  const apiKey = process.env.SERPER_API_KEY;
+
+  if (!apiKey) {
+    console.warn('⚠️  SERPER_API_KEY not configured. Cannot search businesses.');
+    return [];
+  }
+
+  try {
+    console.log(`🔍 Serper search: "${query}" (limit: ${limit})`);
+
+    const response = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        q: query,
+        num: Math.min(limit, 100), // Serper max is 100 per call
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Serper API error (${response.status}):`, errorText);
+      return [];
+    }
+
+    const data = await response.json();
+    const organicResults = data.organic || [];
+
+    // Filter out directories, social media, etc. and extract businesses
+    const businesses: Array<{ name: string; domain: string; url: string }> = [];
+    const seenDomains = new Set<string>();
+
+    const skipDomains = [
+      'yelp.com', 'yellowpages.com', 'facebook.com', 'linkedin.com',
+      'instagram.com', 'twitter.com', 'x.com', 'healthgrades.com',
+      'vitals.com', 'wikipedia.org', 'tripadvisor.com', 'google.com',
+      'maps.google.com', 'mapquest.com', 'foursquare.com', 'bbb.org',
+      'angieslist.com', 'thumbtack.com', 'houzz.com', 'zillow.com',
+      'realtor.com', 'apartments.com', 'glassdoor.com', 'indeed.com',
+      'youtube.com', 'pinterest.com', 'tiktok.com', 'reddit.com',
+      'nextdoor.com', 'alignable.com', 'manta.com', 'chamberofcommerce.com',
+    ];
+
+    for (const result of organicResults) {
+      try {
+        const url = new URL(result.link);
+        const domain = url.hostname.replace('www.', '').toLowerCase();
+
+        // Skip if already seen or is a directory/social site
+        if (seenDomains.has(domain)) continue;
+        if (skipDomains.some(skip => domain.includes(skip))) continue;
+        if (domain.length < 4) continue;
+
+        seenDomains.add(domain);
+        businesses.push({
+          name: result.title || domain,
+          domain,
+          url: result.link,
+        });
+      } catch {
+        // Invalid URL, skip
+      }
+    }
+
+    console.log(`✅ Serper found ${businesses.length} businesses after filtering`);
+    return businesses;
+  } catch (error: any) {
+    console.error('Serper search error:', error.message);
+    return [];
+  }
+}
+
+/**
  * Get brand search visibility (how well the business ranks for their own name)
  */
 export async function getBrandVisibility(

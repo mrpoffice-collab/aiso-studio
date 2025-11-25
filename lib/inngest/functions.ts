@@ -190,9 +190,8 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
       let totalSearched = 0;
       let sweetSpotFound = 0;
       let offset = 0;
-      const maxIterations = 2; // Limit to 2 iterations due to Brave API offset constraint (max 9)
+      const maxIterations = 1; // With Serper, we get up to 100 results per call (1 credit)
       let iteration = 0;
-      const maxOffset = 9; // Brave API maximum offset
 
       // Helper function to check if lead matches filter
       const matchesFilter = (lead: any) => {
@@ -236,8 +235,7 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
               industry,
               city,
               state,
-              limit: 20, // Search 20 at a time
-              offset, // Pass offset for pagination
+              limit: 100, // Serper can return up to 100 results (1 credit)
               internal: true, // Flag for internal calls
               internalUserId: userId, // Pass userId for auth
             }),
