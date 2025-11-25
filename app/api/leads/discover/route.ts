@@ -468,25 +468,50 @@ async function searchBusinesses(
   if (serperApiKey) {
     console.log('✓ Using Serper API for business search');
     try {
-      const response = await fetch('https://google.serper.dev/search', {
-        method: 'POST',
-        headers: {
-          'X-API-KEY': serperApiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          q: query,
-          num: Math.min(limit, 100), // Serper max is 100
-        }),
-      });
+      // Serper returns ~10 results per page, so paginate to get more
+      // Calculate pages needed: limit 100 = 10 pages, limit 50 = 5 pages, etc.
+      const resultsPerPage = 10;
+      const pagesToFetch = Math.min(Math.ceil(limit / resultsPerPage), 10); // Max 10 pages (100 results)
+      const allOrganicResults: any[] = [];
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Serper API error (${response.status}):`, errorText);
-        // Fall through to Brave/fallback
-      } else {
+      console.log(`📄 Fetching ${pagesToFetch} pages from Serper (${pagesToFetch} credits)...`);
+
+      for (let page = 1; page <= pagesToFetch; page++) {
+        const response = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': serperApiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            q: query,
+            num: resultsPerPage,
+            page: page,
+            gl: 'us',
+            hl: 'en',
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ Serper API error on page ${page} (${response.status}):`, errorText);
+          break; // Stop pagination on error
+        }
+
         const data = await response.json();
-        const organicResults = data.organic || [];
+        const pageResults = data.organic || [];
+        console.log(`  Page ${page}: ${pageResults.length} results`);
+
+        if (pageResults.length === 0) {
+          console.log(`  No more results after page ${page}`);
+          break; // No more results
+        }
+
+        allOrganicResults.push(...pageResults);
+      }
+
+      console.log(`📊 Total Serper results: ${allOrganicResults.length}`);
+      const organicResults = allOrganicResults;
         const businesses: Array<{ name: string; domain: string; city?: string; state?: string }> = [];
         const seenDomains = new Set<string>();
 
@@ -577,11 +602,10 @@ async function searchBusinesses(
           }
         }
 
-        console.log(`✅ Serper: ${organicResults.length} results → ${businesses.length} businesses (${directoriesFiltered} directories filtered, 1 credit used)`);
+        console.log(`✅ Serper: ${organicResults.length} results → ${businesses.length} businesses (${directoriesFiltered} directories filtered, ${pagesToFetch} credits used)`);
         if (businesses.length > 0) {
           return businesses;
         }
-      }
     } catch (error: any) {
       console.error('❌ Serper search error:', error.message);
     }
