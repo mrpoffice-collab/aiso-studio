@@ -553,7 +553,7 @@ export const db = {
 
   // Lead Pipeline - Leads
   async createLead(data: {
-    user_id: number;
+    user_id: string; // UUID
     project_id?: number;
     domain: string;
     business_name: string;

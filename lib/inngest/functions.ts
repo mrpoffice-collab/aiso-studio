@@ -431,7 +431,6 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
                   },
                 });
                 count++;
-                sweetSpotFound++;
               } catch (error) {
                 console.error(`Failed to save lead ${lead.domain}:`, error);
               }
@@ -439,6 +438,10 @@ export const batchLeadDiscoveryFunction = inngest.createFunction(
           }
           return count;
         });
+
+        // Update sweetSpotFound with the returned savedCount from step.run
+        // (Inngest step.run checkpoints return values, side effects inside don't persist)
+        sweetSpotFound += savedCount;
 
         // Update progress
         await db.updateBatchDiscovery(batchId, {
