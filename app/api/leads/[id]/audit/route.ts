@@ -247,23 +247,26 @@ export async function POST(
       RETURNING *
     `;
 
-    // Update the lead with new audit data
-    await db.updateLead(leadId, {
-      accessibility_score: auditData.accessibility_score as number | undefined,
-      wcag_critical_violations: auditData.wcag_critical_violations as number | undefined,
-      wcag_serious_violations: auditData.wcag_serious_violations as number | undefined,
-      wcag_moderate_violations: auditData.wcag_moderate_violations as number | undefined,
-      wcag_minor_violations: auditData.wcag_minor_violations as number | undefined,
-      wcag_total_violations: auditData.wcag_total_violations as number | undefined,
-      ranking_keywords: auditData.ranking_keywords as number | undefined,
-      avg_search_position: auditData.avg_search_position as number | undefined,
-      estimated_organic_traffic: auditData.estimated_organic_traffic as number | undefined,
-      aiso_opportunity_score: auditData.aiso_opportunity_score as number | undefined,
-      primary_pain_point: auditData.primary_pain_point as string | undefined,
-      secondary_pain_points: auditData.secondary_pain_points as string[] | undefined,
-      estimated_monthly_value: auditData.estimated_monthly_value as number | undefined,
-      time_to_close: auditData.time_to_close as string | undefined,
-    });
+    // Update the lead with new audit data using direct SQL
+    await sql`
+      UPDATE leads SET
+        accessibility_score = ${auditData.accessibility_score || null},
+        wcag_critical_violations = ${auditData.wcag_critical_violations || 0},
+        wcag_serious_violations = ${auditData.wcag_serious_violations || 0},
+        wcag_moderate_violations = ${auditData.wcag_moderate_violations || 0},
+        wcag_minor_violations = ${auditData.wcag_minor_violations || 0},
+        wcag_total_violations = ${auditData.wcag_total_violations || 0},
+        ranking_keywords = ${auditData.ranking_keywords || null},
+        avg_search_position = ${auditData.avg_search_position || null},
+        estimated_organic_traffic = ${auditData.estimated_organic_traffic || null},
+        aiso_opportunity_score = ${auditData.aiso_opportunity_score || null},
+        primary_pain_point = ${auditData.primary_pain_point || null},
+        secondary_pain_points = ${auditData.secondary_pain_points as string[] || null},
+        estimated_monthly_value = ${auditData.estimated_monthly_value || null},
+        time_to_close = ${auditData.time_to_close || null},
+        updated_at = NOW()
+      WHERE id = ${leadId}
+    `;
 
     console.log(`Audit saved for ${lead.domain}`);
 
