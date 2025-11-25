@@ -92,9 +92,16 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    // Get all unique domains for filtering dropdown
+    // Get all unique domains from assets AND audits
     const allDomains = await sql`
-      SELECT DISTINCT domain FROM asset_domains
+      SELECT DISTINCT domain FROM (
+        SELECT domain FROM asset_domains
+        UNION
+        SELECT domain FROM lead_audits WHERE domain IS NOT NULL
+        UNION
+        SELECT REPLACE(REPLACE(url, 'https://', ''), 'http://', '') as domain
+        FROM accessibility_audits WHERE url IS NOT NULL
+      ) combined
       ORDER BY domain
     `;
 
