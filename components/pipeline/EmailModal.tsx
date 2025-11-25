@@ -53,20 +53,26 @@ interface EmailModalProps {
 const EMAIL_TEMPLATES = [
   {
     id: 'accessibility_urgent',
-    name: 'Accessibility Urgent (Legal Risk)',
-    description: 'For leads with critical WCAG violations',
+    name: 'ADA Legal Risk',
+    description: 'WCAG violations = lawsuit risk. High urgency.',
     condition: (lead: Lead) => (lead.wcag_critical_violations || 0) > 0,
   },
   {
+    id: 'search_visibility',
+    name: 'Search Data Hook',
+    description: 'Lead with their actual ranking data',
+    condition: (lead: Lead) => (lead.ranking_keywords || 0) > 0,
+  },
+  {
     id: 'hot_lead',
-    name: 'Hot Lead (High Value)',
-    description: 'For AISO score 70+',
+    name: 'High-Value Opportunity',
+    description: 'AISO 70+ - ready to buy',
     condition: (lead: Lead) => (lead.aiso_opportunity_score || 0) >= 70,
   },
   {
     id: 'warm_lead',
-    name: 'Warm Lead',
-    description: 'For AISO score 40-69',
+    name: 'Warm Introduction',
+    description: 'AISO 40-69 - needs nurturing',
     condition: (lead: Lead) => {
       const score = lead.aiso_opportunity_score || 0;
       return score >= 40 && score < 70;
@@ -74,105 +80,158 @@ const EMAIL_TEMPLATES = [
   },
   {
     id: 'cold_lead',
-    name: 'Cold Intro',
-    description: 'General outreach for any lead',
+    name: 'AI Search Angle',
+    description: 'ChatGPT/AI discovery hook',
     condition: () => true,
   },
   {
     id: 'custom',
     name: 'Custom Email',
-    description: 'Write your own message',
+    description: 'Write your own',
     condition: () => true,
   },
 ];
 
 function generateEmailContent(lead: Lead, templateId: string): { subject: string; body: string } {
   const businessName = lead.business_name;
+  const firstName = businessName.split(' ')[0]; // Use first word as informal name
   const city = lead.city || 'your area';
   const industry = lead.industry || 'your industry';
-  const painPoint = lead.primary_pain_point || 'improving your online presence';
+  const painPoint = lead.primary_pain_point || 'content gaps hurting your visibility';
+
+  // Rich data points
   const criticalViolations = lead.wcag_critical_violations || 0;
+  const seriousViolations = lead.wcag_serious_violations || 0;
+  const totalViolations = lead.wcag_total_violations || 0;
+  const accessibilityScore = lead.accessibility_score || 0;
+  const aisoScore = lead.aiso_opportunity_score || 0;
+  const monthlyValue = lead.estimated_monthly_value || 0;
+  const keywords = lead.ranking_keywords || 0;
+  const avgPosition = lead.avg_search_position || 0;
+  const organicTraffic = lead.estimated_organic_traffic || 0;
+  const timeToClose = lead.time_to_close || '30 days';
+
+  // Format numbers nicely
+  const formatNumber = (n: number) => n.toLocaleString();
+  const formatMoney = (n: number) => n >= 1000 ? `$${(n/1000).toFixed(0)}k` : `$${n}`;
 
   switch (templateId) {
     case 'accessibility_urgent':
       return {
-        subject: `${businessName} - ${criticalViolations} Critical Website Accessibility Issues Found`,
-        body: `Hi there,
+        subject: `${criticalViolations} ADA violations on ${lead.domain} - lawsuit risk?`,
+        body: `Hi,
 
-I was researching ${industry} businesses in ${city} and came across ${businessName}'s website.
+I ran an accessibility audit on ${lead.domain} and found ${criticalViolations} critical + ${seriousViolations} serious WCAG violations.
 
-I noticed your site has ${criticalViolations} critical accessibility violations that could expose your business to ADA-related lawsuits. In 2023 alone, there were over 4,500 web accessibility lawsuits filed in the US.
+Why this matters: ADA website lawsuits hit a record 4,600+ in 2023. Average settlement: $25,000-$75,000.
 
-These issues also hurt your search rankings - Google now factors accessibility into its core ranking signals.
+The fixes aren't hard - most take under 2 weeks. I put together a free report showing exactly what needs fixing, prioritized by legal risk.
 
-I'd love to share a free accessibility audit report showing exactly what needs to be fixed and how it impacts your visibility in AI search results.
+Want me to send it over?
 
-Would you be open to a 15-minute call this week?
+—
+Sarah Chen
+Accessibility & AI Search Specialist
+AISO.studio
+P.S. These issues are also hurting your Google rankings - accessibility is now a core ranking signal.`
+      };
 
-Best regards`
+    case 'search_visibility':
+      return {
+        subject: `${businessName}: ${keywords} keywords, position ${avgPosition.toFixed(0)} - room to grow?`,
+        body: `Hi,
+
+I was analyzing ${industry} websites in ${city} and pulled some data on ${lead.domain}:
+
+${keywords > 0 ? `• Ranking for ${formatNumber(keywords)} keywords` : ''}
+${avgPosition > 0 ? `• Average position: ${avgPosition.toFixed(1)} (page ${Math.ceil(avgPosition / 10)})` : ''}
+${organicTraffic > 0 ? `• ~${formatNumber(organicTraffic)} monthly organic visitors` : ''}
+
+The gap I noticed: ${painPoint}
+
+For context, your top competitors are averaging position 3-5 for similar keywords. There's definitely room to capture more traffic.
+
+I have a detailed breakdown if you're interested - no pitch, just data.
+
+—
+Sarah Chen
+AISO.studio`
       };
 
     case 'hot_lead':
       return {
-        subject: `${businessName} - Quick Question About Your Content Strategy`,
-        body: `Hi there,
+        subject: `${businessName}: found ${keywords > 0 ? keywords + ' keywords' : 'an opportunity'} your competitors are missing`,
+        body: `Hi,
 
-I was looking at ${industry} businesses in ${city} and noticed ${businessName} has some significant opportunities to improve your online visibility.
+I analyzed ${lead.domain} and found something interesting:
 
-Specifically, I found: ${painPoint}
+${keywords > 0 ? `• You rank for ${formatNumber(keywords)} keywords (avg position: ${avgPosition.toFixed(0)})` : ''}
+${organicTraffic > 0 ? `• Estimated ${formatNumber(organicTraffic)} monthly organic visits` : ''}
+• Primary gap: ${painPoint}
 
-Our AI-powered platform helps businesses like yours get found in ChatGPT, Google, and other AI search engines - where 40% of searches now happen.
+Here's the opportunity: 40% of searches now happen in AI tools (ChatGPT, Perplexity, etc). Your competitors aren't optimized for this yet.
 
-Given what I've seen on your site, I think we could help you:
-- Increase leads from AI-powered search
-- Fix content gaps costing you customers
-- Outrank competitors in your area
+I built a free AI visibility report for ${businessName} showing exactly where you're invisible in AI search and how to fix it.
 
-Can I send you a free analysis showing your current AI searchability score?
+Worth a look?
 
-Best regards`
+—
+Sarah Chen
+AI Search Optimization
+AISO.studio`
       };
 
     case 'warm_lead':
       return {
-        subject: `Improving ${businessName}'s Online Visibility`,
-        body: `Hi there,
+        subject: `Quick question about ${businessName}'s content`,
+        body: `Hi,
 
-I came across ${businessName} while researching ${industry} businesses in ${city}.
+Noticed ${lead.domain} while researching ${industry} in ${city}.
 
-I noticed ${painPoint} - this is actually a common challenge we help local businesses solve.
+One thing stood out: ${painPoint}
 
-Our AI-optimization platform helps businesses get found not just on Google, but also in ChatGPT, Claude, and other AI search tools that more and more customers are using.
+This is fixable - usually takes ${timeToClose} to see results.
 
-Would you be interested in a free 5-minute audit showing how your business currently appears in AI search results?
+I put together a quick analysis showing your current AI search visibility. Happy to share if useful.
 
-Best regards`
+—
+Sarah Chen
+AISO.studio`
       };
 
     case 'cold_lead':
       return {
-        subject: `${businessName} - Quick Question`,
-        body: `Hi there,
+        subject: `${firstName} - how ${industry} businesses get found in 2024`,
+        body: `Hi,
 
-I'm reaching out to select ${industry} businesses in ${city} about a new way to get found online.
+Quick question: when someone asks ChatGPT for "${industry} recommendations in ${city}" - does ${businessName} come up?
 
-Did you know that 40% of people now use AI tools like ChatGPT and Claude to find local businesses? If your content isn't optimized for these platforms, you're missing out on potential customers.
+For most local businesses, the answer is no. That's a problem because 40% of searches now happen in AI tools.
 
-We help businesses like ${businessName} create AI-optimized content that ranks in both traditional search AND AI search engines.
+We help ${industry} businesses show up in both Google AND AI search results.
 
-Would you be open to a brief conversation about how this could work for your business?
+Interested in seeing where ${businessName} currently stands?
 
-Best regards`
+—
+Sarah Chen
+AI Search Optimization
+AISO.studio`
       };
 
     default:
       return {
-        subject: `Reaching out from AISO`,
-        body: lead.recommended_pitch || `Hi there,
+        subject: `${businessName} - AI search visibility`,
+        body: lead.recommended_pitch || `Hi,
 
-I'd love to connect with you about improving ${businessName}'s online presence.
+I'd love to share some insights about ${businessName}'s online visibility opportunities.
 
-Best regards`
+${monthlyValue > 0 ? `Based on my analysis, there's approximately ${formatMoney(monthlyValue)}/month in untapped potential.` : ''}
+
+Worth a quick conversation?
+
+—
+Sarah Chen
+AISO.studio`
       };
   }
 }
