@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
+import { neon } from '@neondatabase/serverless';
+
+const sql = neon(process.env.DATABASE_URL!);
 
 /**
  * GET /api/assets
@@ -25,12 +28,23 @@ export async function GET(request: NextRequest) {
     const folderId = searchParams.get('folderId');
     const fileType = searchParams.get('fileType');
     const tags = searchParams.get('tags');
+    const domain = searchParams.get('domain');
 
     // Get all assets for the user
     const allAssets = await db.getAssetsByUserId(user.id);
 
     // Convert to array and apply filters
     let assets = [...allAssets];
+
+    // Filter by domain if provided (uses asset_domains linking table)
+    if (domain) {
+      const domainLinks = await sql`
+        SELECT asset_id FROM asset_domains
+        WHERE LOWER(domain) LIKE LOWER(${'%' + domain + '%'})
+      `;
+      const linkedAssetIds = new Set(domainLinks.map(d => d.asset_id));
+      assets = assets.filter(asset => linkedAssetIds.has(asset.id));
+    }
 
     // Apply filters if provided
     if (folderId) {
@@ -58,21 +72,37 @@ export async function GET(request: NextRequest) {
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
-    // Add usage counts to each asset
-    const assetsWithUsage = await Promise.all(
+    // Add usage counts and linked domains to each asset
+    const assetsWithMetadata = await Promise.all(
       assets.map(async (asset) => {
         const usageCount = await db.getAssetUsageCount(asset.id);
+
+        // Get linked domains for this asset
+        const linkedDomains = await sql`
+          SELECT domain, link_type, linked_at FROM asset_domains
+          WHERE asset_id = ${asset.id}
+          ORDER BY linked_at DESC
+        `;
+
         return {
           ...asset,
           usage_count: usageCount,
+          linked_domains: linkedDomains,
         };
       })
     );
 
+    // Get all unique domains for filtering dropdown
+    const allDomains = await sql`
+      SELECT DISTINCT domain FROM asset_domains
+      ORDER BY domain
+    `;
+
     return NextResponse.json({
       success: true,
-      assets: assetsWithUsage,
-      count: assetsWithUsage.length,
+      assets: assetsWithMetadata,
+      count: assetsWithMetadata.length,
+      domains: allDomains.map(d => d.domain),
     });
 
   } catch (error: any) {

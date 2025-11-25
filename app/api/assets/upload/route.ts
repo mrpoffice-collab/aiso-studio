@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { put } from '@vercel/blob';
 import { db } from '@/lib/db';
+import { neon } from '@neondatabase/serverless';
+
+const sql = neon(process.env.DATABASE_URL!);
 
 /**
  * POST /api/assets/upload
@@ -28,6 +31,7 @@ export async function POST(request: NextRequest) {
     const tags = formData.get('tags') as string | null;
     const description = formData.get('description') as string | null;
     const altText = formData.get('altText') as string | null;
+    const domain = formData.get('domain') as string | null;
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -98,9 +102,21 @@ export async function POST(request: NextRequest) {
       alt_text: altText || undefined,
     });
 
+    // Link asset to domain if provided
+    let linkedDomain = null;
+    if (domain && domain.trim()) {
+      const cleanDomain = domain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+      await sql`
+        INSERT INTO asset_domains (asset_id, domain, link_type, linked_by)
+        VALUES (${asset.id}, ${cleanDomain}, 'primary', ${user.id})
+        ON CONFLICT (asset_id, domain) DO NOTHING
+      `;
+      linkedDomain = cleanDomain;
+    }
+
     return NextResponse.json({
       success: true,
-      asset,
+      asset: { ...asset, linked_domain: linkedDomain },
       message: 'File uploaded successfully',
     });
 

@@ -35,6 +35,12 @@ function AssetsContent() {
   const [editTags, setEditTags] = useState('');
   const [allTags, setAllTags] = useState<string[]>([]);
 
+  // Domain state
+  const [domainFilter, setDomainFilter] = useState('');
+  const [allDomains, setAllDomains] = useState<string[]>([]);
+  const [uploadDomain, setUploadDomain] = useState('');
+  const activeDomain = searchParams.get('domain');
+
   // Move asset state
   const [movingAssetId, setMovingAssetId] = useState<string | null>(null);
 
@@ -69,7 +75,7 @@ function AssetsContent() {
   useEffect(() => {
     loadAssets();
     loadFolders();
-  }, [currentFolderId, activeTag]);
+  }, [currentFolderId, activeTag, activeDomain]);
 
   const loadAssets = async () => {
     try {
@@ -79,6 +85,7 @@ function AssetsContent() {
 
       if (currentFolderId) params.append('folderId', currentFolderId);
       if (activeTag) params.append('tags', activeTag);
+      if (activeDomain) params.append('domain', activeDomain);
 
       if (params.toString()) url += `?${params.toString()}`;
 
@@ -96,6 +103,11 @@ function AssetsContent() {
           }
         });
         setAllTags(Array.from(tags).sort());
+
+        // Set domains from API response
+        if (data.domains) {
+          setAllDomains(data.domains);
+        }
       } else {
         setError(data.error || 'Failed to load assets');
       }
@@ -160,6 +172,9 @@ function AssetsContent() {
         if (uploadTags.trim()) {
           formData.append('tags', uploadTags);
         }
+        if (uploadDomain.trim()) {
+          formData.append('domain', uploadDomain.trim());
+        }
 
         const response = await fetch('/api/assets/upload', {
           method: 'POST',
@@ -187,6 +202,7 @@ function AssetsContent() {
     // Show summary after all uploads complete
     setUploading(false);
     setUploadTags('');
+    setUploadDomain('');
     loadAssets();
 
     // Get final counts from state and show summary
@@ -737,6 +753,31 @@ function AssetsContent() {
             {buildFolderTree()}
           </div>
 
+          {/* Domains Section */}
+          {allDomains.length > 0 && (
+            <>
+              <div className="mt-6 mb-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Domains
+              </div>
+              <div className="space-y-1">
+                {allDomains.map((domain) => (
+                  <button
+                    key={domain}
+                    onClick={() => router.push(`/dashboard/assets?domain=${domain}`)}
+                    className={`w-full px-3 py-2 rounded-lg text-left font-medium transition-colors flex items-center gap-2 text-sm ${
+                      activeDomain === domain
+                        ? 'bg-green-50 text-green-700'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-xs">🌐</span>
+                    <span className="truncate">{domain}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
           {/* Tags Section */}
           {allTags.length > 0 && (
             <>
@@ -825,9 +866,15 @@ function AssetsContent() {
                   <span className="font-medium text-blue-700">🏷️ {activeTag}</span>
                 </>
               )}
+              {activeDomain && (
+                <>
+                  <span>/</span>
+                  <span className="font-medium text-green-700">🌐 {activeDomain}</span>
+                </>
+              )}
             </div>
             <h1 className="text-4xl font-bold text-slate-900">
-              {activeTag ? `Tagged: ${activeTag}` : currentFolder ? currentFolder.name : 'Vault'}
+              {activeDomain ? `Domain: ${activeDomain}` : activeTag ? `Tagged: ${activeTag}` : currentFolder ? currentFolder.name : 'Vault'}
             </h1>
             {currentFolder?.description && (
               <p className="mt-2 text-slate-600">{currentFolder.description}</p>
@@ -881,7 +928,7 @@ function AssetsContent() {
               </button>
 
               {/* Clear All Filters */}
-              {(searchQuery || dateFrom || dateTo || minSize || maxSize || smartCollection) && (
+              {(searchQuery || dateFrom || dateTo || minSize || maxSize || smartCollection || domainFilter || activeDomain) && (
                 <button
                   onClick={() => {
                     setSearchQuery('');
@@ -890,6 +937,8 @@ function AssetsContent() {
                     setMinSize('');
                     setMaxSize('');
                     setSmartCollection(null);
+                    setDomainFilter('');
+                    if (activeDomain) router.push('/dashboard/assets');
                   }}
                   className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors"
                 >
@@ -950,6 +999,52 @@ function AssetsContent() {
                     />
                   </div>
                 </div>
+
+                {/* Domain Search */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Search by Domain
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={domainFilter}
+                      onChange={(e) => setDomainFilter(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
+                      placeholder="example.com"
+                    />
+                    <button
+                      onClick={() => {
+                        if (domainFilter.trim()) {
+                          router.push(`/dashboard/assets?domain=${encodeURIComponent(domainFilter.trim())}`);
+                        }
+                      }}
+                      disabled={!domainFilter.trim()}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <span>🌐</span>
+                      <span>Search Domain</span>
+                    </button>
+                  </div>
+                  {allDomains.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {allDomains.slice(0, 5).map((domain) => (
+                        <button
+                          key={domain}
+                          onClick={() => router.push(`/dashboard/assets?domain=${encodeURIComponent(domain)}`)}
+                          className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                        >
+                          {domain}
+                        </button>
+                      ))}
+                      {allDomains.length > 5 && (
+                        <span className="text-xs px-2 py-1 text-slate-500">
+                          +{allDomains.length - 5} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -978,15 +1073,26 @@ function AssetsContent() {
                 </p>
               </div>
 
-              {/* Tags Input */}
-              <div className="w-full max-w-md">
-                <input
-                  type="text"
-                  value={uploadTags}
-                  onChange={(e) => setUploadTags(e.target.value)}
-                  placeholder="Add tags (comma-separated): logo, brand, social"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+              {/* Tags and Domain Inputs */}
+              <div className="w-full max-w-lg flex gap-3">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={uploadTags}
+                    onChange={(e) => setUploadTags(e.target.value)}
+                    placeholder="Tags: logo, brand, social"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={uploadDomain}
+                    onChange={(e) => setUploadDomain(e.target.value)}
+                    placeholder="Link to domain: example.com"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
               </div>
 
               <label className="cursor-pointer">
@@ -1263,6 +1369,27 @@ function AssetsContent() {
                       <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium">
                         <span>📊</span>
                         <span>Used {asset.usage_count}×</span>
+                      </div>
+                    )}
+
+                    {/* Linked Domains */}
+                    {(asset as any).linked_domains && (asset as any).linked_domains.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {(asset as any).linked_domains.slice(0, 2).map((link: { domain: string; link_type: string }, idx: number) => (
+                          <button
+                            key={idx}
+                            onClick={() => router.push(`/dashboard/assets?domain=${encodeURIComponent(link.domain)}`)}
+                            className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors flex items-center gap-1"
+                          >
+                            <span>🌐</span>
+                            <span className="truncate max-w-[80px]">{link.domain}</span>
+                          </button>
+                        ))}
+                        {(asset as any).linked_domains.length > 2 && (
+                          <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">
+                            +{(asset as any).linked_domains.length - 2}
+                          </span>
+                        )}
                       </div>
                     )}
 
