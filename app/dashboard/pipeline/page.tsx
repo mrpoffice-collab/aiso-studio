@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardNav from '@/components/DashboardNav';
+import KanbanBoard from '@/components/pipeline/KanbanBoard';
+import EmailModal from '@/components/pipeline/EmailModal';
 
 interface Lead {
   id: number;
@@ -76,6 +78,8 @@ interface Project {
   created_at: string;
 }
 
+type ViewMode = 'kanban' | 'table';
+
 export default function PipelinePage() {
   const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -92,6 +96,9 @@ export default function PipelinePage() {
   const [deletingLeadId, setDeletingLeadId] = useState<number | null>(null);
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<number>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailLead, setEmailLead] = useState<Lead | null>(null);
 
   useEffect(() => {
     loadData();
@@ -244,9 +251,12 @@ export default function PipelinePage() {
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       new: 'bg-blue-100 text-blue-800',
-      report_generated: 'bg-purple-100 text-purple-800',
+      researching: 'bg-purple-100 text-purple-800',
       contacted: 'bg-yellow-100 text-yellow-800',
-      qualified: 'bg-green-100 text-green-800',
+      engaged: 'bg-orange-100 text-orange-800',
+      demo_scheduled: 'bg-pink-100 text-pink-800',
+      trial: 'bg-indigo-100 text-indigo-800',
+      negotiating: 'bg-cyan-100 text-cyan-800',
       won: 'bg-emerald-100 text-emerald-800',
       lost: 'bg-gray-100 text-gray-800',
     };
@@ -281,12 +291,48 @@ export default function PipelinePage() {
 
   const leadsByStatus = {
     new: leads.filter(l => l.status === 'new').length,
-    report_generated: leads.filter(l => l.status === 'report_generated').length,
+    researching: leads.filter(l => l.status === 'researching').length,
     contacted: leads.filter(l => l.status === 'contacted').length,
-    qualified: leads.filter(l => l.status === 'qualified').length,
+    engaged: leads.filter(l => l.status === 'engaged').length,
+    demo_scheduled: leads.filter(l => l.status === 'demo_scheduled').length,
+    trial: leads.filter(l => l.status === 'trial').length,
+    negotiating: leads.filter(l => l.status === 'negotiating').length,
     won: leads.filter(l => l.status === 'won').length,
     lost: leads.filter(l => l.status === 'lost').length,
-    archived: leads.filter(l => l.status === 'archived').length,
+  };
+
+  const totalPipelineValue = leads
+    .filter(l => !['won', 'lost'].includes(l.status))
+    .reduce((sum, l) => sum + (l.estimated_monthly_value || 0), 0);
+
+  const handleSendEmail = async (data: { to: string; subject: string; body: string; template: string }) => {
+    if (!emailLead) return false;
+
+    try {
+      const res = await fetch(`/api/leads/${emailLead.id}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (res.ok) {
+        // Update lead status to contacted if it was new
+        if (emailLead.status === 'new') {
+          await updateLeadStatus(emailLead.id, 'contacted');
+        }
+        loadData();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      return false;
+    }
+  };
+
+  const openEmailModal = (lead: Lead) => {
+    setEmailLead(lead);
+    setShowEmailModal(true);
   };
 
   return (
@@ -304,26 +350,22 @@ export default function PipelinePage() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-white rounded-lg p-4 shadow-sm border border-slate-200">
             <div className="text-2xl font-bold text-slate-900">{filteredLeads.length}</div>
             <div className="text-xs text-slate-600">Total Leads</div>
+          </div>
+          <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg p-4 shadow-sm border border-orange-200">
+            <div className="text-2xl font-bold text-orange-900">${totalPipelineValue.toLocaleString()}</div>
+            <div className="text-xs text-orange-700">Pipeline Value/mo</div>
           </div>
           <div className="bg-blue-50 rounded-lg p-4 shadow-sm border border-blue-200">
             <div className="text-2xl font-bold text-blue-900">{leadsByStatus.new}</div>
             <div className="text-xs text-blue-700">New</div>
           </div>
-          <div className="bg-purple-50 rounded-lg p-4 shadow-sm border border-purple-200">
-            <div className="text-2xl font-bold text-purple-900">{leadsByStatus.report_generated}</div>
-            <div className="text-xs text-purple-700">Reports</div>
-          </div>
           <div className="bg-yellow-50 rounded-lg p-4 shadow-sm border border-yellow-200">
             <div className="text-2xl font-bold text-yellow-900">{leadsByStatus.contacted}</div>
             <div className="text-xs text-yellow-700">Contacted</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4 shadow-sm border border-green-200">
-            <div className="text-2xl font-bold text-green-900">{leadsByStatus.qualified}</div>
-            <div className="text-xs text-green-700">Qualified</div>
           </div>
           <div className="bg-emerald-50 rounded-lg p-4 shadow-sm border border-emerald-200">
             <div className="text-2xl font-bold text-emerald-900">{leadsByStatus.won}</div>
@@ -335,10 +377,43 @@ export default function PipelinePage() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters & View Toggle */}
         <div className="bg-white rounded-lg p-6 shadow-sm border border-slate-200 mb-8">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="flex flex-col md:flex-row gap-4 flex-1">
+              {/* View Toggle */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">View</label>
+                <div className="flex rounded-lg border border-slate-300 overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('kanban')}
+                    className={`px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors ${
+                      viewMode === 'kanban'
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                    </svg>
+                    Kanban
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors ${
+                      viewMode === 'table'
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Table
+                  </button>
+                </div>
+              </div>
+
               {/* Project Filter */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Project</label>
@@ -354,29 +429,33 @@ export default function PipelinePage() {
                 </select>
               </div>
 
-              {/* Status Filter */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="new">New</option>
-                  <option value="report_generated">Report Generated</option>
-                  <option value="contacted">Contacted</option>
-                  <option value="qualified">Qualified</option>
-                  <option value="won">Won</option>
-                  <option value="lost">Lost</option>
-                  <option value="archived">Archived</option>
-                </select>
-              </div>
+              {/* Status Filter (only show in table view) */}
+              {viewMode === 'table' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="new">New</option>
+                    <option value="researching">Researching</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="engaged">Engaged</option>
+                    <option value="demo_scheduled">Demo Scheduled</option>
+                    <option value="trial">Trial</option>
+                    <option value="negotiating">Negotiating</option>
+                    <option value="won">Won</option>
+                    <option value="lost">Lost</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
             <div className="flex gap-3">
-              {selectedLeadIds.size > 0 && (
+              {viewMode === 'table' && selectedLeadIds.size > 0 && (
                 <button
                   onClick={bulkDeleteLeads}
                   disabled={isBulkDeleting}
@@ -409,7 +488,33 @@ export default function PipelinePage() {
           </div>
         </div>
 
-        {/* Leads Table */}
+        {/* Kanban View */}
+        {viewMode === 'kanban' && (
+          <div className="mb-8">
+            {loading ? (
+              <div className="bg-white rounded-lg p-8 text-center text-slate-600 shadow-sm border border-slate-200">
+                Loading pipeline...
+              </div>
+            ) : leads.length === 0 ? (
+              <div className="bg-white rounded-lg p-8 text-center text-slate-600 shadow-sm border border-slate-200">
+                No leads found. Start discovering leads from the Leads page!
+              </div>
+            ) : (
+              <KanbanBoard
+                leads={leads}
+                onStatusChange={updateLeadStatus}
+                onLeadClick={(lead) => {
+                  setSelectedLead(lead);
+                  setShowDetailsModal(true);
+                }}
+                onSendEmail={openEmailModal}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Table View */}
+        {viewMode === 'table' && (
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
           {loading ? (
             <div className="p-8 text-center text-slate-600">Loading...</div>
@@ -567,12 +672,14 @@ export default function PipelinePage() {
                           className="px-3 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                         >
                           <option value="new">New</option>
-                          <option value="report_generated">Report Generated</option>
+                          <option value="researching">Researching</option>
                           <option value="contacted">Contacted</option>
-                          <option value="qualified">Qualified</option>
+                          <option value="engaged">Engaged</option>
+                          <option value="demo_scheduled">Demo Scheduled</option>
+                          <option value="trial">Trial</option>
+                          <option value="negotiating">Negotiating</option>
                           <option value="won">Won</option>
                           <option value="lost">Lost</option>
-                          <option value="archived">Archived</option>
                         </select>
                       </td>
                       <td className="px-6 py-4">
@@ -595,6 +702,20 @@ export default function PipelinePage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                           </button>
+                          {lead.email && (
+                            <>
+                              <span className="text-slate-300">|</span>
+                              <button
+                                onClick={() => openEmailModal(lead)}
+                                className="text-orange-600 hover:text-orange-700 text-sm inline-flex items-center gap-1"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                Email
+                              </button>
+                            </>
+                          )}
                           <span className="text-slate-300">|</span>
                           <a
                             href={`https://${lead.domain}`}
@@ -633,7 +754,20 @@ export default function PipelinePage() {
             </div>
           )}
         </div>
+        )}
       </main>
+
+      {/* Email Modal */}
+      {showEmailModal && emailLead && (
+        <EmailModal
+          lead={emailLead}
+          onClose={() => {
+            setShowEmailModal(false);
+            setEmailLead(null);
+          }}
+          onSend={handleSendEmail}
+        />
+      )}
 
       {/* New Project Modal */}
       {showNewProjectModal && (

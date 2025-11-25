@@ -1,7 +1,40 @@
 # Next Session TODO - Phase 3 & Beyond
 
 **Date Created:** Nov 23, 2025
-**Current Status:** Phase 2 Complete (Technical SEO Diagnostic UI Live)
+**Last Updated:** Nov 25, 2025
+**Current Status:** Kanban Pipeline & Email Integration Complete
+
+---
+
+## ✅ COMPLETED - Nov 25, 2025: Kanban Pipeline & Email Outreach
+
+### Kanban Board Implementation
+- [x] Built drag-and-drop kanban board (`components/pipeline/KanbanBoard.tsx`)
+- [x] 9 pipeline stages: New → Researching → Contacted → Engaged → Demo → Trial → Negotiating → Won/Lost
+- [x] Lead cards with AISO score, WCAG score, pain points, estimated value
+- [x] Visual indicators: HOT/WARM/COLD badges, time-to-close urgency
+- [x] View toggle: Switch between Kanban and Table views
+- [x] Pipeline value tracking (total monthly value in funnel)
+
+### AWS SES Email Integration
+- [x] Email modal with smart templates (`components/pipeline/EmailModal.tsx`)
+  - Accessibility Urgent (legal risk angle)
+  - Hot Lead (high-value businesses)
+  - Warm Lead (moderate opportunity)
+  - Cold Intro (general outreach)
+  - Custom (write your own)
+- [x] AWS SES API route (`app/api/leads/[id]/send-email/route.ts`)
+- [x] lead_emails table for tracking all sent emails
+- [x] Auto-update lead status to "contacted" after first email
+- [x] Email tracking: sent_at, opened_at, clicked_at, bounce handling
+
+### Required Environment Variables for Email:
+```
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your-key
+AWS_SECRET_ACCESS_KEY=your-secret
+AWS_SES_FROM_EMAIL=your-verified-email@domain.com
+```
 
 ---
 
