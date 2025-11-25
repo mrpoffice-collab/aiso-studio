@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { neon } from '@neondatabase/serverless';
-import { scanAccessibility } from '@/lib/accessibility-scanner';
+import { scanAccessibilityFull, closeBrowser } from '@/lib/accessibility-scanner-playwright';
 import { scoreBusinessForAISO } from '@/lib/scoring/aiso-fit-score';
+
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -133,9 +136,9 @@ export async function POST(
     // Run accessibility scan if not already done or if full audit
     if (auditType === 'full' || auditType === 'accessibility') {
       if (!lead.accessibility_score || auditType === 'full') {
-        console.log('Running accessibility scan...');
+        console.log('Running full accessibility scan with Playwright...');
         try {
-          const accessibilityResult = await scanAccessibility(`https://${lead.domain}`);
+          const accessibilityResult = await scanAccessibilityFull(`https://${lead.domain}`);
           if (accessibilityResult) {
             auditData.accessibility_score = accessibilityResult.accessibilityScore;
             auditData.wcag_critical_violations = accessibilityResult.criticalCount;
@@ -147,6 +150,9 @@ export async function POST(
           }
         } catch (accessError) {
           console.error('Accessibility scan failed:', accessError);
+        } finally {
+          // Always close browser to prevent memory leaks
+          await closeBrowser();
         }
       } else {
         // Use existing data
