@@ -261,8 +261,8 @@ export async function POST(request: NextRequest) {
       searchAttempts++;
       console.log(`Search attempt ${searchAttempts}, found ${qualifiedLeads.length}/${limit} qualified leads so far...`);
 
-      // Search for more businesses (Brave API max is 20 per request)
-      const searchLimit = 20;
+      // Search for more businesses (Serper max is 100 per request)
+      const searchLimit = 100;
       const businesses = await searchBusinesses(searchQuery, searchLimit, offset + (searchAttempts - 1) * searchLimit);
 
       if (businesses.length === 0) {
@@ -490,29 +490,86 @@ async function searchBusinesses(
         const businesses: Array<{ name: string; domain: string; city?: string; state?: string }> = [];
         const seenDomains = new Set<string>();
 
-        const skipDomains = [
-          'yelp.com', 'yellowpages.com', 'facebook.com', 'linkedin.com',
-          'instagram.com', 'twitter.com', 'x.com', 'healthgrades.com',
-          'vitals.com', 'wikipedia.org', 'tripadvisor.com', 'google.com',
-          'maps.google.com', 'mapquest.com', 'foursquare.com', 'bbb.org',
-          'angieslist.com', 'thumbtack.com', 'houzz.com', 'zillow.com',
-          'realtor.com', 'apartments.com', 'glassdoor.com', 'indeed.com',
+        // Core blocklist - major social/platforms that will never be leads
+        const coreBlocklist = [
+          'facebook.com', 'linkedin.com', 'instagram.com', 'twitter.com', 'x.com',
           'youtube.com', 'pinterest.com', 'tiktok.com', 'reddit.com',
-          'nextdoor.com', 'alignable.com', 'manta.com', 'chamberofcommerce.com',
+          'wikipedia.org', 'google.com', 'maps.google.com',
         ];
 
+        // Smart directory detection - catches new directories automatically
+        const isDirectory = (domainStr: string, urlStr: string, titleStr: string): boolean => {
+          const domainLower = domainStr.toLowerCase();
+          const urlLower = urlStr.toLowerCase();
+          const titleLower = titleStr.toLowerCase();
+
+          // URL path patterns that indicate a directory listing
+          const directoryPathPatterns = [
+            '/profile/', '/listing/', '/company/', '/business/', '/vendor/',
+            '/provider/', '/firm/', '/agency/', '/contractor/', '/professional/',
+            '/find/', '/search/', '/directory/', '/list/', '/top-', '/best-',
+            '/reviews/', '/ratings/', '/compare/', '/hire/',
+          ];
+          if (directoryPathPatterns.some(p => urlLower.includes(p))) return true;
+
+          // Title patterns that indicate aggregator/listicle content
+          const titlePatterns = [
+            /^top \d+/i, /^best \d+/i, /^\d+ best/i, /^\d+ top/i,
+            /directory of/i, /list of/i, /find a /i, /hire a /i,
+            /compare \d+/i, /\d+ (companies|agencies|firms|businesses)/i,
+            /near you/i, /in your area/i, /reviews for/i,
+          ];
+          if (titlePatterns.some(p => p.test(titleLower))) return true;
+
+          // Domain patterns that indicate directories/aggregators
+          const directoryDomainPatterns = [
+            'yelp', 'yellowpages', 'yp.com', 'whitepages', 'superpages',
+            'bbb.org', 'angieslist', 'angi.com', 'homeadvisor', 'thumbtack',
+            'houzz', 'zillow', 'realtor', 'apartments', 'trulia',
+            'healthgrades', 'vitals', 'zocdoc', 'webmd', 'healthline',
+            'tripadvisor', 'expedia', 'booking.com', 'kayak',
+            'glassdoor', 'indeed', 'ziprecruiter', 'monster', 'careerbuilder',
+            'manta', 'chamberofcommerce', 'alignable', 'nextdoor',
+            'mapquest', 'foursquare', 'citysearch',
+            // Marketing/Agency specific directories
+            'clutch.co', 'upcity', 'sortlist', 'agency-list', 'agencyspotter',
+            'designrush', 'expertise.com', 'bark.com', 'goodfirms',
+            'topdesignfirms', 'digitalagencynetwork', 'awwwards', 'cssdesignawards',
+            // General aggregators
+            'g2.com', 'capterra', 'softwareadvice', 'getapp', 'trustpilot',
+            'sitejabber', 'consumeraffairs', 'pissedconsumer', 'complaintsboard',
+            'crunchbase', 'owler', 'zoominfo', 'apollo', 'clearbit',
+            'improvado', 'databox', 'whatagraph',
+          ];
+          if (directoryDomainPatterns.some(p => domainLower.includes(p))) return true;
+
+          // Check for common directory TLD patterns
+          if (domainLower.endsWith('.directory') || domainLower.endsWith('.guide')) return true;
+
+          return false;
+        };
+
+        let directoriesFiltered = 0;
         for (const result of organicResults) {
           try {
             const url = new URL(result.link);
             const domain = url.hostname.replace('www.', '').toLowerCase();
+            const title = result.title || '';
 
             if (seenDomains.has(domain)) continue;
-            if (skipDomains.some(skip => domain.includes(skip))) continue;
+            if (coreBlocklist.some(skip => domain.includes(skip))) continue;
+
+            // Smart directory detection
+            if (isDirectory(domain, result.link, title)) {
+              directoriesFiltered++;
+              continue;
+            }
+
             if (domain.length < 4) continue;
 
             seenDomains.add(domain);
             businesses.push({
-              name: result.title || domain,
+              name: title || domain,
               domain,
             });
           } catch {
@@ -520,7 +577,7 @@ async function searchBusinesses(
           }
         }
 
-        console.log(`✅ Serper found ${businesses.length} businesses (1 credit used)`);
+        console.log(`✅ Serper: ${organicResults.length} results → ${businesses.length} businesses (${directoriesFiltered} directories filtered, 1 credit used)`);
         if (businesses.length > 0) {
           return businesses;
         }
