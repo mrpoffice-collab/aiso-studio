@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import nodemailer from 'nodemailer';
-import { sql } from '@/lib/db';
+import { sql, db } from '@/lib/db';
 
 // Create SMTP transporter for AWS SES
 const createTransporter = () => {
@@ -27,10 +27,17 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Get database user ID from Clerk ID
+    const dbUser = await db.getUserByClerkId(clerkUserId);
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    const dbUserId = dbUser.id;
 
     const { id } = await params;
     const leadId = id; // Keep as string for UUID
@@ -105,7 +112,7 @@ export async function POST(
           sent_at
         ) VALUES (
           ${leadId}::uuid,
-          ${userId},
+          ${dbUserId}::uuid,
           ${to},
           ${senderEmail},
           ${subject},
@@ -146,7 +153,7 @@ export async function POST(
           sent_at
         ) VALUES (
           ${leadId}::uuid,
-          ${userId},
+          ${dbUserId}::uuid,
           'email',
           ${subject},
           ${emailBody},
