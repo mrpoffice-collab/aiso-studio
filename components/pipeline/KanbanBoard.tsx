@@ -49,6 +49,7 @@ interface KanbanBoardProps {
   onStatusChange: (leadId: number, newStatus: string) => Promise<void>;
   onLeadClick: (lead: Lead) => void;
   onSendEmail: (lead: Lead) => void;
+  onDelete: (leadId: number, businessName: string) => void;
 }
 
 const PIPELINE_STAGES = [
@@ -63,7 +64,7 @@ const PIPELINE_STAGES = [
   { id: 'lost', label: 'Lost', color: 'bg-gray-500', lightBg: 'bg-gray-50', border: 'border-gray-200' },
 ];
 
-export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSendEmail }: KanbanBoardProps) {
+export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSendEmail, onDelete }: KanbanBoardProps) {
   const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
@@ -160,7 +161,7 @@ export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSend
                     }`}
                   >
                     {/* Card Header */}
-                    <div className="p-3 border-b border-slate-100">
+                    <div className="p-3 border-b border-slate-100 group/card">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-slate-900 truncate text-sm">
@@ -168,11 +169,25 @@ export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSend
                           </h4>
                           <p className="text-xs text-slate-500 truncate">{lead.domain}</p>
                         </div>
-                        {aisoBadge && (
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold flex-shrink-0 ${aisoBadge.class}`}>
-                            {aisoBadge.label}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {aisoBadge && (
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${aisoBadge.class}`}>
+                              {aisoBadge.label}
+                            </span>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(lead.id, lead.business_name);
+                            }}
+                            className="opacity-0 group-hover/card:opacity-100 p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-600 transition-all"
+                            title="Delete lead"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                       {(lead.city || lead.industry) && (
                         <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">

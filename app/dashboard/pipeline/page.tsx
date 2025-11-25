@@ -508,6 +508,7 @@ export default function PipelinePage() {
                   setShowDetailsModal(true);
                 }}
                 onSendEmail={openEmailModal}
+                onDelete={deleteLead}
               />
             )}
           </div>
