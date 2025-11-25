@@ -130,9 +130,9 @@ The fixes aren't hard - most take under 2 weeks. I put together a free report sh
 Want me to send it over?
 
 —
-Sarah Chen
-Accessibility & AI Search Specialist
-AISO.studio
+The AISO Team
+AI Search Optimization
+aiso.studio
 P.S. These issues are also hurting your Google rankings - accessibility is now a core ranking signal.`
       };
 
@@ -154,8 +154,8 @@ For context, your top competitors are averaging position 3-5 for similar keyword
 I have a detailed breakdown if you're interested - no pitch, just data.
 
 —
-Sarah Chen
-AISO.studio`
+The AISO Team
+aiso.studio`
       };
 
     case 'hot_lead':
@@ -176,9 +176,9 @@ I built a free AI visibility report for ${businessName} showing exactly where yo
 Worth a look?
 
 —
-Sarah Chen
+The AISO Team
 AI Search Optimization
-AISO.studio`
+aiso.studio`
       };
 
     case 'warm_lead':
@@ -195,8 +195,8 @@ This is fixable - usually takes ${timeToClose} to see results.
 I put together a quick analysis showing your current AI search visibility. Happy to share if useful.
 
 —
-Sarah Chen
-AISO.studio`
+The AISO Team
+aiso.studio`
       };
 
     case 'cold_lead':
@@ -213,9 +213,9 @@ We help ${industry} businesses show up in both Google AND AI search results.
 Interested in seeing where ${businessName} currently stands?
 
 —
-Sarah Chen
+The AISO Team
 AI Search Optimization
-AISO.studio`
+aiso.studio`
       };
 
     default:
@@ -230,8 +230,8 @@ ${monthlyValue > 0 ? `Based on my analysis, there's approximately ${formatMoney(
 Worth a quick conversation?
 
 —
-Sarah Chen
-AISO.studio`
+The AISO Team
+aiso.studio`
       };
   }
 }
