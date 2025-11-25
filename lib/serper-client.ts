@@ -130,30 +130,89 @@ export async function searchBusinesses(
     const businesses: Array<{ name: string; domain: string; url: string }> = [];
     const seenDomains = new Set<string>();
 
-    const skipDomains = [
-      'yelp.com', 'yellowpages.com', 'facebook.com', 'linkedin.com',
-      'instagram.com', 'twitter.com', 'x.com', 'healthgrades.com',
-      'vitals.com', 'wikipedia.org', 'tripadvisor.com', 'google.com',
-      'maps.google.com', 'mapquest.com', 'foursquare.com', 'bbb.org',
-      'angieslist.com', 'thumbtack.com', 'houzz.com', 'zillow.com',
-      'realtor.com', 'apartments.com', 'glassdoor.com', 'indeed.com',
+    // Core blocklist - major social/platforms that will never be leads
+    const coreBlocklist = [
+      'facebook.com', 'linkedin.com', 'instagram.com', 'twitter.com', 'x.com',
       'youtube.com', 'pinterest.com', 'tiktok.com', 'reddit.com',
-      'nextdoor.com', 'alignable.com', 'manta.com', 'chamberofcommerce.com',
+      'wikipedia.org', 'google.com', 'maps.google.com',
     ];
+
+    // Directory detection patterns - catches new directories automatically
+    const isDirectory = (domain: string, url: string, title: string): boolean => {
+      const domainLower = domain.toLowerCase();
+      const urlLower = url.toLowerCase();
+      const titleLower = title.toLowerCase();
+
+      // URL path patterns that indicate a directory listing
+      const directoryPathPatterns = [
+        '/profile/', '/listing/', '/company/', '/business/', '/vendor/',
+        '/provider/', '/firm/', '/agency/', '/contractor/', '/professional/',
+        '/find/', '/search/', '/directory/', '/list/', '/top-', '/best-',
+        '/reviews/', '/ratings/', '/compare/', '/hire/',
+      ];
+      if (directoryPathPatterns.some(p => urlLower.includes(p))) return true;
+
+      // Title patterns that indicate aggregator/listicle content
+      const titlePatterns = [
+        /^top \d+/i, /^best \d+/i, /^\d+ best/i, /^\d+ top/i,
+        /directory of/i, /list of/i, /find a /i, /hire a /i,
+        /compare \d+/i, /\d+ (companies|agencies|firms|businesses)/i,
+        /near you/i, /in your area/i, /reviews for/i,
+      ];
+      if (titlePatterns.some(p => p.test(titleLower))) return true;
+
+      // Domain patterns that indicate directories/aggregators
+      const directoryDomainPatterns = [
+        'yelp', 'yellowpages', 'yp.com', 'whitepages', 'superpages',
+        'bbb.org', 'angieslist', 'angi.com', 'homeadvisor', 'thumbtack',
+        'houzz', 'zillow', 'realtor', 'apartments', 'trulia',
+        'healthgrades', 'vitals', 'zocdoc', 'webmd', 'healthline',
+        'tripadvisor', 'expedia', 'booking.com', 'kayak',
+        'glassdoor', 'indeed', 'ziprecruiter', 'monster', 'careerbuilder',
+        'manta', 'chamberofcommerce', 'alignable', 'nextdoor',
+        'mapquest', 'foursquare', 'citysearch',
+        // Marketing/Agency specific directories
+        'clutch.co', 'upcity', 'sortlist', 'agency-list', 'agencyspotter',
+        'designrush', 'expertise.com', 'bark.com', 'goodfirms',
+        'topdesignfirms', 'digitalagencynetwork', 'awwwards', 'cssdesignawards',
+        // General aggregators
+        'g2.com', 'capterra', 'softwareadvice', 'getapp', 'trustpilot',
+        'sitejabber', 'consumeraffairs', 'pissedconsumer', 'complaintsboard',
+        'crunchbase', 'owler', 'zoominfo', 'apollo', 'clearbit',
+        'improvado', 'databox', 'whatagraph',
+      ];
+      if (directoryDomainPatterns.some(p => domainLower.includes(p))) return true;
+
+      // Check for common directory TLD patterns
+      if (domainLower.endsWith('.directory') || domainLower.endsWith('.guide')) return true;
+
+      return false;
+    };
 
     for (const result of organicResults) {
       try {
         const url = new URL(result.link);
         const domain = url.hostname.replace('www.', '').toLowerCase();
+        const title = result.title || '';
 
-        // Skip if already seen or is a directory/social site
+        // Skip if already seen
         if (seenDomains.has(domain)) continue;
-        if (skipDomains.some(skip => domain.includes(skip))) continue;
+
+        // Skip core blocklist (social/platforms)
+        if (coreBlocklist.some(skip => domain.includes(skip))) continue;
+
+        // Skip detected directories using pattern matching
+        if (isDirectory(domain, result.link, title)) {
+          console.log(`  ⏭️  Skipped directory: ${domain} - "${title.substring(0, 50)}..."`);
+          continue;
+        }
+
+        // Skip very short domains (likely not real businesses)
         if (domain.length < 4) continue;
 
         seenDomains.add(domain);
         businesses.push({
-          name: result.title || domain,
+          name: title || domain,
           domain,
           url: result.link,
         });
@@ -162,7 +221,7 @@ export async function searchBusinesses(
       }
     }
 
-    console.log(`✅ Serper found ${businesses.length} businesses after filtering`);
+    console.log(`✅ Serper found ${businesses.length} businesses after filtering (${organicResults.length - businesses.length} directories filtered)`);
     return businesses;
   } catch (error: any) {
     console.error('Serper search error:', error.message);
