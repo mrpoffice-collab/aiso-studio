@@ -3,6 +3,183 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import * as cheerio from 'cheerio';
 
+// Email quality tiers (higher = better for outreach)
+const EMAIL_QUALITY = {
+  // Personal/owner emails - highest value
+  personal: ['owner', 'founder', 'ceo', 'president', 'director', 'manager'],
+  // Role-based but good for outreach
+  business: ['contact', 'hello', 'hi', 'inquiries', 'inquiry', 'business'],
+  // Generic but usable
+  generic: ['info', 'office', 'admin', 'team'],
+  // Avoid these - low response rate
+  avoid: ['noreply', 'no-reply', 'donotreply', 'support', 'help', 'billing', 'sales', 'marketing', 'jobs', 'careers', 'hr', 'legal', 'press', 'media', 'spam', 'abuse', 'postmaster', 'webmaster', 'hostmaster', 'mailer-daemon'],
+};
+
+/**
+ * Extract and rank emails from a webpage
+ * Returns the best quality email found
+ */
+function extractBestEmail($: cheerio.CheerioAPI, bodyText: string, domain: string): string | undefined {
+  const foundEmails: Array<{ email: string; source: string; quality: number }> = [];
+  const domainBase = domain.replace('www.', '').toLowerCase();
+
+  // Helper to score email quality
+  const scoreEmail = (email: string): number => {
+    const localPart = email.split('@')[0].toLowerCase();
+    const emailDomain = email.split('@')[1]?.toLowerCase() || '';
+
+    // Prefer emails from the business domain
+    const isDomainMatch = emailDomain.includes(domainBase) || domainBase.includes(emailDomain.replace('.com', '').replace('.net', '').replace('.org', ''));
+
+    // Check against avoid list first
+    if (EMAIL_QUALITY.avoid.some(avoid => localPart.includes(avoid))) {
+      return isDomainMatch ? 5 : 1; // Very low score
+    }
+
+    // Score based on quality tier
+    if (EMAIL_QUALITY.personal.some(p => localPart.includes(p))) {
+      return isDomainMatch ? 100 : 70; // Highest - owner/founder emails
+    }
+
+    // Check if it looks like a personal name (e.g., john@, jsmith@, john.smith@)
+    const looksPersonal = /^[a-z]+(\.[a-z]+)?$/.test(localPart) && localPart.length > 2 && localPart.length < 20;
+    if (looksPersonal) {
+      return isDomainMatch ? 90 : 60; // High - likely personal name
+    }
+
+    if (EMAIL_QUALITY.business.some(b => localPart.includes(b))) {
+      return isDomainMatch ? 80 : 50; // Good for outreach
+    }
+
+    if (EMAIL_QUALITY.generic.some(g => localPart === g)) {
+      return isDomainMatch ? 40 : 20; // Generic but usable
+    }
+
+    // Default score for unknown patterns
+    return isDomainMatch ? 30 : 15;
+  };
+
+  // 1. Extract from mailto: links (most intentional/reliable)
+  $('a[href^="mailto:"]').each((_, el) => {
+    const href = $(el).attr('href') || '';
+    const email = href.replace('mailto:', '').split('?')[0].toLowerCase().trim();
+    if (email && email.includes('@') && !email.includes(' ')) {
+      foundEmails.push({ email, source: 'mailto', quality: scoreEmail(email) + 10 }); // Bonus for mailto
+    }
+  });
+
+  // 2. Extract from structured data (JSON-LD)
+  $('script[type="application/ld+json"]').each((_, el) => {
+    try {
+      const jsonText = $(el).html() || '';
+      const data = JSON.parse(jsonText);
+
+      // Handle array of schemas
+      const schemas = Array.isArray(data) ? data : [data];
+
+      for (const schema of schemas) {
+        // Direct email property
+        if (schema.email) {
+          const email = schema.email.replace('mailto:', '').toLowerCase().trim();
+          foundEmails.push({ email, source: 'schema', quality: scoreEmail(email) + 5 });
+        }
+
+        // ContactPoint
+        if (schema.contactPoint) {
+          const contacts = Array.isArray(schema.contactPoint) ? schema.contactPoint : [schema.contactPoint];
+          for (const contact of contacts) {
+            if (contact.email) {
+              const email = contact.email.replace('mailto:', '').toLowerCase().trim();
+              foundEmails.push({ email, source: 'schema-contact', quality: scoreEmail(email) + 5 });
+            }
+          }
+        }
+
+        // Check nested @graph
+        if (schema['@graph']) {
+          for (const item of schema['@graph']) {
+            if (item.email) {
+              const email = item.email.replace('mailto:', '').toLowerCase().trim();
+              foundEmails.push({ email, source: 'schema-graph', quality: scoreEmail(email) + 5 });
+            }
+          }
+        }
+      }
+    } catch {
+      // Invalid JSON, skip
+    }
+  });
+
+  // 3. Extract from visible text (fallback)
+  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+  const textEmails = bodyText.match(emailRegex) || [];
+  for (const email of textEmails) {
+    const cleanEmail = email.toLowerCase().trim();
+    if (!foundEmails.some(e => e.email === cleanEmail)) {
+      foundEmails.push({ email: cleanEmail, source: 'text', quality: scoreEmail(cleanEmail) });
+    }
+  }
+
+  // 4. Check for emails in common footer/contact patterns
+  const footerText = $('footer, .footer, #footer, .contact, #contact, .contact-info').text() || '';
+  const footerEmails = footerText.match(emailRegex) || [];
+  for (const email of footerEmails) {
+    const cleanEmail = email.toLowerCase().trim();
+    const existing = foundEmails.find(e => e.email === cleanEmail);
+    if (existing) {
+      existing.quality += 3; // Bonus for being in footer/contact section
+    }
+  }
+
+  // Sort by quality and return the best one
+  foundEmails.sort((a, b) => b.quality - a.quality);
+
+  // Filter out obviously bad emails
+  const validEmails = foundEmails.filter(e => {
+    const email = e.email;
+    // Must have valid format
+    if (!email.includes('@') || !email.includes('.')) return false;
+    // Skip example/test emails
+    if (email.includes('example.com') || email.includes('test.com')) return false;
+    // Skip image placeholders
+    if (email.includes('.png') || email.includes('.jpg') || email.includes('.gif')) return false;
+    return true;
+  });
+
+  return validEmails[0]?.email;
+}
+
+/**
+ * Optionally fetch contact page for additional email discovery
+ */
+async function fetchContactPageEmail(domain: string): Promise<string | undefined> {
+  const contactPaths = ['/contact', '/contact-us', '/about', '/about-us'];
+
+  for (const path of contactPaths) {
+    try {
+      const response = await fetch(`https://${domain}${path}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ContentCommandStudio/1.0)',
+        },
+        signal: AbortSignal.timeout(5000), // Quick timeout
+      });
+
+      if (!response.ok) continue;
+
+      const html = await response.text();
+      const $ = cheerio.load(html);
+      const bodyText = $('body').text();
+
+      const email = extractBestEmail($, bodyText, domain);
+      if (email) return email;
+    } catch {
+      // Page doesn't exist or timeout, continue
+    }
+  }
+
+  return undefined;
+}
+
 interface LeadResult {
   domain: string;
   businessName: string;
@@ -812,12 +989,18 @@ async function scoreWebsite(domain: string): Promise<{
     // NAP (Name, Address, Phone) Detection (5 points)
     const phoneMatch = bodyText.match(/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
     const addressMatch = bodyText.match(/\d+\s+[\w\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|place|pl)[.,\s]*/i);
-    const emailMatch = bodyText.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
 
     // Extract contact info
     if (phoneMatch) phone = phoneMatch[0].trim();
     if (addressMatch) address = addressMatch[0].trim();
-    if (emailMatch) email = emailMatch[0].toLowerCase();
+
+    // Enhanced email extraction - checks mailto links, structured data, and ranks by quality
+    email = extractBestEmail($, bodyText, domain);
+
+    // If no email on homepage, try contact page (adds ~1-2 seconds but much higher success rate)
+    if (!email) {
+      email = await fetchContactPageEmail(domain);
+    }
 
     const hasPhone = !!phoneMatch;
     const hasAddress = !!addressMatch;
