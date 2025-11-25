@@ -202,7 +202,9 @@ export default function PipelinePage() {
   const [emailLead, setEmailLead] = useState<Lead | null>(null);
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [proposal, setProposal] = useState<any>(null);
+  const [proposalLead, setProposalLead] = useState<Lead | null>(null);
   const [generatingProposal, setGeneratingProposal] = useState(false);
+  const [proposalEmailBody, setProposalEmailBody] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -451,6 +453,7 @@ export default function PipelinePage() {
       if (res.ok) {
         const data = await res.json();
         setProposal(data.proposal);
+        setProposalLead(lead);
         setShowProposalModal(true);
       } else {
         const error = await res.json();
@@ -461,6 +464,15 @@ export default function PipelinePage() {
       alert('Failed to generate proposal. Please try again.');
     } finally {
       setGeneratingProposal(false);
+    }
+  };
+
+  const handleProposalEmail = (proposalHtml: string) => {
+    if (proposalLead) {
+      setProposalEmailBody(proposalHtml);
+      setEmailLead(proposalLead);
+      setShowProposalModal(false);
+      setShowEmailModal(true);
     }
   };
 
@@ -905,8 +917,10 @@ export default function PipelinePage() {
           onClose={() => {
             setShowEmailModal(false);
             setEmailLead(null);
+            setProposalEmailBody(null);
           }}
           onSend={handleSendEmail}
+          initialBody={proposalEmailBody || undefined}
         />
       )}
 
@@ -1404,7 +1418,9 @@ export default function PipelinePage() {
           onClose={() => {
             setShowProposalModal(false);
             setProposal(null);
+            setProposalLead(null);
           }}
+          onSendEmail={handleProposalEmail}
         />
       )}
     </div>

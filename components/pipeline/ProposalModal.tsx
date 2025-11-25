@@ -43,9 +43,10 @@ interface Proposal {
 interface ProposalModalProps {
   proposal: Proposal;
   onClose: () => void;
+  onSendEmail: (proposalHtml: string) => void;
 }
 
-export default function ProposalModal({ proposal, onClose }: ProposalModalProps) {
+export default function ProposalModal({ proposal, onClose, onSendEmail }: ProposalModalProps) {
   const [copied, setCopied] = useState(false);
   const proposalRef = useRef<HTMLDivElement>(null);
 
@@ -326,27 +327,35 @@ export default function ProposalModal({ proposal, onClose }: ProposalModalProps)
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
-          <div className="text-sm text-slate-600">
-            Cost: ~$0.01 to generate this proposal
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-100 transition-colors"
-            >
-              Close
-            </button>
-            <button
-              onClick={copyToClipboard}
-              className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all inline-flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              {copied ? 'Copied!' : 'Copy Proposal'}
-            </button>
-          </div>
+        <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3 bg-slate-50">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-100 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={copyToClipboard}
+            className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-100 transition-colors inline-flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+          <button
+            onClick={() => {
+              if (proposalRef.current) {
+                onSendEmail(proposalRef.current.innerHTML);
+              }
+            }}
+            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all inline-flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Email Proposal
+          </button>
         </div>
       </div>
     </div>

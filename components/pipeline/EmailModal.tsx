@@ -48,6 +48,8 @@ interface EmailModalProps {
   lead: Lead;
   onClose: () => void;
   onSend: (data: { to: string; subject: string; body: string; template: string }) => Promise<boolean>;
+  initialSubject?: string;
+  initialBody?: string;
 }
 
 const EMAIL_TEMPLATES = [
@@ -82,6 +84,12 @@ const EMAIL_TEMPLATES = [
     id: 'cold_lead',
     name: 'AI Search Angle',
     description: 'ChatGPT/AI discovery hook',
+    condition: () => true,
+  },
+  {
+    id: 'proposal',
+    name: 'Proposal',
+    description: 'Generated proposal email',
     condition: () => true,
   },
   {
@@ -236,8 +244,10 @@ aiso.studio`
   }
 }
 
-export default function EmailModal({ lead, onClose, onSend }: EmailModalProps) {
+export default function EmailModal({ lead, onClose, onSend, initialSubject, initialBody }: EmailModalProps) {
+  // If we have initial content (from proposal), use 'proposal' template, otherwise auto-select
   const [selectedTemplate, setSelectedTemplate] = useState<string>(() => {
+    if (initialBody) return 'proposal';
     // Auto-select best template based on lead data
     if ((lead.wcag_critical_violations || 0) > 0) return 'accessibility_urgent';
     if ((lead.aiso_opportunity_score || 0) >= 70) return 'hot_lead';
@@ -246,8 +256,25 @@ export default function EmailModal({ lead, onClose, onSend }: EmailModalProps) {
   });
 
   const [emailTo, setEmailTo] = useState(lead.email || '');
-  const [emailSubject, setEmailSubject] = useState('');
-  const [emailBody, setEmailBody] = useState('');
+  const [emailSubject, setEmailSubject] = useState(() => {
+    if (initialSubject) return initialSubject;
+    if (initialBody) return `Digital Growth Proposal for ${lead.business_name}`;
+    const { subject } = generateEmailContent(lead,
+      (lead.wcag_critical_violations || 0) > 0 ? 'accessibility_urgent' :
+      (lead.aiso_opportunity_score || 0) >= 70 ? 'hot_lead' :
+      (lead.aiso_opportunity_score || 0) >= 40 ? 'warm_lead' : 'cold_lead'
+    );
+    return subject;
+  });
+  const [emailBody, setEmailBody] = useState(() => {
+    if (initialBody) return initialBody;
+    const { body } = generateEmailContent(lead,
+      (lead.wcag_critical_violations || 0) > 0 ? 'accessibility_urgent' :
+      (lead.aiso_opportunity_score || 0) >= 70 ? 'hot_lead' :
+      (lead.aiso_opportunity_score || 0) >= 40 ? 'warm_lead' : 'cold_lead'
+    );
+    return body;
+  });
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -255,19 +282,16 @@ export default function EmailModal({ lead, onClose, onSend }: EmailModalProps) {
   // Generate content when template changes
   const handleTemplateChange = (templateId: string) => {
     setSelectedTemplate(templateId);
-    if (templateId !== 'custom') {
+    if (templateId === 'proposal' && initialBody) {
+      // Restore proposal content
+      setEmailSubject(initialSubject || `Digital Growth Proposal for ${lead.business_name}`);
+      setEmailBody(initialBody);
+    } else if (templateId !== 'custom' && templateId !== 'proposal') {
       const { subject, body } = generateEmailContent(lead, templateId);
       setEmailSubject(subject);
       setEmailBody(body);
     }
   };
-
-  // Initialize email content
-  useState(() => {
-    const { subject, body } = generateEmailContent(lead, selectedTemplate);
-    setEmailSubject(subject);
-    setEmailBody(body);
-  });
 
   const handleSend = async () => {
     if (!emailTo || !emailSubject || !emailBody) {
