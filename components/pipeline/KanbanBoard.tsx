@@ -26,18 +26,21 @@ interface Lead {
   notes: string | null;
   discovered_at: string;
   project_id: number | null;
+  // AISO-specific fields
   aiso_opportunity_score?: number;
   estimated_monthly_value?: number;
   primary_pain_point?: string;
   secondary_pain_points?: string[];
   recommended_pitch?: string;
   time_to_close?: string;
+  // Accessibility/WCAG fields
   accessibility_score?: number;
   wcag_critical_violations?: number;
   wcag_serious_violations?: number;
   wcag_moderate_violations?: number;
   wcag_minor_violations?: number;
   wcag_total_violations?: number;
+  // Searchability fields
   ranking_keywords?: number;
   avg_search_position?: number;
   estimated_organic_traffic?: number;
@@ -63,6 +66,53 @@ const PIPELINE_STAGES = [
   { id: 'won', label: 'Won', color: 'bg-green-500', lightBg: 'bg-green-50', border: 'border-green-200' },
   { id: 'lost', label: 'Lost', color: 'bg-gray-500', lightBg: 'bg-gray-50', border: 'border-gray-200' },
 ];
+
+// Default service pricing for calculating lead value
+const DEFAULT_SERVICE_PRICING = {
+  content_marketing: { price: 400, type: 'monthly' as const },
+  accessibility: { price: 1500, type: 'one-time' as const },
+  seo_package: { price: 500, type: 'monthly' as const },
+  content_refresh: { price: 300, type: 'one-time' as const },
+};
+
+// Calculate recommended services count and value from lead data
+function getLeadServicesInfo(lead: Lead): { count: number; value: number } {
+  let count = 0;
+  let value = 0;
+
+  // Content Marketing
+  if (!lead.has_blog || lead.blog_post_count < 10) {
+    count++;
+    value += DEFAULT_SERVICE_PRICING.content_marketing.price;
+  }
+
+  // Accessibility
+  const needsAccessibility =
+    (lead.accessibility_score !== undefined && lead.accessibility_score < 70) ||
+    (lead.wcag_critical_violations && lead.wcag_critical_violations > 0);
+  if (needsAccessibility) {
+    count++;
+    value += Math.round(DEFAULT_SERVICE_PRICING.accessibility.price / 12);
+  }
+
+  // SEO
+  const needsSEO =
+    lead.seo_score < 70 ||
+    (lead.ranking_keywords !== undefined && lead.ranking_keywords < 20) ||
+    (lead.avg_search_position !== undefined && lead.avg_search_position > 20);
+  if (needsSEO) {
+    count++;
+    value += DEFAULT_SERVICE_PRICING.seo_package.price;
+  }
+
+  // Content Optimization
+  if (lead.content_score < 70 && lead.has_blog && lead.blog_post_count >= 10) {
+    count++;
+    value += Math.round(DEFAULT_SERVICE_PRICING.content_refresh.price / 12);
+  }
+
+  return { count, value };
+}
 
 export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSendEmail, onDelete }: KanbanBoardProps) {
   const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
@@ -115,7 +165,8 @@ export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSend
       {PIPELINE_STAGES.map((stage) => {
         const stageLeads = getLeadsForStage(stage.id);
         const isDropTarget = dragOverColumn === stage.id;
-        const totalValue = stageLeads.reduce((sum, l) => sum + (l.estimated_monthly_value || 0), 0);
+        // Calculate realistic pipeline value from recommended services
+        const totalValue = stageLeads.reduce((sum, l) => sum + getLeadServicesInfo(l).value, 0);
 
         return (
           <div
@@ -243,14 +294,25 @@ export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSend
                         </div>
                       )}
 
-                      {/* Value & Time */}
-                      <div className="flex items-center justify-between text-xs">
-                        {lead.estimated_monthly_value && lead.estimated_monthly_value > 299 && (
-                          <span className="text-green-700 font-semibold">
-                            ${lead.estimated_monthly_value}/mo
-                          </span>
-                        )}
-                        {lead.time_to_close && (
+                      {/* Services & Value */}
+                      {(() => {
+                        const servicesInfo = getLeadServicesInfo(lead);
+                        if (servicesInfo.count === 0) return null;
+                        return (
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded font-medium">
+                              {servicesInfo.count} service{servicesInfo.count > 1 ? 's' : ''}
+                            </span>
+                            <span className="text-green-700 font-semibold">
+                              ${servicesInfo.value}/mo
+                            </span>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Time to close */}
+                      {lead.time_to_close && (
+                        <div className="flex items-center justify-end">
                           <span className={`px-1.5 py-0.5 rounded text-[10px] capitalize ${
                             lead.time_to_close === 'immediate' ? 'bg-red-100 text-red-700' :
                             lead.time_to_close === 'short' ? 'bg-orange-100 text-orange-700' :
@@ -259,8 +321,8 @@ export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSend
                           }`}>
                             {lead.time_to_close}
                           </span>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Card Footer - Actions */}

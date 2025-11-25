@@ -39,6 +39,14 @@ export interface BusinessData {
   };
 }
 
+export interface RecommendedService {
+  id: string;
+  name: string;
+  reason: string;
+  type: 'monthly' | 'one-time';
+  defaultPrice: number;
+}
+
 export interface AISOFitScore {
   aisoScore: number; // 0-100: How good a fit for AISO
   estimatedValue: number; // Monthly recurring revenue potential
@@ -46,7 +54,16 @@ export interface AISOFitScore {
   primaryPainPoint: string;
   secondaryPainPoints: string[];
   recommendedPitch: string;
+  recommendedServices: RecommendedService[]; // Services to offer based on detected problems
 }
+
+// Default pricing (lower market rates for realistic pipeline value)
+export const DEFAULT_SERVICE_PRICING = {
+  content_marketing: { name: 'Content Marketing', price: 400, type: 'monthly' as const },
+  accessibility: { name: 'Accessibility Remediation', price: 1500, type: 'one-time' as const },
+  seo_package: { name: 'SEO Package', price: 500, type: 'monthly' as const },
+  content_refresh: { name: 'Content Optimization', price: 300, type: 'one-time' as const },
+};
 
 interface PainPoint {
   score: number;
@@ -54,57 +71,68 @@ interface PainPoint {
 }
 
 /**
- * Score a business for AISO fit
+ * Score a business for AISO fit and recommend services
  */
 export function scoreBusinessForAISO(business: BusinessData): AISOFitScore {
   let aisoScore = 0;
-  let estimatedValue = 299; // Base AISO pricing
   const painPoints: PainPoint[] = [];
+  const recommendedServices: RecommendedService[] = [];
 
-  // Factor 1: Content Marketing Need (25% weight, max 25 points)
+  // ============================================
+  // CONTENT MARKETING (25% weight)
+  // Triggered: No blog OR blog posts < 10
+  // ============================================
+  const needsContentMarketing = !business.hasBlog || business.blogPostCount < 10;
+
   if (!business.hasBlog) {
     aisoScore += 20;
-    estimatedValue += 100;
     painPoints.push({ score: 30, text: 'No content marketing strategy' });
   } else if (business.blogPostCount < 10) {
     aisoScore += 12;
-    estimatedValue += 50;
     painPoints.push({ score: 20, text: 'Inconsistent content publishing' });
   } else if (business.blogPostCount < 25) {
     aisoScore += 5;
     painPoints.push({ score: 10, text: 'Limited content library' });
   }
 
-  // Factor 2: Accessibility/WCAG Compliance (25% weight, max 25 points)
-  // This is a HUGE marketing angle - accessibility = SEO + legal compliance
+  if (needsContentMarketing) {
+    recommendedServices.push({
+      id: 'content_marketing',
+      name: DEFAULT_SERVICE_PRICING.content_marketing.name,
+      reason: !business.hasBlog ? 'No blog detected' : `Only ${business.blogPostCount} blog posts`,
+      type: 'monthly',
+      defaultPrice: DEFAULT_SERVICE_PRICING.content_marketing.price,
+    });
+  }
+
+  // ============================================
+  // ACCESSIBILITY (25% weight)
+  // Triggered: Score < 70 OR critical violations > 0
+  // ============================================
+  const needsAccessibility =
+    (business.accessibilityScore !== undefined && business.accessibilityScore < 70) ||
+    (business.wcagViolations?.critical && business.wcagViolations.critical > 0);
+
   if (business.accessibilityScore !== undefined) {
     if (business.accessibilityScore < 50) {
-      aisoScore += 20; // Major accessibility issues = great opportunity
-      estimatedValue += 150;
+      aisoScore += 20;
       painPoints.push({
         score: 35,
-        text: `${business.wcagViolations?.critical || 0} critical accessibility violations`
+        text: `Accessibility score ${business.accessibilityScore}/100 (critical)`
       });
     } else if (business.accessibilityScore < 70) {
       aisoScore += 15;
-      estimatedValue += 100;
       painPoints.push({
         score: 25,
-        text: 'Moderate accessibility issues affecting SEO'
+        text: `Accessibility score ${business.accessibilityScore}/100 (needs work)`
       });
     } else if (business.accessibilityScore < 85) {
       aisoScore += 8;
-      estimatedValue += 50;
-      painPoints.push({
-        score: 15,
-        text: 'Minor accessibility improvements needed'
-      });
+      painPoints.push({ score: 15, text: 'Minor accessibility improvements needed' });
     }
 
-    // Critical violations are an immediate concern (legal + SEO)
-    if (business.wcagViolations && business.wcagViolations.critical > 0) {
-      aisoScore += 10; // Bonus points for critical violations
-      estimatedValue += 100;
+    if (business.wcagViolations?.critical && business.wcagViolations.critical > 0) {
+      aisoScore += 10;
       painPoints.push({
         score: 40,
         text: `${business.wcagViolations.critical} critical WCAG violations (legal risk)`
@@ -112,25 +140,42 @@ export function scoreBusinessForAISO(business: BusinessData): AISOFitScore {
     }
   }
 
-  // Factor 3: Searchability/SEO Performance (25% weight, max 25 points)
+  if (needsAccessibility) {
+    const reason = business.wcagViolations?.critical
+      ? `${business.wcagViolations.critical} critical WCAG violations`
+      : `Accessibility score ${business.accessibilityScore}/100`;
+    recommendedServices.push({
+      id: 'accessibility',
+      name: DEFAULT_SERVICE_PRICING.accessibility.name,
+      reason,
+      type: 'one-time',
+      defaultPrice: DEFAULT_SERVICE_PRICING.accessibility.price,
+    });
+  }
+
+  // ============================================
+  // SEO PACKAGE (25% weight)
+  // Triggered: SEO score < 70 OR keywords < 20 OR position > 20
+  // ============================================
+  const needsSEO =
+    business.seoScore < 70 ||
+    (business.searchVisibility?.rankingKeywords !== undefined && business.searchVisibility.rankingKeywords < 20) ||
+    (business.searchVisibility?.avgPosition !== undefined && business.searchVisibility.avgPosition > 20);
+
   if (business.seoScore < 50) {
     aisoScore += 18;
-    estimatedValue += 75;
     painPoints.push({ score: 30, text: 'Poor search engine visibility' });
   } else if (business.seoScore < 70) {
     aisoScore += 12;
-    estimatedValue += 50;
     painPoints.push({ score: 20, text: 'Mediocre SEO performance' });
   } else if (business.seoScore < 85) {
     aisoScore += 6;
     painPoints.push({ score: 10, text: 'Room for SEO improvement' });
   }
 
-  // Additional searchability signals
   if (business.searchVisibility) {
     if (business.searchVisibility.rankingKeywords < 20) {
       aisoScore += 10;
-      estimatedValue += 50;
       painPoints.push({
         score: 25,
         text: `Only ranking for ${business.searchVisibility.rankingKeywords} keywords`
@@ -142,10 +187,28 @@ export function scoreBusinessForAISO(business: BusinessData): AISOFitScore {
     }
   }
 
-  // Factor 4: Content Quality (15% weight, max 15 points)
+  if (needsSEO) {
+    let reason = `SEO score ${business.seoScore}/100`;
+    if (business.searchVisibility?.rankingKeywords !== undefined && business.searchVisibility.rankingKeywords < 20) {
+      reason = `Only ${business.searchVisibility.rankingKeywords} ranking keywords`;
+    }
+    recommendedServices.push({
+      id: 'seo_package',
+      name: DEFAULT_SERVICE_PRICING.seo_package.name,
+      reason,
+      type: 'monthly',
+      defaultPrice: DEFAULT_SERVICE_PRICING.seo_package.price,
+    });
+  }
+
+  // ============================================
+  // CONTENT OPTIMIZATION (15% weight)
+  // Triggered: Content score < 70 AND has existing blog
+  // ============================================
+  const needsContentRefresh = business.contentScore < 70 && business.hasBlog && business.blogPostCount >= 10;
+
   if (business.contentScore < 60) {
     aisoScore += 12;
-    estimatedValue += 50;
     painPoints.push({ score: 25, text: 'Low-quality content' });
   } else if (business.contentScore < 75) {
     aisoScore += 8;
@@ -155,7 +218,19 @@ export function scoreBusinessForAISO(business: BusinessData): AISOFitScore {
     painPoints.push({ score: 8, text: 'Good content, could be optimized' });
   }
 
-  // Factor 5: Industry Fit (10% weight, max 10 points)
+  if (needsContentRefresh) {
+    recommendedServices.push({
+      id: 'content_refresh',
+      name: DEFAULT_SERVICE_PRICING.content_refresh.name,
+      reason: `Content quality score ${business.contentScore}/100`,
+      type: 'one-time',
+      defaultPrice: DEFAULT_SERVICE_PRICING.content_refresh.price,
+    });
+  }
+
+  // ============================================
+  // INDUSTRY BONUS (10% weight)
+  // ============================================
   const highValueIndustries = [
     'dentist', 'dental', 'lawyer', 'attorney', 'law firm',
     'accountant', 'cpa', 'real estate', 'realtor',
@@ -170,22 +245,42 @@ export function scoreBusinessForAISO(business: BusinessData): AISOFitScore {
 
   if (isHighValue) {
     aisoScore += 10;
-    estimatedValue += 200; // These industries can afford premium
   } else {
-    // Still give some points for other industries
     aisoScore += 4;
   }
 
-  // Calculate time to close based on total score
+  // ============================================
+  // CALCULATE ESTIMATED VALUE FROM SERVICES
+  // Monthly services: use price directly
+  // One-time services: amortize over 12 months
+  // ============================================
+  let estimatedValue = 0;
+  for (const service of recommendedServices) {
+    if (service.type === 'monthly') {
+      estimatedValue += service.defaultPrice;
+    } else {
+      // Amortize one-time over 12 months for pipeline value
+      estimatedValue += Math.round(service.defaultPrice / 12);
+    }
+  }
+
+  // Minimum value if any services recommended
+  if (recommendedServices.length > 0 && estimatedValue === 0) {
+    estimatedValue = 200;
+  }
+
+  // ============================================
+  // TIME TO CLOSE
+  // ============================================
   let timeToClose: string;
   if (aisoScore >= 70) {
-    timeToClose = 'immediate'; // Hot lead, close in days
+    timeToClose = 'immediate';
   } else if (aisoScore >= 50) {
-    timeToClose = 'short'; // Close in 1-2 weeks
+    timeToClose = 'short';
   } else if (aisoScore >= 30) {
-    timeToClose = 'medium'; // Close in 1 month
+    timeToClose = 'medium';
   } else {
-    timeToClose = 'long'; // May take 2+ months
+    timeToClose = 'long';
   }
 
   // Sort pain points by severity
@@ -193,7 +288,7 @@ export function scoreBusinessForAISO(business: BusinessData): AISOFitScore {
   const primaryPainPoint = sortedPainPoints[0]?.text || 'Content marketing opportunity';
   const secondaryPainPoints = sortedPainPoints.slice(1, 3).map(p => p.text);
 
-  // Generate recommended pitch with accessibility & searchability angles
+  // Generate recommended pitch
   const recommendedPitch = generateAISOPitch(
     business,
     primaryPainPoint,
@@ -203,11 +298,12 @@ export function scoreBusinessForAISO(business: BusinessData): AISOFitScore {
 
   return {
     aisoScore: Math.min(aisoScore, 100),
-    estimatedValue: Math.min(estimatedValue, 999),
+    estimatedValue,
     timeToClose,
     primaryPainPoint,
     secondaryPainPoints,
     recommendedPitch,
+    recommendedServices,
   };
 }
 

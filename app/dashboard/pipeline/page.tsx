@@ -6,6 +6,106 @@ import DashboardNav from '@/components/DashboardNav';
 import KanbanBoard from '@/components/pipeline/KanbanBoard';
 import EmailModal from '@/components/pipeline/EmailModal';
 
+// Default service pricing (lower market rates for realistic pipeline value)
+const DEFAULT_SERVICE_PRICING = {
+  content_marketing: { name: 'Content Marketing', price: 400, type: 'monthly' as const },
+  accessibility: { name: 'Accessibility Remediation', price: 1500, type: 'one-time' as const },
+  seo_package: { name: 'SEO Package', price: 500, type: 'monthly' as const },
+  content_refresh: { name: 'Content Optimization', price: 300, type: 'one-time' as const },
+};
+
+interface RecommendedService {
+  id: string;
+  name: string;
+  reason: string;
+  type: 'monthly' | 'one-time';
+  defaultPrice: number;
+}
+
+// Calculate recommended services from lead data
+function getRecommendedServices(lead: Lead): RecommendedService[] {
+  const services: RecommendedService[] = [];
+
+  // Content Marketing: No blog OR blog posts < 10
+  if (!lead.has_blog || lead.blog_post_count < 10) {
+    services.push({
+      id: 'content_marketing',
+      name: DEFAULT_SERVICE_PRICING.content_marketing.name,
+      reason: !lead.has_blog ? 'No blog detected' : `Only ${lead.blog_post_count} blog posts`,
+      type: 'monthly',
+      defaultPrice: DEFAULT_SERVICE_PRICING.content_marketing.price,
+    });
+  }
+
+  // Accessibility: Score < 70 OR critical violations > 0
+  const needsAccessibility =
+    (lead.accessibility_score !== undefined && lead.accessibility_score < 70) ||
+    (lead.wcag_critical_violations && lead.wcag_critical_violations > 0);
+
+  if (needsAccessibility) {
+    const reason = lead.wcag_critical_violations
+      ? `${lead.wcag_critical_violations} critical WCAG violations`
+      : `Accessibility score ${lead.accessibility_score}/100`;
+    services.push({
+      id: 'accessibility',
+      name: DEFAULT_SERVICE_PRICING.accessibility.name,
+      reason,
+      type: 'one-time',
+      defaultPrice: DEFAULT_SERVICE_PRICING.accessibility.price,
+    });
+  }
+
+  // SEO: Score < 70 OR keywords < 20 OR position > 20
+  const needsSEO =
+    lead.seo_score < 70 ||
+    (lead.ranking_keywords !== undefined && lead.ranking_keywords < 20) ||
+    (lead.avg_search_position !== undefined && lead.avg_search_position > 20);
+
+  if (needsSEO) {
+    let reason = `SEO score ${lead.seo_score}/100`;
+    if (lead.ranking_keywords !== undefined && lead.ranking_keywords < 20) {
+      reason = `Only ${lead.ranking_keywords} ranking keywords`;
+    }
+    services.push({
+      id: 'seo_package',
+      name: DEFAULT_SERVICE_PRICING.seo_package.name,
+      reason,
+      type: 'monthly',
+      defaultPrice: DEFAULT_SERVICE_PRICING.seo_package.price,
+    });
+  }
+
+  // Content Optimization: Content score < 70 AND has existing blog
+  if (lead.content_score < 70 && lead.has_blog && lead.blog_post_count >= 10) {
+    services.push({
+      id: 'content_refresh',
+      name: DEFAULT_SERVICE_PRICING.content_refresh.name,
+      reason: `Content quality score ${lead.content_score}/100`,
+      type: 'one-time',
+      defaultPrice: DEFAULT_SERVICE_PRICING.content_refresh.price,
+    });
+  }
+
+  return services;
+}
+
+// Calculate realistic pipeline value from recommended services
+function calculateLeadValue(lead: Lead): number {
+  const services = getRecommendedServices(lead);
+  let value = 0;
+
+  for (const service of services) {
+    if (service.type === 'monthly') {
+      value += service.defaultPrice;
+    } else {
+      // Amortize one-time over 12 months
+      value += Math.round(service.defaultPrice / 12);
+    }
+  }
+
+  return value;
+}
+
 interface Lead {
   id: number;
   domain: string;
@@ -301,9 +401,10 @@ export default function PipelinePage() {
     lost: leads.filter(l => l.status === 'lost').length,
   };
 
+  // Calculate pipeline value from recommended services (realistic pricing)
   const totalPipelineValue = leads
     .filter(l => !['won', 'lost'].includes(l.status))
-    .reduce((sum, l) => sum + (l.estimated_monthly_value || 0), 0);
+    .reduce((sum, l) => sum + calculateLeadValue(l), 0);
 
   const handleSendEmail = async (data: { to: string; subject: string; body: string; template: string }) => {
     if (!emailLead) return false;
@@ -583,11 +684,22 @@ export default function PipelinePage() {
                             💡 {lead.primary_pain_point}
                           </div>
                         )}
-                        {lead.estimated_monthly_value && lead.estimated_monthly_value > 299 && (
-                          <div className="mt-1 text-xs text-green-700 font-semibold">
-                            ${lead.estimated_monthly_value}/mo opportunity
-                          </div>
-                        )}
+                        {/* Recommended Services Badge */}
+                        {(() => {
+                          const services = getRecommendedServices(lead);
+                          if (services.length === 0) return null;
+                          const value = calculateLeadValue(lead);
+                          return (
+                            <div className="mt-1 flex items-center gap-2">
+                              <span className="px-2 py-0.5 bg-orange-100 text-orange-800 text-[10px] font-bold rounded">
+                                {services.length} service{services.length > 1 ? 's' : ''} needed
+                              </span>
+                              <span className="text-xs text-green-700 font-semibold">
+                                ${value}/mo
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4">
                         <div className="space-y-1 text-sm">
@@ -1002,6 +1114,64 @@ export default function PipelinePage() {
                     </div>
                   </div>
                 )}
+
+                {/* Recommended Services */}
+                {(() => {
+                  const services = getRecommendedServices(selectedLead);
+                  if (services.length === 0) return null;
+
+                  const monthlyTotal = services
+                    .filter(s => s.type === 'monthly')
+                    .reduce((sum, s) => sum + s.defaultPrice, 0);
+                  const oneTimeTotal = services
+                    .filter(s => s.type === 'one-time')
+                    .reduce((sum, s) => sum + s.defaultPrice, 0);
+
+                  return (
+                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-slate-900">🎯 Recommended Services</h3>
+                        <div className="text-right">
+                          {monthlyTotal > 0 && (
+                            <div className="text-lg font-bold text-green-700">${monthlyTotal}/mo</div>
+                          )}
+                          {oneTimeTotal > 0 && (
+                            <div className="text-sm text-slate-600">+ ${oneTimeTotal} one-time</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {services.map((service) => (
+                          <div
+                            key={service.id}
+                            className="bg-white rounded-lg p-3 border border-orange-200 flex items-center justify-between"
+                          >
+                            <div>
+                              <div className="font-medium text-slate-900">{service.name}</div>
+                              <div className="text-sm text-slate-600">{service.reason}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold text-green-700">
+                                ${service.defaultPrice}
+                                {service.type === 'monthly' && <span className="text-xs text-slate-500">/mo</span>}
+                              </div>
+                              <div className={`text-xs px-2 py-0.5 rounded ${
+                                service.type === 'monthly'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-purple-100 text-purple-700'
+                              }`}>
+                                {service.type === 'monthly' ? 'Recurring' : 'One-time'}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-orange-200 text-xs text-slate-600">
+                        💡 These services are recommended based on detected problems. Prices are default estimates - adjust to your agency's rates.
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
