@@ -280,6 +280,42 @@
 ## 📝 IMMEDIATE PRIORITIES FOR NEXT SESSION
 
 ### Must Do First:
+
+**🔥 PRIORITY 1: AWS SES Email Integration for Lead Outreach**
+User has AWS email approved - integrate email sending directly from pipeline!
+
+- [ ] Create AWS SES client (`lib/aws-ses-client.ts`)
+  - Send individual emails to leads
+  - Use AWS SDK v3
+  - Handle delivery status and bounces
+- [ ] Add environment variables:
+  - `AWS_ACCESS_KEY_ID`
+  - `AWS_SECRET_ACCESS_KEY`
+  - `AWS_REGION` (likely us-east-1)
+  - `AWS_SES_SENDER_EMAIL` (verified sender)
+- [ ] Create email templates based on pain points:
+  - Accessibility/WCAG violation template
+  - Content gap template
+  - SEO visibility template
+  - Generic follow-up template
+- [ ] UI: Add "Send Email" button in pipeline lead modal
+  - Template selector dropdown
+  - Preview email before sending
+  - Populate from recommended pitch
+- [ ] Database: Create `lead_emails` table
+  - Track sent emails (timestamp, template, status)
+  - Link to lead_id
+  - Store delivery status
+- [ ] API route: `POST /api/leads/[id]/send-email`
+  - Validate user owns the lead
+  - Send via AWS SES
+  - Log to database
+  - Update lead status to "contacted"
+
+**Expected Outcome:** Users can send personalized outreach emails directly from the pipeline with one click!
+
+---
+
 1. **Send VIP email to Kim Kelley** (vip-welcome-email-kim.html is ready)
    - Get Resend API key
    - Add to Vercel environment variables
@@ -317,6 +353,13 @@
 - Backup database before major changes
 - Created safety checklist and reminders
 - Freedom-first pricing model (unlimited everything for agency tier)
+
+### Latest Session (2025-01-24): AISO Marketing Machine Complete
+- ✅ Built complete WCAG + AISO scoring system for lead discovery
+- ✅ Integrated Serper API for search visibility metrics
+- ✅ Created comprehensive user workflow documentation
+- ⚠️ **ISSUE:** User's SERPER_API_KEY not working (need to verify it's in .env.local and restart dev server)
+- 🎯 **NEXT PRIORITY:** AWS SES email integration (user has AWS email approved)
 
 ---
 
