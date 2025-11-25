@@ -574,6 +574,24 @@ export const db = {
     status?: string;
     opportunity_rating?: string;
     discovery_data?: any;
+    // AISO-specific fields
+    aiso_opportunity_score?: number;
+    estimated_monthly_value?: number;
+    primary_pain_point?: string;
+    secondary_pain_points?: string[];
+    recommended_pitch?: string;
+    time_to_close?: string;
+    // Accessibility/WCAG fields
+    accessibility_score?: number;
+    wcag_critical_violations?: number;
+    wcag_serious_violations?: number;
+    wcag_moderate_violations?: number;
+    wcag_minor_violations?: number;
+    wcag_total_violations?: number;
+    // Searchability fields
+    ranking_keywords?: number;
+    avg_search_position?: number;
+    estimated_organic_traffic?: number;
   }) {
     try {
       const result = await query(
@@ -581,8 +599,13 @@ export const db = {
           user_id, project_id, domain, business_name, city, state, industry,
           overall_score, content_score, seo_score, design_score, speed_score,
           has_blog, blog_post_count, last_blog_update, phone, address, email,
-          status, opportunity_rating, discovery_data
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+          status, opportunity_rating, discovery_data,
+          aiso_opportunity_score, estimated_monthly_value, primary_pain_point,
+          secondary_pain_points, recommended_pitch, time_to_close,
+          accessibility_score, wcag_critical_violations, wcag_serious_violations,
+          wcag_moderate_violations, wcag_minor_violations, wcag_total_violations,
+          ranking_keywords, avg_search_position, estimated_organic_traffic
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36)
         RETURNING *`,
         [
           data.user_id,
@@ -606,6 +629,24 @@ export const db = {
           data.status || 'new',
           data.opportunity_rating || null,
           data.discovery_data ? JSON.stringify(data.discovery_data) : null,
+          // AISO fields
+          data.aiso_opportunity_score || 0,
+          data.estimated_monthly_value || 299,
+          data.primary_pain_point || null,
+          data.secondary_pain_points || null,
+          data.recommended_pitch || null,
+          data.time_to_close || 'medium',
+          // Accessibility fields
+          data.accessibility_score || null,
+          data.wcag_critical_violations || 0,
+          data.wcag_serious_violations || 0,
+          data.wcag_moderate_violations || 0,
+          data.wcag_minor_violations || 0,
+          data.wcag_total_violations || 0,
+          // Searchability fields
+          data.ranking_keywords || null,
+          data.avg_search_position || null,
+          data.estimated_organic_traffic || null,
         ]
       );
       return result[0];

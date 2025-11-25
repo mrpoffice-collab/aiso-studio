@@ -28,6 +28,24 @@ interface Lead {
   notes: string | null;
   discovered_at: string;
   project_id: number | null;
+  // AISO-specific fields
+  aiso_opportunity_score?: number;
+  estimated_monthly_value?: number;
+  primary_pain_point?: string;
+  secondary_pain_points?: string[];
+  recommended_pitch?: string;
+  time_to_close?: string;
+  // Accessibility/WCAG fields
+  accessibility_score?: number;
+  wcag_critical_violations?: number;
+  wcag_serious_violations?: number;
+  wcag_moderate_violations?: number;
+  wcag_minor_violations?: number;
+  wcag_total_violations?: number;
+  // Searchability fields
+  ranking_keywords?: number;
+  avg_search_position?: number;
+  estimated_organic_traffic?: number;
   discovery_data?: {
     seoIssues?: Array<{
       category: string;
@@ -40,6 +58,13 @@ interface Lead {
     onPageSEO?: number;
     contentMarketing?: number;
     localSEO?: number;
+    accessibilityAudit?: {
+      url: string;
+      score: number;
+      violations: any[];
+      wcagBreakdown: any;
+      pageTitle: string;
+    };
   };
 }
 
@@ -407,7 +432,10 @@ export default function PipelinePage() {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Business</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Contact</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Score</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
+                      <div>Scores</div>
+                      <div className="text-[10px] font-normal text-slate-500 normal-case mt-0.5">Overall / AISO / WCAG</div>
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Priority</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Discovered</th>
@@ -426,10 +454,33 @@ export default function PipelinePage() {
                         />
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-900">{lead.business_name}</div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-semibold text-slate-900">{lead.business_name}</div>
+                          {lead.aiso_opportunity_score !== undefined && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              lead.aiso_opportunity_score >= 70
+                                ? 'bg-red-100 text-red-800'
+                                : lead.aiso_opportunity_score >= 40
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {lead.aiso_opportunity_score >= 70 ? '🔥 HOT' : lead.aiso_opportunity_score >= 40 ? 'WARM' : 'COLD'}
+                            </span>
+                          )}
+                        </div>
                         <div className="text-sm text-slate-600">{lead.domain}</div>
                         {lead.city && lead.state && (
                           <div className="text-xs text-slate-500">{lead.city}, {lead.state}</div>
+                        )}
+                        {lead.primary_pain_point && (
+                          <div className="mt-2 text-xs text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-200">
+                            💡 {lead.primary_pain_point}
+                          </div>
+                        )}
+                        {lead.estimated_monthly_value && lead.estimated_monthly_value > 299 && (
+                          <div className="mt-1 text-xs text-green-700 font-semibold">
+                            ${lead.estimated_monthly_value}/mo opportunity
+                          </div>
                         )}
                       </td>
                       <td className="px-6 py-4">
@@ -469,11 +520,44 @@ export default function PipelinePage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className={`text-2xl font-bold ${getScoreColor(lead.overall_score)}`}>
-                          {lead.overall_score}
-                        </div>
-                        <div className="text-xs text-slate-600">
-                          C:{lead.content_score} S:{lead.seo_score} D:{lead.design_score} Sp:{lead.speed_score}
+                        <div className="space-y-1">
+                          {/* Overall Score */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500 w-16">Overall:</span>
+                            <span className={`text-lg font-bold ${getScoreColor(lead.overall_score)}`}>
+                              {lead.overall_score}
+                            </span>
+                          </div>
+                          {/* AISO Fit Score */}
+                          {lead.aiso_opportunity_score !== undefined && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-500 w-16">AISO:</span>
+                              <span className={`text-lg font-bold ${
+                                lead.aiso_opportunity_score >= 70 ? 'text-red-600' :
+                                lead.aiso_opportunity_score >= 40 ? 'text-yellow-600' :
+                                'text-blue-600'
+                              }`}>
+                                {lead.aiso_opportunity_score}
+                              </span>
+                            </div>
+                          )}
+                          {/* Accessibility Score */}
+                          {lead.accessibility_score !== undefined && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-500 w-16">WCAG:</span>
+                              <span className={`text-lg font-bold ${getScoreColor(lead.accessibility_score)}`}>
+                                {lead.accessibility_score}
+                              </span>
+                              {lead.wcag_critical_violations! > 0 && (
+                                <span className="px-1.5 py-0.5 bg-red-100 text-red-800 text-[10px] font-bold rounded">
+                                  {lead.wcag_critical_violations} CRITICAL
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <div className="text-[10px] text-slate-500 mt-1">
+                            C:{lead.content_score} S:{lead.seo_score} D:{lead.design_score} Sp:{lead.speed_score}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -669,6 +753,122 @@ export default function PipelinePage() {
                 <div className="text-xs text-slate-600 mt-1">Speed</div>
               </div>
             </div>
+
+            {/* AISO Fit & Accessibility Section */}
+            {(selectedLead.aiso_opportunity_score !== undefined || selectedLead.accessibility_score !== undefined) && (
+              <div className="space-y-4 mb-6">
+                {/* AISO Fit Score */}
+                {selectedLead.aiso_opportunity_score !== undefined && (
+                  <div className={`rounded-lg p-4 border-2 ${
+                    selectedLead.aiso_opportunity_score >= 70
+                      ? 'bg-red-50 border-red-200'
+                      : selectedLead.aiso_opportunity_score >= 40
+                      ? 'bg-yellow-50 border-yellow-200'
+                      : 'bg-blue-50 border-blue-200'
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-slate-900">AISO Opportunity Score</h3>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-3xl font-bold ${
+                          selectedLead.aiso_opportunity_score >= 70 ? 'text-red-600' :
+                          selectedLead.aiso_opportunity_score >= 40 ? 'text-yellow-600' :
+                          'text-blue-600'
+                        }`}>
+                          {selectedLead.aiso_opportunity_score}
+                        </span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                          selectedLead.aiso_opportunity_score >= 70
+                            ? 'bg-red-100 text-red-800'
+                            : selectedLead.aiso_opportunity_score >= 40
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {selectedLead.aiso_opportunity_score >= 70 ? '🔥 HOT LEAD' : selectedLead.aiso_opportunity_score >= 40 ? 'WARM LEAD' : 'COLD LEAD'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      {selectedLead.estimated_monthly_value && (
+                        <div>
+                          <span className="text-slate-600">Est. Monthly Value:</span>
+                          <span className="ml-2 font-semibold text-green-700">${selectedLead.estimated_monthly_value}/mo</span>
+                        </div>
+                      )}
+                      {selectedLead.time_to_close && (
+                        <div>
+                          <span className="text-slate-600">Time to Close:</span>
+                          <span className="ml-2 font-semibold capitalize">{selectedLead.time_to_close}</span>
+                        </div>
+                      )}
+                    </div>
+                    {selectedLead.primary_pain_point && (
+                      <div className="mt-3 p-3 bg-white rounded border border-orange-200">
+                        <div className="text-xs font-semibold text-slate-700 mb-1">PRIMARY PAIN POINT:</div>
+                        <div className="text-sm text-orange-700 font-medium">💡 {selectedLead.primary_pain_point}</div>
+                      </div>
+                    )}
+                    {selectedLead.secondary_pain_points && selectedLead.secondary_pain_points.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <div className="text-xs font-semibold text-slate-700">ADDITIONAL OPPORTUNITIES:</div>
+                        {selectedLead.secondary_pain_points.map((point, idx) => (
+                          <div key={idx} className="text-xs text-slate-600">• {point}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Accessibility Score */}
+                {selectedLead.accessibility_score !== undefined && (
+                  <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-slate-900">♿ Accessibility (WCAG) Score</h3>
+                      <span className={`text-3xl font-bold ${getScoreColor(selectedLead.accessibility_score)}`}>
+                        {selectedLead.accessibility_score}
+                      </span>
+                    </div>
+                    {selectedLead.wcag_total_violations! > 0 && (
+                      <div className="grid grid-cols-4 gap-2 text-sm">
+                        <div className="bg-red-100 rounded p-2 text-center">
+                          <div className="font-bold text-red-800">{selectedLead.wcag_critical_violations}</div>
+                          <div className="text-xs text-red-700">Critical</div>
+                        </div>
+                        <div className="bg-orange-100 rounded p-2 text-center">
+                          <div className="font-bold text-orange-800">{selectedLead.wcag_serious_violations}</div>
+                          <div className="text-xs text-orange-700">Serious</div>
+                        </div>
+                        <div className="bg-yellow-100 rounded p-2 text-center">
+                          <div className="font-bold text-yellow-800">{selectedLead.wcag_moderate_violations}</div>
+                          <div className="text-xs text-yellow-700">Moderate</div>
+                        </div>
+                        <div className="bg-blue-100 rounded p-2 text-center">
+                          <div className="font-bold text-blue-800">{selectedLead.wcag_minor_violations}</div>
+                          <div className="text-xs text-blue-700">Minor</div>
+                        </div>
+                      </div>
+                    )}
+                    {selectedLead.wcag_critical_violations! > 0 && (
+                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800">
+                        ⚠️ Critical violations create legal risk (ADA lawsuits) and hurt SEO rankings
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Recommended Pitch */}
+                {selectedLead.recommended_pitch && (
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">💬 Recommended Pitch</h3>
+                    <div className="text-sm text-slate-700 italic bg-white p-3 rounded border border-green-300">
+                      {selectedLead.recommended_pitch}
+                    </div>
+                    <div className="mt-2 text-xs text-slate-600">
+                      📋 Copy this pitch for outreach emails or calls
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Discovery Data */}
             {selectedLead.discovery_data && (

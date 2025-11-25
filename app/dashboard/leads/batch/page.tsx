@@ -208,9 +208,23 @@ export default function BatchLeadDiscoveryPage() {
               <h1 className="text-5xl font-black bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-4 leading-tight">
                 Batch Lead Discovery
               </h1>
-              <p className="text-lg text-slate-700">
-                Find 50-200 sweet spot leads automatically. Runs in background, saves to pipeline.
+              <p className="text-lg text-slate-700 mb-2">
+                Find and score leads with complete WCAG accessibility audits + AISO fit scoring.
               </p>
+              <div className="flex flex-wrap gap-2 text-sm">
+                <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full font-semibold">
+                  ♿ WCAG Compliance
+                </span>
+                <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full font-semibold">
+                  🎯 AISO Fit Score
+                </span>
+                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full font-semibold">
+                  💬 Auto-Generated Pitches
+                </span>
+                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold">
+                  📊 Pain Point Analysis
+                </span>
+              </div>
             </div>
             <Link
               href="/dashboard/leads"
@@ -229,6 +243,49 @@ export default function BatchLeadDiscoveryPage() {
             <p className="text-sm font-bold text-red-800">{error}</p>
           </div>
         )}
+
+        {/* NEW: What Happens Info Box */}
+        <div className="mb-8 p-6 rounded-xl bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200">
+          <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <span className="text-2xl">✨</span>
+            What Happens During Batch Discovery
+          </h3>
+          <div className="grid md:grid-cols-2 gap-4 text-sm text-slate-700">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🔍</span>
+              <div>
+                <div className="font-semibold mb-1">Business Discovery</div>
+                <div className="text-xs">Finds businesses matching your industry + location</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">♿</span>
+              <div>
+                <div className="font-semibold mb-1">WCAG Accessibility Audit</div>
+                <div className="text-xs">Scans for violations (critical, serious, moderate, minor)</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🎯</span>
+              <div>
+                <div className="font-semibold mb-1">AISO Fit Scoring</div>
+                <div className="text-xs">Calculates opportunity score (0-100) based on content, WCAG, SEO</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">💡</span>
+              <div>
+                <div className="font-semibold mb-1">Pain Point Analysis</div>
+                <div className="text-xs">Identifies primary marketing opportunities + generates pitches</div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 p-3 bg-white rounded-lg border border-purple-200 text-xs text-slate-600">
+            <strong>💰 Revenue Opportunity:</strong> Each lead includes estimated monthly value ($299-$999) based on pain points.
+            <br />
+            <strong>⚡ Time to Close:</strong> Automatically categorizes leads as immediate, short, medium, or long sales cycles.
+          </div>
+        </div>
 
         {/* Create Batch Form */}
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl mb-8">
