@@ -320,8 +320,15 @@ export default function BatchLeadDiscoveryPage() {
                 Project
               </label>
               <select
-                value={formData.projectId || 'new'}
-                onChange={(e) => setFormData({ ...formData, projectId: e.target.value === 'new' ? null : parseInt(e.target.value) })}
+                value={formData.projectId === null ? 'new' : formData.projectId}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({
+                    ...formData,
+                    projectId: value === 'new' ? null : parseInt(value),
+                    newProjectName: value === 'new' ? formData.newProjectName : ''
+                  });
+                }}
                 className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                 style={{ color: '#0f172a' }}
               >
@@ -330,12 +337,13 @@ export default function BatchLeadDiscoveryPage() {
                   <option key={project.id} value={project.id}>{project.name}</option>
                 ))}
               </select>
-              {formData.projectId === null && (
+              {(formData.projectId === null || formData.projectId === undefined) && (
                 <input
                   type="text"
                   value={formData.newProjectName}
                   onChange={(e) => setFormData({ ...formData, newProjectName: e.target.value })}
-                  placeholder="Enter new project name"
+                  placeholder="Enter new project name (e.g., Denver CPAs)"
+                  required
                   className="w-full px-4 py-3 mt-2 rounded-lg border-2 border-slate-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                   style={{ color: '#0f172a' }}
                 />
