@@ -35,6 +35,38 @@ function AuditPageContent() {
     const urlParam = searchParams.get('url');
     const fromPost = searchParams.get('fromPost');
     const wcagOnly = searchParams.get('wcag');
+    const auditId = searchParams.get('auditId');
+
+    // Load existing accessibility audit by ID
+    if (auditId) {
+      const loadAudit = async () => {
+        try {
+          const response = await fetch(`/api/audit/accessibility/${auditId}`);
+          if (response.ok) {
+            const data = await response.json();
+            const audit = data.audit;
+            setUrlInput(audit.url);
+            setAccessibilityResult({
+              accessibilityScore: audit.accessibilityScore,
+              criticalCount: audit.criticalCount,
+              seriousCount: audit.seriousCount,
+              moderateCount: audit.moderateCount,
+              minorCount: audit.minorCount,
+              totalViolations: audit.totalViolations,
+              totalPasses: audit.totalPasses,
+              violations: audit.violations,
+              passes: audit.passes,
+              wcagBreakdown: audit.wcagBreakdown,
+              pageTitle: audit.pageTitle,
+            });
+          }
+        } catch (e) {
+          console.error('Failed to load audit:', e);
+        }
+      };
+      loadAudit();
+      return;
+    }
 
     // Check if data was passed via sessionStorage (from post detail page)
     if (fromPost === 'true') {

@@ -146,6 +146,7 @@ interface Lead {
   wcag_moderate_violations?: number;
   wcag_minor_violations?: number;
   wcag_total_violations?: number;
+  accessibility_audit_id?: number; // Links to canonical audit in accessibility_audits
   // Searchability fields
   ranking_keywords?: number;
   avg_search_position?: number;
@@ -481,26 +482,52 @@ export default function PipelinePage() {
   const runAudit = async (lead: Lead) => {
     setRunningAudit(true);
     try {
-      const response = await fetch(`/api/leads/${lead.id}/audit`, {
+      // Call the canonical accessibility audit endpoint (saves to accessibility_audits table)
+      const auditResponse = await fetch('/api/audit/accessibility', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ auditType: 'full' }),
+        body: JSON.stringify({ url: `https://${lead.domain}` }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        // Update the selected lead with new audit data
-        if (data.updatedLead) {
-          setSelectedLead(data.updatedLead);
-          // Also update in the leads list
-          setLeads(prev => prev.map(l =>
-            l.id === lead.id ? data.updatedLead : l
-          ));
-        }
-        alert(`Audit completed for ${lead.business_name}! Check the updated scores.`);
-      } else {
-        const error = await response.json();
+      if (!auditResponse.ok) {
+        const error = await auditResponse.json();
         alert(`Audit failed: ${error.error}`);
+        return;
+      }
+
+      const auditData = await auditResponse.json();
+      const audit = auditData.audit;
+
+      // Update the lead with the new audit scores
+      const updateResponse = await fetch(`/api/leads/${lead.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessibility_score: audit.accessibilityScore,
+          wcag_critical_violations: audit.criticalCount,
+          wcag_serious_violations: audit.seriousCount,
+          wcag_moderate_violations: audit.moderateCount,
+          wcag_minor_violations: audit.minorCount,
+          wcag_total_violations: audit.totalViolations,
+          accessibility_audit_id: audit.id, // Link to canonical audit
+        }),
+      });
+
+      if (updateResponse.ok) {
+        const updateData = await updateResponse.json();
+        // Update local state
+        const updatedLead = {
+          ...lead,
+          accessibility_score: audit.accessibilityScore,
+          wcag_critical_violations: audit.criticalCount,
+          wcag_serious_violations: audit.seriousCount,
+          wcag_moderate_violations: audit.moderateCount,
+          wcag_minor_violations: audit.minorCount,
+          wcag_total_violations: audit.totalViolations,
+        };
+        setSelectedLead(updatedLead);
+        setLeads(prev => prev.map(l => l.id === lead.id ? updatedLead : l));
+        alert(`Audit completed for ${lead.business_name}! Score: ${audit.accessibilityScore}/100`);
       }
     } catch (error) {
       console.error('Failed to run audit:', error);
@@ -1176,7 +1203,10 @@ export default function PipelinePage() {
                       </div>
                     )}
                     <Link
-                      href={`/dashboard/audit?url=https://${selectedLead.domain}&wcag=true`}
+                      href={selectedLead.accessibility_audit_id
+                        ? `/dashboard/audit?auditId=${selectedLead.accessibility_audit_id}`
+                        : `/dashboard/audit?url=https://${selectedLead.domain}&wcag=true`
+                      }
                       className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors text-sm"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
