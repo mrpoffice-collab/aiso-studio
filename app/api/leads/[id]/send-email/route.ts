@@ -195,12 +195,49 @@ export async function POST(
   }
 }
 
-// Helper function to format plain text email as HTML
+// Helper function to format plain text email as HTML with professional branding
 function formatEmailAsHtml(plainText: string, senderEmail: string): string {
-  const htmlBody = plainText
+  // Parse the email content
+  const lines = plainText.split('\n');
+  let bodyLines: string[] = [];
+  let signatureLines: string[] = [];
+  let inSignature = false;
+
+  for (const line of lines) {
+    if (line.trim() === '—' || line.trim() === '--') {
+      inSignature = true;
+      continue;
+    }
+    if (inSignature) {
+      signatureLines.push(line);
+    } else {
+      bodyLines.push(line);
+    }
+  }
+
+  // Format body paragraphs
+  const bodyText = bodyLines.join('\n');
+  const htmlBody = bodyText
     .split('\n\n')
-    .map(paragraph => `<p style="margin: 0 0 16px 0; line-height: 1.6;">${paragraph.replace(/\n/g, '<br>')}</p>`)
+    .map(paragraph => {
+      // Handle bullet points
+      if (paragraph.includes('•')) {
+        const items = paragraph.split('\n').map(line => {
+          if (line.trim().startsWith('•')) {
+            return `<li style="margin: 8px 0; color: #374151;">${line.trim().substring(1).trim()}</li>`;
+          }
+          return `<p style="margin: 0 0 8px 0;">${line}</p>`;
+        }).join('');
+        return `<ul style="margin: 16px 0; padding-left: 20px; list-style: none;">${items}</ul>`;
+      }
+      return `<p style="margin: 0 0 16px 0; line-height: 1.7; color: #374151;">${paragraph.replace(/\n/g, '<br>')}</p>`;
+    })
     .join('');
+
+  // Format signature
+  const signatureName = signatureLines[0] || 'The AISO Team';
+  const signatureTitle = signatureLines[1] || 'AI Search Optimization';
+  const signatureCompany = signatureLines[2] || 'aiso.studio';
 
   return `
 <!DOCTYPE html>
@@ -208,13 +245,79 @@ function formatEmailAsHtml(plainText: string, senderEmail: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Message from AISO</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px;">
-  ${htmlBody}
-  <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-  <p style="font-size: 12px; color: #6b7280; margin: 0;">
-    Sent via <a href="https://aiso.studio" style="color: #f97316; text-decoration: none;">AISO.studio</a>
-  </p>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8fafc;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding: 0 0 32px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    <div style="display: inline-block; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 12px 20px; border-radius: 8px;">
+                      <span style="font-size: 24px; font-weight: 700; color: white; letter-spacing: -0.5px;">AISO</span>
+                      <span style="font-size: 14px; color: rgba(255,255,255,0.9); margin-left: 4px;">.studio</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main Content Card -->
+          <tr>
+            <td>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <tr>
+                  <td style="padding: 40px;">
+                    <!-- Email Body -->
+                    <div style="font-size: 16px; line-height: 1.7;">
+                      ${htmlBody}
+                    </div>
+
+                    <!-- Signature -->
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 24px;">
+                      <tr>
+                        <td>
+                          <p style="margin: 0 0 4px 0; font-weight: 600; color: #111827; font-size: 15px;">${signatureName}</p>
+                          <p style="margin: 0 0 2px 0; color: #6b7280; font-size: 14px;">${signatureTitle}</p>
+                          <a href="https://aiso.studio" style="color: #f97316; text-decoration: none; font-size: 14px; font-weight: 500;">${signatureCompany}</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 32px 0 0 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <p style="margin: 0 0 16px 0; color: #9ca3af; font-size: 13px;">
+                      AI-Powered Search Optimization for Local Businesses
+                    </p>
+                    <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                      <a href="https://aiso.studio" style="color: #f97316; text-decoration: none;">aiso.studio</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
   `.trim();
