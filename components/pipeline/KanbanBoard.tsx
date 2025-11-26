@@ -53,6 +53,7 @@ interface KanbanBoardProps {
   onLeadClick: (lead: Lead) => void;
   onSendEmail: (lead: Lead) => void;
   onDelete: (leadId: number, businessName: string) => void;
+  onConvert?: (lead: Lead) => void;
 }
 
 const PIPELINE_STAGES = [
@@ -114,7 +115,7 @@ function getLeadServicesInfo(lead: Lead): { count: number; value: number } {
   return { count, value };
 }
 
-export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSendEmail, onDelete }: KanbanBoardProps) {
+export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSendEmail, onDelete, onConvert }: KanbanBoardProps) {
   const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
@@ -350,6 +351,24 @@ export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSend
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
                             Email
+                          </button>
+                        </>
+                      )}
+                      {lead.status !== 'won' && lead.status !== 'lost' && onConvert && (
+                        <>
+                          <span className="text-slate-300">|</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onConvert(lead);
+                            }}
+                            className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium py-1"
+                            title="Convert to client"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Convert
                           </button>
                         </>
                       )}
