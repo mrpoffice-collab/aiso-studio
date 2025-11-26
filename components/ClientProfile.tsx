@@ -489,17 +489,17 @@ export default function ClientProfile({
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
                               <div className={`text-3xl font-black ${
-                                audit.accessibilityScore >= 90 ? 'text-green-600' :
-                                audit.accessibilityScore >= 70 ? 'text-blue-600' :
-                                audit.accessibilityScore >= 50 ? 'text-yellow-600' :
+                                (audit.accessibilityScore || 0) >= 90 ? 'text-green-600' :
+                                (audit.accessibilityScore || 0) >= 70 ? 'text-blue-600' :
+                                (audit.accessibilityScore || 0) >= 50 ? 'text-yellow-600' :
                                 'text-red-600'
                               }`}>
-                                {audit.accessibilityScore}
+                                {audit.accessibilityScore ?? 'N/A'}
                               </div>
                               <div>
                                 <div className="text-sm font-medium text-slate-900">WCAG Score</div>
                                 <div className="text-xs text-slate-500">
-                                  {new Date(audit.createdAt).toLocaleDateString()} at {new Date(audit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  {audit.createdAt ? new Date(audit.createdAt).toLocaleDateString() : 'Unknown date'}
                                 </div>
                               </div>
                             </div>
@@ -507,27 +507,27 @@ export default function ClientProfile({
 
                           {/* Violations Breakdown */}
                           <div className="flex flex-wrap gap-2 mb-4">
-                            {audit.criticalCount > 0 && (
+                            {(audit.criticalCount || 0) > 0 && (
                               <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded">
                                 {audit.criticalCount} Critical
                               </span>
                             )}
-                            {audit.seriousCount > 0 && (
+                            {(audit.seriousCount || 0) > 0 && (
                               <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded">
                                 {audit.seriousCount} Serious
                               </span>
                             )}
-                            {audit.moderateCount > 0 && (
+                            {(audit.moderateCount || 0) > 0 && (
                               <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded">
                                 {audit.moderateCount} Moderate
                               </span>
                             )}
-                            {audit.minorCount > 0 && (
+                            {(audit.minorCount || 0) > 0 && (
                               <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded">
                                 {audit.minorCount} Minor
                               </span>
                             )}
-                            {audit.totalViolations === 0 && (
+                            {(audit.totalViolations || 0) === 0 && (audit.criticalCount || 0) === 0 && (audit.seriousCount || 0) === 0 && (
                               <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
                                 No Issues Found
                               </span>
