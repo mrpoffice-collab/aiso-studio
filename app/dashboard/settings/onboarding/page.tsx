@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { HexColorPicker } from 'react-colorful';
 import { AISOMascotLoading, AISOMascotInline } from '@/components/AISOMascot';
+import LogoUpload from '@/components/LogoUpload';
 
 interface OnboardingStep {
   id: string;
@@ -172,32 +173,13 @@ export default function OnboardingPage() {
             <div>
               <h2 className="text-2xl font-bold text-slate-900">Upload your logo</h2>
               <p className="mt-2 text-slate-600">
-                Your logo will appear on emails, reports, and proposals. We recommend a horizontal logo (200x60px).
+                Your logo will appear on emails, reports, and proposals. Horizontal logos work best.
               </p>
             </div>
-            {formData.agency_logo_url && (
-              <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-8">
-                <img
-                  src={formData.agency_logo_url}
-                  alt="Your logo"
-                  className="max-h-24 w-auto"
-                />
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Logo URL</label>
-              <input
-                type="url"
-                value={formData.agency_logo_url}
-                onChange={(e) => setFormData({ ...formData, agency_logo_url: e.target.value })}
-                className="mt-2 block w-full rounded-xl border border-slate-300 px-4 py-3 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                placeholder="https://your-site.com/logo.png"
-              />
-              <p className="mt-2 text-sm text-slate-500">
-                Upload to <a href="https://cloudinary.com" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">Cloudinary</a>,{' '}
-                <a href="https://imgur.com" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">Imgur</a>, or your own website
-              </p>
-            </div>
+            <LogoUpload
+              currentLogoUrl={formData.agency_logo_url}
+              onUpload={(url) => setFormData({ ...formData, agency_logo_url: url })}
+            />
           </div>
         );
 

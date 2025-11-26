@@ -43,11 +43,11 @@ export async function POST(
     const leadId = parseInt(id, 10); // leads.id is integer
 
     const body = await request.json();
-    const { to, subject, body: emailBody, template } = body;
+    const { to, subject, body: emailBody, html: brandedHtml, template } = body;
 
-    if (!to || !subject || !emailBody) {
+    if (!to || !subject || (!emailBody && !brandedHtml)) {
       return NextResponse.json(
-        { error: 'Missing required fields: to, subject, body' },
+        { error: 'Missing required fields: to, subject, and body or html' },
         { status: 400 }
       );
     }
@@ -86,12 +86,16 @@ export async function POST(
     }
 
     // Send email via SMTP
+    // Use branded HTML if provided, otherwise format plain text body
+    const htmlContent = brandedHtml || formatEmailAsHtml(emailBody, senderEmail);
+    const textContent = emailBody || 'Please view this email in an HTML-capable email client.';
+
     const mailResult = await transporter.sendMail({
       from: `"AISO Studio" <${senderEmail}>`,
       to: to,
       subject: subject,
-      text: emailBody,
-      html: formatEmailAsHtml(emailBody, senderEmail),
+      text: textContent,
+      html: htmlContent,
     });
 
     console.log(`✅ Email sent to ${to} - MessageID: ${mailResult.messageId}`);
@@ -116,7 +120,7 @@ export async function POST(
           ${to},
           ${senderEmail},
           ${subject},
-          ${emailBody},
+          ${htmlContent},
           ${template || 'custom'},
           ${mailResult.messageId || null},
           'sent',

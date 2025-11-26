@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { useRouter } from 'next/navigation';
 import { AISOMascotLoading } from '@/components/AISOMascot';
+import LogoUpload from '@/components/LogoUpload';
 
 export default function BrandingSettingsPage() {
   const router = useRouter();
@@ -220,40 +221,10 @@ export default function BrandingSettingsPage() {
               </span>
               Logo
             </h2>
-            <div className="space-y-4">
-              {formData.agency_logo_url && (
-                <div className="flex items-center gap-4">
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    <img
-                      src={formData.agency_logo_url}
-                      alt="Agency logo"
-                      className="h-16 w-auto object-contain"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, agency_logo_url: '' })}
-                    className="text-sm text-red-600 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Logo URL</label>
-                <input
-                  type="url"
-                  value={formData.agency_logo_url}
-                  onChange={(e) => setFormData({ ...formData, agency_logo_url: e.target.value })}
-                  className="mt-1 block w-full rounded-lg border border-slate-300 px-4 py-2.5 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                  placeholder="https://example.com/logo.png"
-                />
-                <p className="mt-1.5 text-sm text-slate-500">
-                  Upload your logo to Cloudinary, Imgur, or your website and paste the URL here.
-                  Recommended size: 200x60px
-                </p>
-              </div>
-            </div>
+            <LogoUpload
+              currentLogoUrl={formData.agency_logo_url}
+              onUpload={(url) => setFormData({ ...formData, agency_logo_url: url })}
+            />
           </div>
 
           {/* Brand Colors */}
