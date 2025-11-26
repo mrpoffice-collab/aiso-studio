@@ -1267,7 +1267,8 @@ export const db = {
     const result = await query(
       `SELECT
         agency_name, agency_logo_url, agency_primary_color, agency_secondary_color,
-        agency_email, agency_phone, agency_website, agency_address, agency_tagline
+        agency_email, agency_phone, agency_website, agency_address, agency_tagline,
+        signature_name, signature_title, signature_phone
        FROM users
        WHERE id = $1`,
       [userId]
@@ -1285,6 +1286,9 @@ export const db = {
     agency_website?: string;
     agency_address?: string;
     agency_tagline?: string;
+    signature_name?: string;
+    signature_title?: string;
+    signature_phone?: string;
   }) {
     const updates: string[] = [];
     const values: any[] = [];
@@ -1326,6 +1330,18 @@ export const db = {
       updates.push(`agency_tagline = $${paramCount++}`);
       values.push(branding.agency_tagline);
     }
+    if (branding.signature_name !== undefined) {
+      updates.push(`signature_name = $${paramCount++}`);
+      values.push(branding.signature_name);
+    }
+    if (branding.signature_title !== undefined) {
+      updates.push(`signature_title = $${paramCount++}`);
+      values.push(branding.signature_title);
+    }
+    if (branding.signature_phone !== undefined) {
+      updates.push(`signature_phone = $${paramCount++}`);
+      values.push(branding.signature_phone);
+    }
 
     if (updates.length === 0) {
       return await this.getUserBranding(userId);
@@ -1336,13 +1352,14 @@ export const db = {
       `UPDATE users SET ${updates.join(', ')}, updated_at = NOW()
        WHERE id = $${paramCount}
        RETURNING agency_name, agency_logo_url, agency_primary_color, agency_secondary_color,
-                 agency_email, agency_phone, agency_website, agency_address, agency_tagline`,
+                 agency_email, agency_phone, agency_website, agency_address, agency_tagline,
+                 signature_name, signature_title, signature_phone`,
       values
     );
     return result[0];
   },
 
-  // Accessibility Audits (WCAG)
+  // Accessibility Audits (WCAG) - Extended with content scores
   async createAccessibilityAudit(data: {
     user_id: number | string;
     content_audit_id?: number;
@@ -1360,14 +1377,28 @@ export const db = {
     scan_version?: string;
     page_title?: string;
     page_language?: string;
+    // Extended content score fields
+    aiso_score?: number;
+    aeo_score?: number;
+    seo_score?: number;
+    readability_score?: number;
+    engagement_score?: number;
+    fact_check_score?: number;
+    seo_details?: any;
+    readability_details?: any;
+    engagement_details?: any;
+    aeo_details?: any;
+    fact_checks?: any[];
   }) {
     const result = await query(
       `INSERT INTO accessibility_audits (
         user_id, content_audit_id, url, accessibility_score,
         critical_count, serious_count, moderate_count, minor_count,
         total_violations, total_passes, violations, passes, wcag_breakdown,
-        scan_version, page_title, page_language
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        scan_version, page_title, page_language,
+        aiso_score, aeo_score, seo_score, readability_score, engagement_score, fact_check_score,
+        seo_details, readability_details, engagement_details, aeo_details, fact_checks
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
       RETURNING *`,
       [
         data.user_id,
@@ -1386,6 +1417,17 @@ export const db = {
         data.scan_version || null,
         data.page_title || null,
         data.page_language || null,
+        data.aiso_score || 0,
+        data.aeo_score || 0,
+        data.seo_score || 0,
+        data.readability_score || 0,
+        data.engagement_score || 0,
+        data.fact_check_score || 0,
+        JSON.stringify(data.seo_details || {}),
+        JSON.stringify(data.readability_details || {}),
+        JSON.stringify(data.engagement_details || {}),
+        JSON.stringify(data.aeo_details || {}),
+        JSON.stringify(data.fact_checks || []),
       ]
     );
     return result[0];
@@ -2276,6 +2318,173 @@ export const db = {
       );
     }
 
+    return result[0];
+  },
+
+  // Tasks
+  async createTask(data: {
+    user_id: string;
+    lead_id?: number;
+    title: string;
+    description?: string;
+    status?: string;
+    priority?: string;
+    due_date?: Date;
+    tags?: string[];
+    is_auto_generated?: boolean;
+    source_type?: string;
+    source_id?: number;
+  }) {
+    const result = await sql`
+      INSERT INTO tasks (
+        user_id, lead_id, title, description, status, priority,
+        due_date, tags, is_auto_generated, source_type, source_id
+      ) VALUES (
+        ${data.user_id},
+        ${data.lead_id || null},
+        ${data.title},
+        ${data.description || null},
+        ${data.status || 'todo'},
+        ${data.priority || 'medium'},
+        ${data.due_date || null},
+        ${data.tags ? sql.array(data.tags) : sql.array([])},
+        ${data.is_auto_generated || false},
+        ${data.source_type || null},
+        ${data.source_id || null}
+      ) RETURNING *
+    `;
+    return result[0];
+  },
+
+  async getTasksByUserId(userId: string, filters?: {
+    lead_id?: number;
+    status?: string;
+    include_completed?: boolean;
+  }) {
+    let queryText = 'SELECT t.*, l.business_name as client_name FROM tasks t LEFT JOIN leads l ON t.lead_id = l.id WHERE t.user_id = $1';
+    const params: any[] = [userId];
+    let paramCount = 2;
+
+    if (filters?.lead_id) {
+      queryText += ` AND t.lead_id = $${paramCount++}`;
+      params.push(filters.lead_id);
+    }
+
+    if (filters?.status) {
+      queryText += ` AND t.status = $${paramCount++}`;
+      params.push(filters.status);
+    }
+
+    if (!filters?.include_completed) {
+      queryText += ` AND t.status != 'done'`;
+    }
+
+    queryText += ' ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC';
+
+    return await query(queryText, params);
+  },
+
+  async getTaskById(id: number) {
+    const result = await query('SELECT * FROM tasks WHERE id = $1', [id]);
+    return result[0] || null;
+  },
+
+  async updateTask(id: number, data: {
+    title?: string;
+    description?: string;
+    status?: string;
+    priority?: string;
+    due_date?: Date | null;
+    tags?: string[];
+  }) {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+
+    if (data.title !== undefined) {
+      updates.push(`title = $${paramCount++}`);
+      values.push(data.title);
+    }
+    if (data.description !== undefined) {
+      updates.push(`description = $${paramCount++}`);
+      values.push(data.description);
+    }
+    if (data.status !== undefined) {
+      updates.push(`status = $${paramCount++}`);
+      values.push(data.status);
+      if (data.status === 'done') {
+        updates.push(`completed_at = NOW()`);
+      }
+    }
+    if (data.priority !== undefined) {
+      updates.push(`priority = $${paramCount++}`);
+      values.push(data.priority);
+    }
+    if (data.due_date !== undefined) {
+      updates.push(`due_date = $${paramCount++}`);
+      values.push(data.due_date);
+    }
+    if (data.tags !== undefined) {
+      updates.push(`tags = $${paramCount++}`);
+      values.push(data.tags);
+    }
+
+    if (updates.length === 0) return this.getTaskById(id);
+
+    updates.push('updated_at = NOW()');
+    values.push(id);
+
+    const result = await query(
+      `UPDATE tasks SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+    return result[0];
+  },
+
+  async deleteTask(id: number) {
+    await query('DELETE FROM tasks WHERE id = $1', [id]);
+  },
+
+  async getOverdueTasks(userId: string) {
+    return await query(
+      `SELECT t.*, l.business_name as client_name
+       FROM tasks t
+       LEFT JOIN leads l ON t.lead_id = l.id
+       WHERE t.user_id = $1
+       AND t.status != 'done'
+       AND t.due_date < NOW()
+       ORDER BY t.due_date ASC`,
+      [userId]
+    );
+  },
+
+  async getUpcomingTasks(userId: string, days: number = 7) {
+    return await query(
+      `SELECT t.*, l.business_name as client_name
+       FROM tasks t
+       LEFT JOIN leads l ON t.lead_id = l.id
+       WHERE t.user_id = $1
+       AND t.status != 'done'
+       AND t.due_date IS NOT NULL
+       AND t.due_date > NOW()
+       AND t.due_date < NOW() + INTERVAL '${days} days'
+       ORDER BY t.due_date ASC`,
+      [userId]
+    );
+  },
+
+  async getTaskStats(userId: string) {
+    const result = await query(
+      `SELECT
+        COUNT(*) as total,
+        COUNT(CASE WHEN status = 'todo' THEN 1 END) as todo,
+        COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress,
+        COUNT(CASE WHEN status = 'done' THEN 1 END) as done,
+        COUNT(CASE WHEN due_date < NOW() AND status != 'done' THEN 1 END) as overdue
+       FROM tasks
+       WHERE user_id = $1`,
+      [userId]
+    );
     return result[0];
   },
 };

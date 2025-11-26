@@ -18,6 +18,7 @@ export default function DashboardNav() {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/leads', label: 'Leads' },
     { href: '/dashboard/pipeline', label: 'Pipeline' },
+    { href: '/dashboard/clients', label: 'Clients' },
     { href: '/dashboard/strategies', label: 'Strategies' },
     { href: '/dashboard/posts', label: 'Posts' },
     { href: '/dashboard/assets', label: 'Vault' },

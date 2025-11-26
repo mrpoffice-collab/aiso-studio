@@ -45,202 +45,280 @@ export default async function DashboardPage() {
       idType: typeof user.id
     });
 
-    // Fetch stats
-    logInfo('Dashboard: Fetching strategies', { userId: user.id });
-    const strategies = await db.getStrategiesByUserId(user.id);
-    const strategiesCount = strategies.length;
-    logInfo('Dashboard: Strategies fetched', { count: strategiesCount });
+    // Fetch all dashboard data
+    const [strategies, posts, leads, taskStats] = await Promise.all([
+      db.getStrategiesByUserId(user.id),
+      db.getPostsByUserId(user.id),
+      db.getLeadsByUserId(user.id),
+      db.getTaskStats(user.id).catch(() => ({ total: 0, todo: 0, in_progress: 0, done: 0, overdue: 0 })),
+    ]);
 
-    // Fetch posts
-    logInfo('Dashboard: Fetching posts', { userId: user.id });
-    const posts = await db.getPostsByUserId(user.id);
-    const postsCount = posts.length;
-    const approvedPostsCount = posts.filter((p: any) => p.status === 'approved').length;
-    logInfo('Dashboard: Posts fetched', {
-      total: postsCount,
-      approved: approvedPostsCount
-    });
+    // Calculate metrics
+    const clients = leads.filter((l: any) => l.status === 'won');
+    const clientsCount = clients.length;
+    const pipelineValue = leads
+      .filter((l: any) => l.status !== 'lost')
+      .reduce((sum: number, l: any) => sum + (l.estimated_monthly_value || 0), 0);
+    const leadsCount = leads.filter((l: any) => !['won', 'lost'].includes(l.status)).length;
+    const postsThisMonth = posts.filter((p: any) => {
+      const created = new Date(p.created_at);
+      const now = new Date();
+      return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+    }).length;
+
+    // Calculate average AISO score
+    const scoredPosts = posts.filter((p: any) => p.aiso_score > 0);
+    const avgAisoScore = scoredPosts.length > 0
+      ? Math.round(scoredPosts.reduce((sum: number, p: any) => sum + p.aiso_score, 0) / scoredPosts.length)
+      : 0;
+
+    // Get overdue tasks and upcoming tasks
+    let overdueTasks: any[] = [];
+    let upcomingTasks: any[] = [];
+    try {
+      overdueTasks = await db.getOverdueTasks(user.id);
+      upcomingTasks = await db.getUpcomingTasks(user.id, 7);
+    } catch (e) {
+      // Tasks table might not exist yet
+    }
+
+    // Get clients needing attention (audits older than 30 days)
+    const clientsNeedingAudit = clients.filter((c: any) => {
+      // For now, flag all clients as potentially needing audit
+      // In production, check last audit date
+      return true;
+    }).slice(0, 3);
+
+    // Check if onboarding is complete
+    const onboardingComplete = !!(
+      user.name &&
+      user.agency_logo_url &&
+      user.agency_primary_color &&
+      user.agency_primary_color !== '#6366f1' && // Not default color
+      (user.agency_email || user.agency_phone) &&
+      user.signature_name &&
+      user.signature_title
+    );
 
     logInfo('Dashboard: Rendering page successfully');
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <DashboardNav />
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        <DashboardNav />
 
-      <main className="container mx-auto px-6 py-12">
-        <div className="mb-12">
-          <h1 className="mb-4 text-5xl font-black bg-gradient-to-r from-deep-indigo via-blue-600 to-deep-indigo bg-clip-text text-transparent">
-            Welcome back, {clerkUser.firstName || 'there'}!
-          </h1>
-          <p className="text-lg text-slate-600 font-medium">
-            AI-powered content optimization for ChatGPT, Perplexity, and Google SGE
-          </p>
-        </div>
-
-        <div className="mb-12 grid gap-6 md:grid-cols-3">
-          <div className="group rounded-2xl border border-slate-200/60 bg-white p-8 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-300/30 transition-all duration-300 hover:-translate-y-1">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Strategies</h3>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-deep-indigo to-blue-600 shadow-lg shadow-blue-200">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-4xl font-black bg-gradient-to-r from-deep-indigo to-blue-600 bg-clip-text text-transparent">{strategiesCount}</p>
-          </div>
-          <div className="group rounded-2xl border border-slate-200/60 bg-white p-8 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-orange-300/30 transition-all duration-300 hover:-translate-y-1">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Posts Generated</h3>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-sunset-orange to-orange-600 shadow-lg shadow-orange-200">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-4xl font-black bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">{postsCount}</p>
-          </div>
-          <div className="group rounded-2xl border border-slate-200/60 bg-white p-8 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-green-300/30 transition-all duration-300 hover:-translate-y-1">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Posts Approved</h3>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-200">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-4xl font-black bg-gradient-to-r from-green-500 to-emerald-600 bg-clip-text text-transparent">{approvedPostsCount}</p>
-          </div>
-        </div>
-
-        {/* NEW FEATURE: AI Searchability Diagnostic */}
-        <div className="mb-12">
-          <div className="rounded-2xl border-2 border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 p-8 shadow-xl">
-            <div className="flex items-start gap-6">
-              <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-3xl">🤖</span>
-              </div>
-              <div className="flex-1">
-                <div className="inline-block mb-2 px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full">
-                  NEW FEATURE
+        <main className="container mx-auto px-6 py-8">
+          {/* Onboarding Banner */}
+          {!onboardingComplete && (
+            <div className="mb-8 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-2xl p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100">
+                    <span className="text-2xl">🚀</span>
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-slate-900">Complete your agency setup</h2>
+                    <p className="text-sm text-slate-600">Add your branding, colors, and signature for professional client communications</p>
+                  </div>
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                  AI Searchability Diagnostic
-                </h2>
-                <p className="text-slate-700 mb-4">
-                  Discover if ChatGPT, Perplexity, and AI search engines can access your content. Get actionable fixes categorized as <strong>"Agency Can Fix"</strong> (billable services $500-$5K) vs <strong>"Owner Must Change"</strong> (business decisions).
-                </p>
-                <ul className="text-sm text-slate-600 space-y-1 mb-4">
-                  <li>✅ Check 14 different AI searchability factors</li>
-                  <li>✅ See estimated costs for each fix</li>
-                  <li>✅ Get matched with certified agencies if needed</li>
-                  <li>✅ Unlimited diagnostics on your plan</li>
-                </ul>
                 <Link
-                  href="/dashboard/audit/technical-seo"
-                  className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                  href="/dashboard/settings/onboarding"
+                  className="px-5 py-2.5 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition flex items-center gap-2"
                 >
-                  Run AI Searchability Diagnostic →
+                  Get Started
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Welcome */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-black text-slate-900">
+              Welcome back, {clerkUser.firstName || 'there'}!
+            </h1>
+            <p className="text-slate-600 mt-1">Here's what's happening with your agency today.</p>
+          </div>
+
+          {/* Metrics Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-500">Clients</span>
+                <span className="p-2 bg-green-100 rounded-lg">
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </span>
+              </div>
+              <p className="text-3xl font-black text-slate-900">{clientsCount}</p>
+              <p className="text-xs text-slate-500 mt-1">Active clients</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-500">Tasks</span>
+                <span className="p-2 bg-blue-100 rounded-lg">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                </span>
+              </div>
+              <p className="text-3xl font-black text-slate-900">{taskStats.todo + taskStats.in_progress}</p>
+              <p className="text-xs text-slate-500 mt-1">
+                {taskStats.overdue > 0 && <span className="text-red-500">{taskStats.overdue} overdue</span>}
+                {taskStats.overdue === 0 && 'Open tasks'}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-500">Pipeline</span>
+                <span className="p-2 bg-orange-100 rounded-lg">
+                  <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </span>
+              </div>
+              <p className="text-3xl font-black text-slate-900">${pipelineValue.toLocaleString()}</p>
+              <p className="text-xs text-slate-500 mt-1">{leadsCount} leads</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-500">Content</span>
+                <span className="p-2 bg-purple-100 rounded-lg">
+                  <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </span>
+              </div>
+              <p className="text-3xl font-black text-slate-900">{postsThisMonth}</p>
+              <p className="text-xs text-slate-500 mt-1">Posts this month</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* Needs Attention */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 className="font-bold text-slate-900 flex items-center gap-2">
+                  <span className="text-red-500">🚨</span>
+                  Needs Attention
+                </h2>
+                <Link href="/dashboard/clients" className="text-sm text-orange-600 hover:underline">
+                  View All
+                </Link>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {overdueTasks.length === 0 && clientsNeedingAudit.length === 0 && (
+                  <div className="px-5 py-8 text-center text-slate-500">
+                    <p>All caught up! 🎉</p>
+                  </div>
+                )}
+
+                {overdueTasks.slice(0, 3).map((task: any) => (
+                  <div key={task.id} className="px-5 py-3 flex items-center justify-between hover:bg-slate-50">
+                    <div>
+                      <p className="font-medium text-slate-900">{task.title}</p>
+                      <p className="text-sm text-red-500">
+                        Overdue {task.client_name ? `• ${task.client_name}` : ''}
+                      </p>
+                    </div>
+                    <Link
+                      href="/dashboard/clients"
+                      className="px-3 py-1 text-sm bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition"
+                    >
+                      View
+                    </Link>
+                  </div>
+                ))}
+
+                {clientsNeedingAudit.slice(0, 3 - overdueTasks.length).map((client: any) => (
+                  <div key={client.id} className="px-5 py-3 flex items-center justify-between hover:bg-slate-50">
+                    <div>
+                      <p className="font-medium text-slate-900">{client.business_name}</p>
+                      <p className="text-sm text-slate-500">Consider running a fresh audit</p>
+                    </div>
+                    <Link
+                      href={`/dashboard/audit?url=https://${client.domain}`}
+                      className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition"
+                    >
+                      Run Audit
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-100">
+                <h2 className="font-bold text-slate-900 flex items-center gap-2">
+                  <span>⚡</span>
+                  Quick Actions
+                </h2>
+              </div>
+              <div className="p-5 space-y-3">
+                <Link
+                  href="/dashboard/audit"
+                  className="w-full px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-xl hover:shadow-lg transition flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  Run AISO Audit
+                </Link>
+                <Link
+                  href="/dashboard/clients"
+                  className="w-full px-4 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Client
+                </Link>
+                <Link
+                  href="/dashboard/strategies/new"
+                  className="w-full px-4 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Create Strategy
+                </Link>
+                <Link
+                  href="/dashboard/pipeline"
+                  className="w-full px-4 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  View Pipeline
                 </Link>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid gap-8 md:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200/60 bg-white p-8 shadow-xl shadow-slate-200/50">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-sunset-orange to-orange-600">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+          {/* Stats Summary */}
+          {avgAisoScore > 0 && (
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold mb-1">Content Performance</h3>
+                  <p className="text-slate-300 text-sm">Your average AISO score across all content</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-4xl font-black">{avgAisoScore}</p>
+                  <p className="text-sm text-slate-400">Avg AISO Score</p>
+                </div>
               </div>
-              <h2 className="text-2xl font-black text-slate-900">Quick Actions</h2>
             </div>
-            <div className="flex flex-col gap-4">
-              <Link
-                href="/dashboard/strategies/new"
-                className="group relative px-6 py-4 rounded-xl bg-gradient-to-r from-sunset-orange to-orange-600 text-white font-bold shadow-xl shadow-orange-300/50 hover:shadow-orange-400/60 hover:scale-105 transition-all duration-200 overflow-hidden"
-              >
-                <span className="relative z-10 flex items-center justify-center gap-3">
-                  <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Create New Strategy
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-              </Link>
-              <Link
-                href="/dashboard/strategies"
-                className="group px-6 py-4 rounded-xl border-2 border-deep-indigo bg-white text-deep-indigo font-bold hover:bg-deep-indigo hover:text-white shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50 hover:scale-105 transition-all duration-200 text-center"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  View All Strategies
-                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </span>
-              </Link>
-              <Link
-                href="/dashboard/posts"
-                className="group px-6 py-4 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-bold hover:border-slate-400 hover:bg-slate-50 shadow-lg shadow-slate-200/50 hover:shadow-xl hover:shadow-slate-300/50 hover:scale-105 transition-all duration-200 text-center"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  View All Posts
-                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </span>
-              </Link>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200/60 bg-white p-8 shadow-xl shadow-slate-200/50">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-deep-indigo to-blue-600">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-black text-slate-900">Getting Started</h2>
-            </div>
-            <ol className="space-y-4">
-              <li className="flex gap-4 items-start group">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sunset-orange to-orange-600 text-sm font-black text-white shadow-lg shadow-orange-200 group-hover:scale-110 transition-transform">
-                  1
-                </span>
-                <span className="text-slate-700 font-semibold pt-1 group-hover:text-slate-900 transition-colors">Create a content strategy for your first client</span>
-              </li>
-              <li className="flex gap-4 items-start group">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sunset-orange to-orange-600 text-sm font-black text-white shadow-lg shadow-orange-200 group-hover:scale-110 transition-transform">
-                  2
-                </span>
-                <span className="text-slate-700 font-semibold pt-1 group-hover:text-slate-900 transition-colors">Review and customize the generated topics</span>
-              </li>
-              <li className="flex gap-4 items-start group">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sunset-orange to-orange-600 text-sm font-black text-white shadow-lg shadow-orange-200 group-hover:scale-110 transition-transform">
-                  3
-                </span>
-                <span className="text-slate-700 font-semibold pt-1 group-hover:text-slate-900 transition-colors">Generate blog posts from your topics</span>
-              </li>
-              <li className="flex gap-4 items-start group">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sunset-orange to-orange-600 text-sm font-black text-white shadow-lg shadow-orange-200 group-hover:scale-110 transition-transform">
-                  4
-                </span>
-                <span className="text-slate-700 font-semibold pt-1 group-hover:text-slate-900 transition-colors">Review fact-checks and edit content</span>
-              </li>
-              <li className="flex gap-4 items-start group">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sunset-orange to-orange-600 text-sm font-black text-white shadow-lg shadow-orange-200 group-hover:scale-110 transition-transform">
-                  5
-                </span>
-                <span className="text-slate-700 font-semibold pt-1 group-hover:text-slate-900 transition-colors">Export and publish your content</span>
-              </li>
-            </ol>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+          )}
+        </main>
+      </div>
+    );
   } catch (error) {
     // Log detailed error information
     logError(
@@ -270,16 +348,6 @@ export default async function DashboardPage() {
               <p className="text-sm text-red-700 font-mono">
                 {error instanceof Error ? error.message : String(error)}
               </p>
-              {process.env.NODE_ENV === 'development' && error instanceof Error && (
-                <details className="mt-4">
-                  <summary className="text-sm font-semibold text-red-800 cursor-pointer">
-                    Stack Trace (Development Only)
-                  </summary>
-                  <pre className="mt-2 text-xs text-red-600 overflow-auto">
-                    {error.stack}
-                  </pre>
-                </details>
-              )}
             </div>
             <div className="flex gap-4 justify-center">
               <Link
