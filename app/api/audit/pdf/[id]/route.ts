@@ -57,21 +57,36 @@ export async function GET(
       // No branding, use defaults
     }
 
+    // Helper to safely parse JSON fields
+    const parseJsonField = (field: any, fallback: any = []) => {
+      if (!field) return fallback;
+      if (Array.isArray(field)) return field;
+      if (typeof field === 'object') return field;
+      if (typeof field === 'string') {
+        try {
+          return JSON.parse(field);
+        } catch {
+          return fallback;
+        }
+      }
+      return fallback;
+    };
+
     // Format the audit result
     const formattedAudit = {
       id: audit.id,
       url: audit.url,
       domain: new URL(audit.url).hostname.replace(/^www\./, ''),
-      accessibilityScore: audit.accessibility_score,
-      criticalCount: audit.critical_count,
-      seriousCount: audit.serious_count,
-      moderateCount: audit.moderate_count,
-      minorCount: audit.minor_count,
-      totalViolations: audit.total_violations,
-      totalPasses: audit.total_passes,
-      violations: audit.violations || [],
-      passes: audit.passes || [],
-      wcagBreakdown: audit.wcag_breakdown || {},
+      accessibilityScore: audit.accessibility_score || 0,
+      criticalCount: audit.critical_count || 0,
+      seriousCount: audit.serious_count || 0,
+      moderateCount: audit.moderate_count || 0,
+      minorCount: audit.minor_count || 0,
+      totalViolations: audit.total_violations || 0,
+      totalPasses: audit.total_passes || 0,
+      violations: parseJsonField(audit.violations, []),
+      passes: parseJsonField(audit.passes, []),
+      wcagBreakdown: parseJsonField(audit.wcag_breakdown, {}),
       pageTitle: audit.page_title || '',
       aisoScore: audit.aiso_score || 0,
       aeoScore: audit.aeo_score || 0,
@@ -79,11 +94,11 @@ export async function GET(
       readabilityScore: audit.readability_score || 0,
       engagementScore: audit.engagement_score || 0,
       factCheckScore: audit.fact_check_score || 0,
-      seoDetails: audit.seo_details || {},
-      readabilityDetails: audit.readability_details || {},
-      engagementDetails: audit.engagement_details || {},
-      aeoDetails: audit.aeo_details || {},
-      factChecks: audit.fact_checks || [],
+      seoDetails: parseJsonField(audit.seo_details, {}),
+      readabilityDetails: parseJsonField(audit.readability_details, {}),
+      engagementDetails: parseJsonField(audit.engagement_details, {}),
+      aeoDetails: parseJsonField(audit.aeo_details, {}),
+      factChecks: parseJsonField(audit.fact_checks, []),
       createdAt: new Date(audit.created_at),
       isExisting: false,
     };
