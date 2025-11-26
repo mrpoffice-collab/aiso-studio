@@ -48,6 +48,8 @@ export default function ClientProfile({
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
+  const [selectedAudit, setSelectedAudit] = useState<any>(null);
+  const [loadingAuditDetails, setLoadingAuditDetails] = useState(false);
 
   useEffect(() => {
     if (isOpen && client) {
@@ -154,6 +156,87 @@ export default function ClientProfile({
     setSavingNotes(true);
     await new Promise((r) => setTimeout(r, 500));
     setSavingNotes(false);
+  };
+
+  const handleViewAudit = async (audit: any) => {
+    setLoadingAuditDetails(true);
+    setShowAuditModal(true);
+    setAuditResult(null);
+
+    try {
+      // Fetch full audit details
+      const response = await fetch(`/api/audit/accessibility/${audit.id}`);
+      if (!response.ok) throw new Error('Failed to load audit');
+
+      const data = await response.json();
+      const fullAudit = data.audit;
+
+      setAuditResult({
+        id: fullAudit.id,
+        url: fullAudit.url,
+        domain: client?.domain || '',
+        accessibilityScore: fullAudit.accessibilityScore || fullAudit.accessibility_score,
+        criticalCount: fullAudit.criticalCount || fullAudit.critical_count || 0,
+        seriousCount: fullAudit.seriousCount || fullAudit.serious_count || 0,
+        moderateCount: fullAudit.moderateCount || fullAudit.moderate_count || 0,
+        minorCount: fullAudit.minorCount || fullAudit.minor_count || 0,
+        totalViolations: fullAudit.totalViolations || fullAudit.total_violations || 0,
+        totalPasses: fullAudit.totalPasses || fullAudit.total_passes || 0,
+        violations: fullAudit.violations || [],
+        passes: fullAudit.passes || [],
+        wcagBreakdown: fullAudit.wcagBreakdown || fullAudit.wcag_breakdown || {},
+        pageTitle: fullAudit.pageTitle || fullAudit.page_title || '',
+        aisoScore: fullAudit.aisoScore || fullAudit.aiso_score || 0,
+        aeoScore: fullAudit.aeoScore || fullAudit.aeo_score || 0,
+        seoScore: fullAudit.seoScore || fullAudit.seo_score || 0,
+        readabilityScore: fullAudit.readabilityScore || fullAudit.readability_score || 0,
+        engagementScore: fullAudit.engagementScore || fullAudit.engagement_score || 0,
+        factCheckScore: fullAudit.factCheckScore || fullAudit.fact_check_score || 0,
+        seoDetails: fullAudit.seoDetails || fullAudit.seo_details || {},
+        readabilityDetails: fullAudit.readabilityDetails || fullAudit.readability_details || {},
+        engagementDetails: fullAudit.engagementDetails || fullAudit.engagement_details || {},
+        aeoDetails: fullAudit.aeoDetails || fullAudit.aeo_details || {},
+        factChecks: fullAudit.factChecks || fullAudit.fact_checks || [],
+        createdAt: new Date(fullAudit.createdAt || fullAudit.created_at),
+        isExisting: true,
+        pdfUrl: `/api/audit/pdf/${fullAudit.id}`,
+      });
+    } catch (err) {
+      console.error('Failed to load audit:', err);
+      // Show basic info if full fetch fails
+      setAuditResult({
+        id: audit.id,
+        url: audit.url || `https://${client?.domain}`,
+        domain: client?.domain || '',
+        accessibilityScore: audit.accessibilityScore,
+        criticalCount: audit.criticalCount || 0,
+        seriousCount: audit.seriousCount || 0,
+        moderateCount: audit.moderateCount || 0,
+        minorCount: audit.minorCount || 0,
+        totalViolations: audit.totalViolations || 0,
+        totalPasses: 0,
+        violations: [],
+        passes: [],
+        wcagBreakdown: {},
+        pageTitle: audit.pageTitle || '',
+        aisoScore: 0,
+        aeoScore: 0,
+        seoScore: 0,
+        readabilityScore: 0,
+        engagementScore: 0,
+        factCheckScore: 0,
+        seoDetails: {},
+        readabilityDetails: {},
+        engagementDetails: {},
+        aeoDetails: {},
+        factChecks: [],
+        createdAt: new Date(audit.createdAt),
+        isExisting: true,
+        pdfUrl: `/api/audit/pdf/${audit.id}`,
+      });
+    } finally {
+      setLoadingAuditDetails(false);
+    }
   };
 
   const tabs: { id: TabId; label: string }[] = [
@@ -374,40 +457,109 @@ export default function ClientProfile({
 
               {/* Audits Tab */}
               {activeTab === 'audits' && (
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  {/* Run New Audit Button */}
+                  <button
+                    onClick={handleRunAudit}
+                    disabled={runningAudit}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {runningAudit ? (
+                      <AISOMascot state="running" size="xs" showMessage={false} />
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    )}
+                    Run New Audit
+                  </button>
+
                   {audits.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-slate-500">No audits for this client</p>
-                      <button
-                        onClick={handleRunAudit}
-                        className="mt-4 px-4 py-2 bg-orange-100 text-orange-700 font-medium rounded-lg hover:bg-orange-200 transition"
-                      >
-                        Run First Audit
-                      </button>
+                      <p className="text-slate-500">No audits for this client yet</p>
                     </div>
                   ) : (
-                    audits.map((audit) => (
-                      <div
-                        key={audit.id}
-                        className="bg-slate-50 rounded-lg p-4 flex items-center justify-between"
-                      >
-                        <div>
-                          <div className="font-medium text-slate-900">
-                            Score: {audit.accessibilityScore}/100
+                    <div className="space-y-3">
+                      {audits.map((audit) => (
+                        <div
+                          key={audit.id}
+                          className="bg-slate-50 rounded-xl p-4 border border-slate-200"
+                        >
+                          {/* Score and Date Header */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`text-3xl font-black ${
+                                audit.accessibilityScore >= 90 ? 'text-green-600' :
+                                audit.accessibilityScore >= 70 ? 'text-blue-600' :
+                                audit.accessibilityScore >= 50 ? 'text-yellow-600' :
+                                'text-red-600'
+                              }`}>
+                                {audit.accessibilityScore}
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-slate-900">WCAG Score</div>
+                                <div className="text-xs text-slate-500">
+                                  {new Date(audit.createdAt).toLocaleDateString()} at {new Date(audit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-sm text-slate-500">
-                            {new Date(audit.createdAt).toLocaleDateString()}
+
+                          {/* Violations Breakdown */}
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {audit.criticalCount > 0 && (
+                              <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded">
+                                {audit.criticalCount} Critical
+                              </span>
+                            )}
+                            {audit.seriousCount > 0 && (
+                              <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded">
+                                {audit.seriousCount} Serious
+                              </span>
+                            )}
+                            {audit.moderateCount > 0 && (
+                              <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded">
+                                {audit.moderateCount} Moderate
+                              </span>
+                            )}
+                            {audit.minorCount > 0 && (
+                              <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded">
+                                {audit.minorCount} Minor
+                              </span>
+                            )}
+                            {audit.totalViolations === 0 && (
+                              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
+                                No Issues Found
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleViewAudit(audit)}
+                              className="flex-1 px-3 py-2 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View
+                            </button>
+                            <a
+                              href={`/api/audit/pdf/${audit.id}`}
+                              target="_blank"
+                              className="flex-1 px-3 py-2 bg-orange-100 text-orange-700 font-medium rounded-lg hover:bg-orange-200 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              Download PDF
+                            </a>
                           </div>
                         </div>
-                        <a
-                          href={`/api/audit/pdf/${audit.id}`}
-                          target="_blank"
-                          className="text-sm text-orange-600 hover:underline"
-                        >
-                          Download PDF
-                        </a>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
@@ -495,8 +647,8 @@ export default function ClientProfile({
         isOpen={showAuditModal}
         onClose={() => setShowAuditModal(false)}
         audit={auditResult}
-        isLoading={runningAudit}
-        loadingMessage="Running AISO Audit..."
+        isLoading={runningAudit || loadingAuditDetails}
+        loadingMessage={runningAudit ? "Running AISO Audit..." : "Loading audit details..."}
         onDownloadPDF={() => {
           if (auditResult?.pdfUrl) {
             window.open(auditResult.pdfUrl, '_blank');
