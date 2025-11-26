@@ -21,17 +21,55 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { url, contentAuditId, async = false } = body;
+    const { url, contentAuditId, async = false, forceNew = false } = body;
 
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
 
     // Validate URL
+    let parsedUrl: URL;
     try {
-      new URL(url);
+      parsedUrl = new URL(url);
     } catch {
       return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
+    }
+
+    // Check for recent audit (within 1 hour) to prevent duplicates - unless forceNew is true
+    if (!forceNew) {
+      const domain = parsedUrl.hostname.replace(/^www\./, '');
+      const recentAudits = await db.getAccessibilityAuditsByUserId(user.id, 20);
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+
+      const existingAudit = recentAudits.find((a: any) => {
+        const auditDomain = new URL(a.url).hostname.replace(/^www\./, '');
+        const auditTime = new Date(a.created_at).getTime();
+        return auditDomain === domain && auditTime > oneHourAgo;
+      });
+
+      if (existingAudit) {
+        // Return existing audit instead of creating duplicate
+        return NextResponse.json({
+          success: true,
+          existing: true,
+          audit: {
+            id: existingAudit.id,
+            url: existingAudit.url,
+            accessibilityScore: existingAudit.accessibility_score,
+            criticalCount: existingAudit.critical_count,
+            seriousCount: existingAudit.serious_count,
+            moderateCount: existingAudit.moderate_count,
+            minorCount: existingAudit.minor_count,
+            totalViolations: existingAudit.total_violations,
+            totalPasses: existingAudit.total_passes,
+            violations: existingAudit.violations,
+            passes: existingAudit.passes,
+            wcagBreakdown: existingAudit.wcag_breakdown,
+            pageTitle: existingAudit.page_title,
+            createdAt: existingAudit.created_at,
+          },
+        });
+      }
     }
 
     if (async) {
