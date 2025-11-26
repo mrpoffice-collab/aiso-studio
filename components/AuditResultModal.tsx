@@ -147,11 +147,23 @@ export default function AuditResultModal({
               )}
 
               {/* Top Issues */}
-              {audit.violations && audit.violations.length > 0 && (
+              {(() => {
+                // Safely parse violations - might be string, array, or undefined
+                let violationsArray: any[] = [];
+                if (audit.violations) {
+                  if (Array.isArray(audit.violations)) {
+                    violationsArray = audit.violations;
+                  } else if (typeof audit.violations === 'string') {
+                    try {
+                      violationsArray = JSON.parse(audit.violations);
+                    } catch { /* ignore parse errors */ }
+                  }
+                }
+                return violationsArray.length > 0 ? (
                 <div className="mb-6">
                   <h3 className="font-bold text-slate-900 mb-3">Top Issues to Fix</h3>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {audit.violations.slice(0, 5).map((v: any, i: number) => (
+                    {violationsArray.slice(0, 5).map((v: any, i: number) => (
                       <div
                         key={i}
                         className="flex items-start gap-2 p-2 bg-slate-50 rounded-lg text-sm"
@@ -170,7 +182,8 @@ export default function AuditResultModal({
                     ))}
                   </div>
                 </div>
-              )}
+                ) : null;
+              })()}
 
               {/* Saved to Vault */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6 flex items-center gap-2">
