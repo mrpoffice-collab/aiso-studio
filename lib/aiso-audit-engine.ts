@@ -106,16 +106,39 @@ function normalizeUrl(url: string): string {
 }
 
 /**
- * Scrape content from URL
+ * Scrape content from URL - tries basic fetch first, then falls back to headless browser
  */
 async function scrapeContent(url: string): Promise<{
   content: string;
   title: string;
   metaDescription: string;
 }> {
+  // First try with basic fetch (faster, cheaper)
+  try {
+    const result = await scrapeWithFetch(url);
+    if (result.content.length >= 200) {
+      return result;
+    }
+  } catch (e) {
+    console.log('Basic fetch failed, trying headless browser...');
+  }
+
+  // Fall back to headless browser for JS-rendered sites
+  return await scrapeWithBrowser(url);
+}
+
+/**
+ * Basic fetch scraping (for static sites)
+ */
+async function scrapeWithFetch(url: string): Promise<{
+  content: string;
+  title: string;
+  metaDescription: string;
+}> {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; AISOStudio/1.0)',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     },
   });
 
@@ -124,24 +147,136 @@ async function scrapeContent(url: string): Promise<{
   }
 
   const html = await response.text();
+  return extractContentFromHtml(html);
+}
+
+/**
+ * Headless browser scraping (for JS-rendered sites)
+ */
+async function scrapeWithBrowser(url: string): Promise<{
+  content: string;
+  title: string;
+  metaDescription: string;
+}> {
+  const { getBrowser, closeBrowser: closeBrowserFn } = await import('./accessibility-scanner-playwright');
+
+  let page = null;
+  try {
+    const browser = await getBrowser();
+    page = await browser.newPage();
+
+    // Set realistic viewport and user agent
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+    // Navigate and wait for content to load
+    await page.goto(url, {
+      waitUntil: 'networkidle0',
+      timeout: 30000
+    });
+
+    // Wait a bit for any lazy-loaded content
+    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 2000)));
+
+    // Get the fully rendered HTML
+    const html = await page.content();
+
+    // Also try to get text directly from the page as backup
+    const pageText = await page.evaluate(() => {
+      // Remove script/style elements from consideration
+      const clone = document.body.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll('script, style, nav, footer, header, aside, .sidebar, #sidebar, .comments, #comments').forEach(el => el.remove());
+
+      // Try to find main content
+      const selectors = ['article', '.post-content', '.entry-content', 'main', '[role="main"]', '.content', '#content'];
+      for (const sel of selectors) {
+        const el = clone.querySelector(sel);
+        if (el && el.textContent && el.textContent.trim().length > 200) {
+          return el.textContent.trim();
+        }
+      }
+
+      return clone.textContent?.trim() || '';
+    });
+
+    const title = await page.title();
+    const metaDescription = await page.evaluate(() => {
+      const meta = document.querySelector('meta[name="description"]');
+      return meta?.getAttribute('content') || '';
+    });
+
+    await page.close();
+
+    // Try HTML extraction first, fall back to pageText
+    try {
+      const result = extractContentFromHtml(html);
+      if (result.content.length >= 200) {
+        return { ...result, title: title || result.title };
+      }
+    } catch (e) {
+      // Ignore extraction error
+    }
+
+    // Use the text we got from page evaluation
+    if (pageText.length >= 100) {
+      return { content: pageText, title, metaDescription };
+    }
+
+    throw new Error('Failed to scrape URL: Could not extract meaningful content from this page even with JavaScript rendering.');
+  } catch (error: any) {
+    if (page) {
+      try { await page.close(); } catch (e) { /* ignore */ }
+    }
+    throw new Error(`Failed to scrape URL: ${error.message}`);
+  }
+}
+
+/**
+ * Extract content from HTML string
+ */
+function extractContentFromHtml(html: string): {
+  content: string;
+  title: string;
+  metaDescription: string;
+} {
   const $ = cheerio.load(html);
 
   // Remove non-content elements
-  $('script, style, nav, footer, header, .sidebar, aside, #sidebar, #comments').remove();
+  $('script, style, nav, footer, header, .sidebar, aside, #sidebar, #comments, .comments, .ad, .advertisement, .social-share').remove();
 
-  // Find main content
+  // Find main content with expanded selectors
   const selectors = [
     'article', '.post-content', '.entry-content', '.content-area',
     '.blog-post', '.post', 'main', '#content', '.site-content',
-    '[role="main"]', '.blog', '#main', '.main-content',
+    '[role="main"]', '.blog', '#main', '.main-content', '.article-content',
+    '.post-body', '.article-body', '.story-content', '.page-content',
+    '.single-post', '.hentry', '.post-entry', '#article', '.article',
   ];
 
   let contentElement = null;
+  let maxLength = 0;
+
+  // Find the element with the most content
   for (const selector of selectors) {
     const elem = $(selector).first();
-    if (elem && elem.length > 0 && elem.text().trim().length >= 100) {
-      contentElement = elem;
-      break;
+    if (elem && elem.length > 0) {
+      const text = elem.text().trim();
+      if (text.length > maxLength && text.length >= 100) {
+        maxLength = text.length;
+        contentElement = elem;
+      }
+    }
+  }
+
+  // If no content found, try the body with aggressive cleaning
+  if (!contentElement || maxLength < 200) {
+    const bodyText = $('body').text().trim();
+    if (bodyText.length >= 200) {
+      return {
+        content: bodyText.substring(0, 50000), // Limit content length
+        title: $('title').text() || $('h1').first().text() || '',
+        metaDescription: $('meta[name="description"]').attr('content') || '',
+      };
     }
   }
 

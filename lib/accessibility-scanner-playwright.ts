@@ -47,7 +47,7 @@ export interface AccessibilityScanResult {
 
 let browser: Browser | null = null;
 
-async function getBrowser(): Promise<Browser> {
+export async function getBrowser(): Promise<Browser> {
   if (!browser) {
     const isLocal = process.env.NODE_ENV === 'development' && !process.env.VERCEL;
 
