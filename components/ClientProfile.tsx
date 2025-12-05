@@ -30,7 +30,7 @@ interface ClientProfileProps {
   onRefresh?: () => void;
 }
 
-type TabId = 'overview' | 'tasks' | 'audits' | 'content' | 'emails' | 'notes';
+type TabId = 'overview' | 'progress' | 'tasks' | 'audits' | 'content' | 'emails' | 'notes';
 
 export default function ClientProfile({
   isOpen,
@@ -50,6 +50,8 @@ export default function ClientProfile({
   const [savingNotes, setSavingNotes] = useState(false);
   const [selectedAudit, setSelectedAudit] = useState<any>(null);
   const [loadingAuditDetails, setLoadingAuditDetails] = useState(false);
+  const [progress, setProgress] = useState<any>(null);
+  const [loadingProgress, setLoadingProgress] = useState(false);
 
   useEffect(() => {
     if (isOpen && client) {
@@ -86,6 +88,13 @@ export default function ClientProfile({
       if (emailsRes.ok) {
         const data = await emailsRes.json();
         setEmails(data.emails || []);
+      }
+
+      // Load progress/before-after data
+      const progressRes = await fetch(`/api/clients/${client.id}/progress`);
+      if (progressRes.ok) {
+        const data = await progressRes.json();
+        setProgress(data);
       }
     } catch (err) {
       console.error('Failed to load client data:', err);
@@ -241,6 +250,7 @@ export default function ClientProfile({
 
   const tabs: { id: TabId; label: string }[] = [
     { id: 'overview', label: 'Overview' },
+    { id: 'progress', label: 'Progress' },
     { id: 'tasks', label: 'Tasks' },
     { id: 'audits', label: 'Audits' },
     { id: 'content', label: 'Content' },
@@ -441,6 +451,159 @@ export default function ClientProfile({
                       New Strategy
                     </a>
                   </div>
+                </div>
+              )}
+
+              {/* Progress Tab - Before/After Comparison */}
+              {activeTab === 'progress' && (
+                <div className="space-y-6">
+                  {!progress || !progress.hasData ? (
+                    <div className="text-center py-12">
+                      <AISOMascot state="idle" size="lg" showMessage={false} />
+                      <h3 className="text-lg font-bold text-slate-900 mt-4">No Progress Data Yet</h3>
+                      <p className="text-slate-500 mt-2">
+                        Run audits on this client's content to track progress over time.
+                      </p>
+                      <button
+                        onClick={handleRunAudit}
+                        className="mt-4 px-4 py-2 bg-orange-100 text-orange-700 font-medium rounded-lg hover:bg-orange-200 transition"
+                      >
+                        Run First Audit
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Summary Card */}
+                      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white">
+                        <h3 className="text-lg font-bold mb-2">Progress Summary</h3>
+                        <p className="text-white/90">{progress.insights?.summary}</p>
+                      </div>
+
+                      {/* Before/After Scores */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* First Audit */}
+                        <div className="bg-slate-100 rounded-xl p-4">
+                          <div className="text-xs font-semibold text-slate-500 uppercase mb-2">First Audit</div>
+                          <div className="text-3xl font-black text-slate-400">
+                            {progress.comparison?.first?.scores?.overall || 0}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-1">
+                            {progress.comparison?.first?.date
+                              ? new Date(progress.comparison.first.date).toLocaleDateString()
+                              : 'N/A'}
+                          </div>
+                        </div>
+
+                        {/* Latest Audit */}
+                        <div className="bg-green-50 rounded-xl p-4 border-2 border-green-200">
+                          <div className="text-xs font-semibold text-green-600 uppercase mb-2">Latest Audit</div>
+                          <div className="text-3xl font-black text-green-600">
+                            {progress.comparison?.latest?.scores?.overall || 0}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-1">
+                            {progress.comparison?.latest?.date
+                              ? new Date(progress.comparison.latest.date).toLocaleDateString()
+                              : 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Change Indicator */}
+                      {progress.comparison?.changes && (
+                        <div className={`text-center p-4 rounded-xl ${
+                          progress.comparison.changes.overall >= 0
+                            ? 'bg-green-50 border border-green-200'
+                            : 'bg-red-50 border border-red-200'
+                        }`}>
+                          <div className={`text-4xl font-black ${
+                            progress.comparison.changes.overall >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {progress.comparison.changes.overall >= 0 ? '+' : ''}
+                            {progress.comparison.changes.overall} pts
+                          </div>
+                          <div className="text-sm text-slate-600 mt-1">
+                            Overall score change across {progress.totalAudits} audits
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Score Breakdown */}
+                      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="p-4 border-b border-slate-200">
+                          <h4 className="font-bold text-slate-900">Score Breakdown</h4>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                          {[
+                            { key: 'aeo', label: 'AI Optimization', icon: '🤖' },
+                            { key: 'seo', label: 'SEO', icon: '🔍' },
+                            { key: 'readability', label: 'Readability', icon: '📖' },
+                            { key: 'engagement', label: 'Engagement', icon: '💡' },
+                          ].map((metric) => {
+                            const firstScore = progress.comparison?.first?.scores?.[metric.key] || 0;
+                            const latestScore = progress.comparison?.latest?.scores?.[metric.key] || 0;
+                            const change = latestScore - firstScore;
+                            return (
+                              <div key={metric.key} className="flex items-center justify-between p-4">
+                                <div className="flex items-center gap-2">
+                                  <span>{metric.icon}</span>
+                                  <span className="font-medium text-slate-700">{metric.label}</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <span className="text-slate-400 text-sm">{firstScore}</span>
+                                  <span className="text-slate-300">→</span>
+                                  <span className="font-bold text-slate-900">{latestScore}</span>
+                                  <span className={`text-sm font-semibold px-2 py-0.5 rounded ${
+                                    change > 0
+                                      ? 'bg-green-100 text-green-700'
+                                      : change < 0
+                                      ? 'bg-red-100 text-red-700'
+                                      : 'bg-slate-100 text-slate-600'
+                                  }`}>
+                                    {change > 0 ? '+' : ''}{change}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Highlights & Concerns */}
+                      {progress.insights?.highlights?.length > 0 && (
+                        <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                          <h4 className="font-bold text-green-800 mb-2 flex items-center gap-2">
+                            <span>✓</span> Highlights
+                          </h4>
+                          <ul className="space-y-1">
+                            {progress.insights.highlights.map((item: string, i: number) => (
+                              <li key={i} className="text-sm text-green-700">• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {progress.insights?.concerns?.length > 0 && (
+                        <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                          <h4 className="font-bold text-red-800 mb-2 flex items-center gap-2">
+                            <span>!</span> Areas of Concern
+                          </h4>
+                          <ul className="space-y-1">
+                            {progress.insights.concerns.map((item: string, i: number) => (
+                              <li key={i} className="text-sm text-red-700">• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Recommendation */}
+                      {progress.insights?.recommendation && (
+                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                          <h4 className="font-bold text-blue-800 mb-2">Recommendation</h4>
+                          <p className="text-sm text-blue-700">{progress.insights.recommendation}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 
