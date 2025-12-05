@@ -7,12 +7,10 @@ import { useRouter } from 'next/navigation';
 export default function LandingPage() {
   const router = useRouter();
   const [auditUrl, setAuditUrl] = useState('');
-  const [isAuditing, setIsAuditing] = useState(false);
 
   const handleQuickAudit = (e: React.FormEvent) => {
     e.preventDefault();
     if (auditUrl.trim()) {
-      // Redirect to free audit page with the URL pre-filled
       router.push(`/audit?url=${encodeURIComponent(auditUrl.trim())}`);
     }
   };
@@ -21,425 +19,134 @@ export default function LandingPage() {
     <div className="flex min-h-screen flex-col bg-white">
       {/* Header */}
       <header className="border-b border-slate-200 bg-white/95 backdrop-blur-xl shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto flex h-20 items-center justify-between px-6">
-          <Link href="/" className="text-2xl font-black bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
+        <div className="container mx-auto flex h-16 items-center justify-between px-6">
+          <Link href="/" className="text-xl font-black bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
             AISO Studio
           </Link>
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-semibold text-slate-600 hover:text-sunset-orange transition-colors">
-              Features
+          <nav className="hidden md:flex items-center gap-6">
+            <a href="#how-it-works" className="text-sm font-semibold text-slate-600 hover:text-sunset-orange transition-colors">
+              How It Works
             </a>
             <a href="#pricing" className="text-sm font-semibold text-slate-600 hover:text-sunset-orange transition-colors">
               Pricing
             </a>
-            <a href="#faq" className="text-sm font-semibold text-slate-600 hover:text-sunset-orange transition-colors">
-              FAQ
-            </a>
           </nav>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/sign-in"
-              className="text-sm font-semibold text-slate-600 hover:text-sunset-orange transition-colors"
-            >
+          <div className="flex items-center gap-3">
+            <Link href="/sign-in" className="text-sm font-semibold text-slate-600 hover:text-sunset-orange">
               Sign In
             </Link>
             <Link
               href="/sign-up"
-              className="rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-6 py-2.5 text-sm font-bold text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
+              className="rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-5 py-2 text-sm font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
             >
-              Start Free Trial
+              Start Free
             </Link>
           </div>
         </div>
       </header>
 
       <main className="flex-1">
-        {/* HERO SECTION with Integrated Free Audit */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-orange-50/30">
-          <div className="container mx-auto px-6 py-20 lg:py-28">
-            <div className="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
-              {/* Left Column - Copy + Audit Input */}
-              <div>
-                <div className="inline-block mb-6 px-4 py-2 rounded-full bg-orange-100 border border-orange-200">
-                  <span className="text-sm font-bold text-orange-700">Unlimited AI Searchability Diagnostics • Zero Caps</span>
-                </div>
+        {/* HERO - Simple, Clear */}
+        <section className="bg-gradient-to-br from-slate-50 via-white to-orange-50/30 py-16 lg:py-24">
+          <div className="container mx-auto px-6">
+            <div className="max-w-3xl mx-auto text-center">
+              <h1 className="text-4xl lg:text-6xl font-black text-slate-900 mb-6 leading-tight">
+                Your Content Is Invisible to AI.{' '}
+                <span className="bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
+                  Let's Fix That.
+                </span>
+              </h1>
 
-                <h1 className="text-5xl lg:text-6xl font-black text-slate-900 mb-6 leading-tight">
-                  Find Clients Invisible to AI Search.{' '}
-                  <span className="bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
-                    Fix It. Charge $5K-$10K.
-                  </span>
-                </h1>
+              <p className="text-xl text-slate-600 mb-8 max-w-2xl mx-auto">
+                ChatGPT, Perplexity, and Google's AI can't read most websites properly.
+                AISO Studio audits your content, shows you exactly what's broken, and rewrites it so AI actually understands it.
+              </p>
 
-                <p className="text-xl text-slate-600 mb-8 leading-relaxed max-w-xl">
-                  60% of websites can't be scraped by ChatGPT or Perplexity. AISO Studio finds them with unlimited diagnostics, shows you exactly what's broken, and gives you the fix to sell. All while 10x'ing your content output.
-                </p>
-
-                {/* Integrated Audit Input */}
-                <form onSubmit={handleQuickAudit} className="mb-6">
-                  <div className="flex flex-col sm:flex-row gap-3 mb-3">
-                    <input
-                      type="url"
-                      value={auditUrl}
-                      onChange={(e) => setAuditUrl(e.target.value)}
-                      placeholder="https://yourblog.com/article"
-                      className="flex-1 rounded-lg border-2 border-slate-300 px-4 py-4 text-slate-900 placeholder-slate-400 focus:border-sunset-orange focus:outline-none focus:ring-2 focus:ring-sunset-orange/20 transition-all"
-                      disabled={isAuditing}
-                    />
-                    <button
-                      type="submit"
-                      disabled={isAuditing || !auditUrl.trim()}
-                      className="rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-8 py-4 font-bold text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap"
-                    >
-                      Get Free Score
-                    </button>
-                  </div>
-                  <p className="text-sm text-slate-500">
-                    No email required • 3 free audits • Results in 30 seconds
-                  </p>
-                </form>
-
-                <div className="flex flex-wrap gap-4">
-                  <Link
-                    href="/sign-up"
-                    className="rounded-lg border-2 border-sunset-orange bg-white px-6 py-3 font-semibold text-sunset-orange hover:bg-orange-50 transition-all"
+              {/* Audit Input */}
+              <form onSubmit={handleQuickAudit} className="max-w-xl mx-auto mb-6">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="url"
+                    value={auditUrl}
+                    onChange={(e) => setAuditUrl(e.target.value)}
+                    placeholder="Enter any URL to audit..."
+                    className="flex-1 rounded-lg border-2 border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-sunset-orange focus:outline-none transition-all"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!auditUrl.trim()}
+                    className="rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-6 py-3 font-bold text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 whitespace-nowrap"
                   >
-                    Start 7-Day Free Trial
-                  </Link>
+                    Free Audit
+                  </button>
                 </div>
-              </div>
-
-              {/* Right Column - Visual */}
-              <div className="relative">
-                <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 p-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="text-center flex-1">
-                      <div className="text-sm font-bold text-slate-500 mb-2">BEFORE</div>
-                      <div className="text-6xl font-black text-red-500">41</div>
-                      <div className="text-xs text-slate-500 mt-1">Needs Work</div>
-                    </div>
-                    <div className="text-4xl text-slate-300 mx-4">→</div>
-                    <div className="text-center flex-1">
-                      <div className="text-sm font-bold text-slate-500 mb-2">AFTER</div>
-                      <div className="text-6xl font-black text-green-500">79</div>
-                      <div className="text-xs text-slate-500 mt-1">Good Quality</div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <span className="text-slate-600">Intent Match</span>
-                      <span className="font-bold text-slate-900">12 → 18</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <span className="text-slate-600">Readability</span>
-                      <span className="font-bold text-slate-900">8 → 17</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <span className="text-slate-600">AEO Score</span>
-                      <span className="font-bold text-slate-900">0 → 26</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Floating badge */}
-                <div className="absolute -top-4 -right-4 bg-gradient-to-r from-sunset-orange to-orange-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold">
-                  Real Results
-                </div>
-              </div>
+                <p className="text-sm text-slate-500 mt-3">
+                  No signup required. See your score in 30 seconds.
+                </p>
+              </form>
             </div>
           </div>
         </section>
 
-        {/* STATS BAR */}
-        <section className="border-y border-slate-200 bg-white py-12">
+        {/* THE PROBLEM */}
+        <section className="py-16 bg-white border-y border-slate-100">
           <div className="container mx-auto px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
-              <div className="text-center">
-                <div className="text-4xl font-black text-sunset-orange mb-2">15K+</div>
-                <div className="text-sm font-semibold text-slate-600">Content Audits</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-black text-sunset-orange mb-2">85</div>
-                <div className="text-sm font-semibold text-slate-600">Avg Winning Score</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-black text-sunset-orange mb-2">98%</div>
-                <div className="text-sm font-semibold text-slate-600">Fact-Check Accuracy</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-black text-sunset-orange mb-2">10M+</div>
-                <div className="text-sm font-semibold text-slate-600">Words Optimized</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* PROOF BLOCK - Transparent & Precise Scoring */}
-        <section className="py-20 bg-gradient-to-br from-slate-50 to-white">
-          <div className="container mx-auto px-6">
-            <div className="text-center mb-16 max-w-3xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-4">
-                Transparent & Precise 0-100 Scoring
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-3xl font-black text-slate-900 mb-8 text-center">
+                Why Your Content Isn't Getting Found
               </h2>
-              <p className="text-xl text-slate-600">
-                No grade inflation. No BS. Our AISO scoring system tells you exactly what's wrong and how to fix it.
-              </p>
-            </div>
 
-            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-12">
-              <div className="bg-white rounded-xl border-2 border-red-200 p-6 shadow-lg">
-                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl">❌</span>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="p-6 rounded-xl bg-red-50 border border-red-200">
+                  <div className="text-3xl mb-3">🤖</div>
+                  <h3 className="font-bold text-slate-900 mb-2">AI Can't Parse It</h3>
+                  <p className="text-sm text-slate-600">
+                    No clear structure, no FAQ sections, no direct answers. AI engines skip over your content entirely.
+                  </p>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-3">Intent Mismatch</h3>
-                <p className="text-sm text-slate-600 mb-4">
-                  Your content doesn't match what searchers actually want. We detect informational vs. transactional intent gaps.
-                </p>
-                <div className="text-xs font-mono text-slate-500">
-                  Score: 12/20 (Intent)
-                </div>
-              </div>
 
-              <div className="bg-white rounded-xl border-2 border-yellow-200 p-6 shadow-lg">
-                <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl">⚠️</span>
+                <div className="p-6 rounded-xl bg-yellow-50 border border-yellow-200">
+                  <div className="text-3xl mb-3">📖</div>
+                  <h3 className="font-bold text-slate-900 mb-2">Hard to Read</h3>
+                  <p className="text-sm text-slate-600">
+                    Dense paragraphs, jargon, passive voice. Both humans and AI struggle to extract value.
+                  </p>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-3">Readability Problems</h3>
-                <p className="text-sm text-slate-600 mb-4">
-                  Complex sentences, passive voice, and dense paragraphs kill engagement. We measure Flesch scores by intent.
-                </p>
-                <div className="text-xs font-mono text-slate-500">
-                  Score: 8/20 (Readability)
-                </div>
-              </div>
 
-              <div className="bg-white rounded-xl border-2 border-orange-200 p-6 shadow-lg">
-                <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mb-4">
-                  <span className="text-2xl">🤖</span>
+                <div className="p-6 rounded-xl bg-orange-50 border border-orange-200">
+                  <div className="text-3xl mb-3">🔍</div>
+                  <h3 className="font-bold text-slate-900 mb-2">SEO Alone Isn't Enough</h3>
+                  <p className="text-sm text-slate-600">
+                    Traditional SEO doesn't optimize for AI answer engines. You need both.
+                  </p>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-3">Zero AEO Optimization</h3>
-                <p className="text-sm text-slate-600 mb-4">
-                  Not optimized for ChatGPT, Perplexity, or Google SGE. Missing answer engine signals that modern search needs.
-                </p>
-                <div className="text-xs font-mono text-slate-500">
-                  Score: 0/30 (AEO)
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <Link
-                href="/audit"
-                className="inline-block rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-8 py-4 font-bold text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-              >
-                Try It On Your Site
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* PLATFORM OVERVIEW - 6 Core Features */}
-        <section id="features" className="py-20 bg-white">
-          <div className="container mx-auto px-6">
-            <div className="text-center mb-16 max-w-3xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-4">
-                Everything Your Agency Needs. One Platform.
-              </h2>
-              <p className="text-xl text-slate-600">
-                From prospecting to delivery, AISO Studio handles the entire client lifecycle.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-              {/* Feature 1 - Content Audit & Rewrite */}
-              <div className="bg-gradient-to-br from-white to-orange-50/50 rounded-2xl border-2 border-orange-200 p-8 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-r from-sunset-orange to-orange-600 flex items-center justify-center mb-4">
-                  <span className="text-3xl">✏️</span>
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-3">
-                  Content Audit & Rewrite
-                </h3>
-                <p className="text-slate-600 mb-4">
-                  100-point AISO scoring across 6 dimensions: AEO, SEO, Readability, Engagement, GEO, Fact-Check. Selective rewrites target specific scores.
-                </p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Batch audit 50+ URLs simultaneously</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Iterative rewrites with improvement tracking</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Client-ready PDF reports</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Feature 2 - Content Strategy Generator */}
-              <div className="bg-gradient-to-br from-white to-blue-50/50 rounded-2xl border-2 border-blue-200 p-8 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center mb-4">
-                  <span className="text-3xl">📅</span>
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-3">
-                  Content Strategy Generator
-                </h3>
-                <p className="text-slate-600 mb-4">
-                  AI generates 15-topic content calendars tailored to industry, audience, and goals. Powered by Claude Sonnet 4 and GPT-4.
-                </p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Industry-specific topic generation</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Automatic post generation from topics</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Multi-client management for agencies</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Feature 3 - Lead Discovery & Pipeline */}
-              <div className="bg-gradient-to-br from-white to-purple-50/50 rounded-2xl border-2 border-purple-200 p-8 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center mb-4">
-                  <span className="text-3xl">🎯</span>
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-3">
-                  Lead Discovery & Pipeline
-                </h3>
-                <p className="text-slate-600 mb-4">
-                  Find businesses by industry and location, score their websites, generate opportunity reports, and manage through close.
-                </p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Website scoring (SEO, Content, Design, Speed)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Pipeline: Discovered → Contacted → Won</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Activity logging (calls, emails, meetings)</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Feature 4 - Digital Asset Vault */}
-              <div className="bg-gradient-to-br from-white to-green-50/50 rounded-2xl border-2 border-green-200 p-8 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 flex items-center justify-center mb-4">
-                  <span className="text-3xl">🗂️</span>
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-3">
-                  Digital Asset Vault (DAM)
-                </h3>
-                <p className="text-slate-600 mb-4">
-                  Never dig through Drive folders again. Unlimited cloud storage with folder hierarchy, tags, and bulk operations.
-                </p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Color-coded folder organization</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Tag system + smart collections</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Track asset usage across posts</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Feature 5 - Fact-Checking */}
-              <div className="bg-gradient-to-br from-white to-red-50/50 rounded-2xl border-2 border-red-200 p-8 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 flex items-center justify-center mb-4">
-                  <span className="text-3xl">🔍</span>
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-3">
-                  Fact-Checking & Accuracy
-                </h3>
-                <p className="text-slate-600 mb-4">
-                  Automated claim extraction and verification via Brave Search API. 30% of AISO score = factual accuracy. Prevent AI hallucinations.
-                </p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Automatic claim extraction from content</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Real-time verification via search</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Source citations for every claim</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Feature 6 - Accessibility Audits */}
-              <div className="bg-gradient-to-br from-white to-indigo-50/50 rounded-2xl border-2 border-indigo-200 p-8 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 flex items-center justify-center mb-4">
-                  <span className="text-3xl">♿</span>
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-3">
-                  Accessibility Audits (WCAG)
-                </h3>
-                <p className="text-slate-600 mb-4">
-                  WCAG 2.1/2.2 compliance scanning via Playwright + axe-core. Get fix suggestions for every violation. Separate from AISO score.
-                </p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Automated accessibility scanning</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Detailed violation reports with selectors</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>AI-generated fix suggestions</span>
-                  </li>
-                </ul>
               </div>
             </div>
           </div>
         </section>
 
-        {/* WORKFLOW EXPLAINER */}
-        <section className="py-20 bg-gradient-to-br from-slate-50 to-white">
+        {/* HOW IT WORKS */}
+        <section id="how-it-works" className="py-16 bg-gradient-to-br from-slate-50 to-white">
           <div className="container mx-auto px-6">
-            <div className="text-center mb-16 max-w-3xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-4">
-                How Agencies Use AISO Studio
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-3xl font-black text-slate-900 mb-4 text-center">
+                How AISO Studio Works
               </h2>
-              <p className="text-xl text-slate-600">
-                Complete client lifecycle management in five simple steps.
+              <p className="text-lg text-slate-600 mb-12 text-center">
+                Three steps to content that AI actually understands.
               </p>
-            </div>
 
-            <div className="max-w-5xl mx-auto">
               <div className="space-y-8">
                 {/* Step 1 */}
                 <div className="flex gap-6 items-start">
                   <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-r from-sunset-orange to-orange-600 flex items-center justify-center text-white font-black text-xl">
                     1
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Find Leads</h3>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">Audit</h3>
                     <p className="text-slate-600">
-                      Search businesses by industry and location → Score their websites for content, SEO, and design weaknesses
+                      Paste a URL or your content. Get a transparent 0-100 AISO score across 6 dimensions:
+                      AI optimization, SEO, readability, engagement, fact-checking, and accessibility.
                     </p>
                   </div>
                 </div>
@@ -449,10 +156,11 @@ export default function LandingPage() {
                   <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-r from-sunset-orange to-orange-600 flex items-center justify-center text-white font-black text-xl">
                     2
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Win Contracts</h3>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">Fix</h3>
                     <p className="text-slate-600">
-                      Generate opportunity reports showing exactly what's broken → Add to pipeline → Track through discovery, research, and contacted stages
+                      See exactly what's wrong. One-click rewrites target specific weaknesses—improve readability
+                      without losing your voice, add AI-friendly structure, fix SEO gaps.
                     </p>
                   </div>
                 </div>
@@ -462,563 +170,315 @@ export default function LandingPage() {
                   <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-r from-sunset-orange to-orange-600 flex items-center justify-center text-white font-black text-xl">
                     3
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Audit & Optimize</h3>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">Publish</h3>
                     <p className="text-slate-600">
-                      Batch audit client content → Get transparent 0-100 AISO scores → Rewrite to 75+ target scores with selective optimization passes
-                    </p>
-                  </div>
-                </div>
-
-                {/* Step 4 */}
-                <div className="flex gap-6 items-start">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-r from-sunset-orange to-orange-600 flex items-center justify-center text-white font-black text-xl">
-                    4
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Manage Assets</h3>
-                    <p className="text-slate-600">
-                      Upload brand kits to Vault → Organize by client with color-coded folders → Tag and bulk-manage all creative assets
-                    </p>
-                  </div>
-                </div>
-
-                {/* Step 5 */}
-                <div className="flex gap-6 items-start">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-r from-sunset-orange to-orange-600 flex items-center justify-center text-white font-black text-xl">
-                    5
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Deliver Reports</h3>
-                    <p className="text-slate-600">
-                      Export white-label PDF audits → Client-ready proof of improvement → Show before/after scores and what changed
+                      Export your optimized content. Track score improvements over time.
+                      Watch your content start appearing in AI answers.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </section>
 
-            <div className="text-center mt-12">
-              <Link
-                href="/sign-up"
-                className="inline-block rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-8 py-4 font-bold text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-              >
-                Start Your Free Trial
-              </Link>
+        {/* WHAT YOU GET */}
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-6">
+            <div className="max-w-5xl mx-auto">
+              <h2 className="text-3xl font-black text-slate-900 mb-12 text-center">
+                What's Included
+              </h2>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="p-6 rounded-xl border-2 border-slate-200 hover:border-orange-300 transition-all">
+                  <div className="text-2xl mb-3">📊</div>
+                  <h3 className="font-bold text-slate-900 mb-2">AISO Content Audit</h3>
+                  <p className="text-sm text-slate-600">
+                    Transparent 0-100 scoring. See exactly where your content falls short and why.
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-xl border-2 border-slate-200 hover:border-orange-300 transition-all">
+                  <div className="text-2xl mb-3">✏️</div>
+                  <h3 className="font-bold text-slate-900 mb-2">AI-Powered Rewrites</h3>
+                  <p className="text-sm text-slate-600">
+                    Selective optimization passes. Fix readability, SEO, or AI structure without losing your voice.
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-xl border-2 border-slate-200 hover:border-orange-300 transition-all">
+                  <div className="text-2xl mb-3">🔍</div>
+                  <h3 className="font-bold text-slate-900 mb-2">Fact-Checking</h3>
+                  <p className="text-sm text-slate-600">
+                    Automatic claim verification. Catch errors before they hurt your credibility.
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-xl border-2 border-slate-200 hover:border-orange-300 transition-all">
+                  <div className="text-2xl mb-3">♿</div>
+                  <h3 className="font-bold text-slate-900 mb-2">Accessibility Scanning</h3>
+                  <p className="text-sm text-slate-600">
+                    WCAG compliance checks. Make your content accessible to everyone.
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-xl border-2 border-slate-200 hover:border-orange-300 transition-all">
+                  <div className="text-2xl mb-3">📅</div>
+                  <h3 className="font-bold text-slate-900 mb-2">Content Strategy</h3>
+                  <p className="text-sm text-slate-600">
+                    AI-generated content calendars. Know what to write next for your audience.
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-xl border-2 border-slate-200 hover:border-orange-300 transition-all">
+                  <div className="text-2xl mb-3">📁</div>
+                  <h3 className="font-bold text-slate-900 mb-2">Asset Vault</h3>
+                  <p className="text-sm text-slate-600">
+                    Organize images, documents, and brand assets. Everything in one place.
+                  </p>
+                </div>
+              </div>
+
+              {/* Agency Add-on callout */}
+              <div className="mt-8 p-6 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200">
+                <div className="flex items-start gap-4">
+                  <div className="text-3xl">🎯</div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 mb-1">For Agencies: Client Acquisition Tools</h3>
+                    <p className="text-sm text-slate-600">
+                      Pro and Agency tiers include lead discovery, pipeline management, proposal generation,
+                      and a guided "Win a Client" workflow. Turn audits into paying clients.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* COMPARISON SECTION */}
-        <section className="py-20 bg-white">
+        {/* PRICING */}
+        <section id="pricing" className="py-16 bg-gradient-to-br from-slate-50 to-white">
           <div className="container mx-auto px-6">
-            <div className="text-center mb-16 max-w-3xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-4">
-                One Platform. Five Tools Replaced.
+            <div className="max-w-5xl mx-auto">
+              <h2 className="text-3xl font-black text-slate-900 mb-4 text-center">
+                Simple Pricing
               </h2>
-              <p className="text-xl text-slate-600">
-                Stop paying for separate tools. Get everything in one transparent platform.
+              <p className="text-lg text-slate-600 mb-12 text-center">
+                Start free. Upgrade when you need more.
               </p>
-            </div>
 
-            <div className="max-w-5xl mx-auto overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-slate-200">
-                    <th className="text-left p-4 font-bold text-slate-900">Feature</th>
-                    <th className="text-center p-4 font-bold text-slate-500">Content Tools</th>
-                    <th className="text-center p-4 font-bold text-slate-500">Lead Gen Tools</th>
-                    <th className="text-center p-4 font-bold text-slate-500">CRM Tools</th>
-                    <th className="text-center p-4 font-bold text-slate-500">DAM Tools</th>
-                    <th className="text-center p-4 font-bold bg-orange-50 text-sunset-orange">AISO Studio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-slate-100">
-                    <td className="p-4 text-slate-700">Content Audit</td>
-                    <td className="text-center p-4 text-green-600 font-bold">✓</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 bg-orange-50 text-green-600 font-bold">✓</td>
-                  </tr>
-                  <tr className="border-b border-slate-100">
-                    <td className="p-4 text-slate-700">Lead Discovery</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-green-600 font-bold">✓</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 bg-orange-50 text-green-600 font-bold">✓</td>
-                  </tr>
-                  <tr className="border-b border-slate-100">
-                    <td className="p-4 text-slate-700">Pipeline Management</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-green-600 font-bold">✓</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 bg-orange-50 text-green-600 font-bold">✓</td>
-                  </tr>
-                  <tr className="border-b border-slate-100">
-                    <td className="p-4 text-slate-700">Asset Management</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-green-600 font-bold">✓</td>
-                    <td className="text-center p-4 bg-orange-50 text-green-600 font-bold">✓</td>
-                  </tr>
-                  <tr className="border-b border-slate-100">
-                    <td className="p-4 text-slate-700">Transparent & Precise Scoring</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 bg-orange-50 text-green-600 font-bold">✓</td>
-                  </tr>
-                  <tr className="border-b border-slate-100">
-                    <td className="p-4 text-slate-700">Unlimited AI Searchability</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 text-slate-300">✗</td>
-                    <td className="text-center p-4 bg-orange-50 text-green-600 font-bold">✓</td>
-                  </tr>
-                  <tr className="border-b-2 border-slate-200 font-bold">
-                    <td className="p-4 text-slate-900">Monthly Cost</td>
-                    <td className="text-center p-4 text-slate-600">$99+</td>
-                    <td className="text-center p-4 text-slate-600">$150+</td>
-                    <td className="text-center p-4 text-slate-600">$200+</td>
-                    <td className="text-center p-4 text-slate-600">$50+</td>
-                    <td className="text-center p-4 bg-orange-50 text-sunset-orange text-xl">$249-599</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="text-center mt-8">
-              <p className="text-sm text-slate-500">
-                Replace $500+/month in separate tools with one unified platform. Pro tier includes unlimited AI searchability diagnostics.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* PRICING SECTION */}
-        <section id="pricing" className="py-20 bg-gradient-to-br from-slate-50 to-white">
-          <div className="container mx-auto px-6">
-            <div className="text-center mb-16 max-w-3xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-4">
-                Unlimited AI Searchability. Zero Artificial Caps.
-              </h2>
-              <p className="text-xl text-slate-600">
-                Find unlimited clients. Generate unlimited reports. Scale when you're ready.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {/* Starter */}
-              <div className="rounded-2xl border-2 border-slate-200 bg-white p-8 shadow-lg hover:shadow-xl transition-all">
-                <h3 className="text-2xl font-black text-slate-900 mb-2">Starter</h3>
-                <p className="text-slate-600 mb-6">Solo creators & DIYers</p>
-                <div className="mb-6">
-                  <span className="text-5xl font-black text-slate-900">$39</span>
-                  <span className="text-slate-600">/month</span>
+              <div className="grid md:grid-cols-3 gap-6">
+                {/* Starter */}
+                <div className="rounded-2xl border-2 border-slate-200 bg-white p-6">
+                  <h3 className="text-xl font-black text-slate-900 mb-1">Starter</h3>
+                  <p className="text-sm text-slate-500 mb-4">For DIYers</p>
+                  <div className="mb-6">
+                    <span className="text-4xl font-black text-slate-900">$39</span>
+                    <span className="text-slate-500">/mo</span>
+                  </div>
+                  <ul className="space-y-2 mb-6 text-sm">
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-600">✓</span>
+                      <span>Unlimited audits</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-600">✓</span>
+                      <span>25 article rewrites/mo</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-600">✓</span>
+                      <span>Content strategies</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-600">✓</span>
+                      <span>5GB asset storage</span>
+                    </li>
+                  </ul>
+                  <Link
+                    href="/sign-up"
+                    className="block w-full text-center rounded-lg border-2 border-slate-300 px-4 py-2.5 font-bold text-slate-700 hover:bg-slate-50 transition-all"
+                  >
+                    Start Free Trial
+                  </Link>
                 </div>
-                <ul className="space-y-3 mb-8 text-sm">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700"><strong>25 articles</strong> per month</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited content audits</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">Unlimited strategies</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">10 lead searches/month</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">1 pipeline project</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">5GB Vault storage</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg">✓</span>
-                    <span className="text-slate-700">1 seat</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-red-600 text-lg">✗</span>
-                    <span className="text-slate-500">No AI searchability</span>
-                  </li>
-                </ul>
-                <Link
-                  href="/sign-up"
-                  className="block w-full text-center rounded-lg border-2 border-slate-300 bg-white px-6 py-3 font-bold text-slate-700 hover:bg-slate-50 transition-all"
-                >
-                  Start Free Trial
-                </Link>
-                <p className="text-xs text-center text-slate-500 mt-4">
-                  7-day free trial • No credit card
-                </p>
+
+                {/* Pro */}
+                <div className="rounded-2xl border-2 border-blue-500 bg-white p-6 relative">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-blue-500 text-white text-xs font-bold">
+                    POPULAR
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900 mb-1">Pro</h3>
+                  <p className="text-sm text-slate-500 mb-4">For freelancers & small agencies</p>
+                  <div className="mb-6">
+                    <span className="text-4xl font-black text-blue-600">$249</span>
+                    <span className="text-slate-500">/mo</span>
+                  </div>
+                  <ul className="space-y-2 mb-6 text-sm">
+                    <li className="flex items-center gap-2">
+                      <span className="text-blue-600">✓</span>
+                      <span>Everything in Starter</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-blue-600">✓</span>
+                      <span>100 article rewrites/mo</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-blue-600">✓</span>
+                      <span>Lead discovery & pipeline</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-blue-600">✓</span>
+                      <span>Win a Client wizard</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-blue-600">✓</span>
+                      <span>25GB storage, 3 seats</span>
+                    </li>
+                  </ul>
+                  <Link
+                    href="/sign-up"
+                    className="block w-full text-center rounded-lg bg-blue-500 px-4 py-2.5 font-bold text-white hover:bg-blue-600 transition-all"
+                  >
+                    Start Free Trial
+                  </Link>
+                </div>
+
+                {/* Agency */}
+                <div className="rounded-2xl border-2 border-orange-400 bg-white p-6">
+                  <h3 className="text-xl font-black text-slate-900 mb-1">Agency</h3>
+                  <p className="text-sm text-slate-500 mb-4">For growing agencies</p>
+                  <div className="mb-6">
+                    <span className="text-4xl font-black text-sunset-orange">$599</span>
+                    <span className="text-slate-500">/mo</span>
+                  </div>
+                  <ul className="space-y-2 mb-6 text-sm">
+                    <li className="flex items-center gap-2">
+                      <span className="text-sunset-orange">✓</span>
+                      <span>Everything in Pro</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-sunset-orange">✓</span>
+                      <span>500 article rewrites/mo</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-sunset-orange">✓</span>
+                      <span>White-label PDF reports</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-sunset-orange">✓</span>
+                      <span>100GB storage, 10 seats</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-sunset-orange">✓</span>
+                      <span>Priority support</span>
+                    </li>
+                  </ul>
+                  <Link
+                    href="/sign-up"
+                    className="block w-full text-center rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-4 py-2.5 font-bold text-white hover:shadow-lg transition-all"
+                  >
+                    Start Free Trial
+                  </Link>
+                </div>
               </div>
 
-              {/* Professional - Recommended */}
-              <div className="rounded-2xl border-4 border-blue-500 bg-white p-8 shadow-2xl relative scale-105">
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold shadow-lg">
-                  MOST POPULAR
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-2">Professional</h3>
-                <p className="text-slate-600 mb-6">Freelancers & small agencies</p>
-                <div className="mb-6">
-                  <span className="text-5xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">$249</span>
-                  <span className="text-slate-600">/month</span>
-                </div>
-
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs font-bold text-blue-900 mb-1">UNLIMITED MONEY-MAKING TOOLS:</p>
-                </div>
-
-                <ul className="space-y-3 mb-8 text-sm">
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600 text-lg">∞</span>
-                    <span className="text-slate-900 font-bold">Unlimited AI searchability diagnostics</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600 text-lg">∞</span>
-                    <span className="text-slate-900 font-bold">Unlimited AI Invisibility Reports</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600 text-lg">∞</span>
-                    <span className="text-slate-900 font-bold">Unlimited lead searches</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600 text-lg">∞</span>
-                    <span className="text-slate-900 font-bold">Unlimited content audits</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600 text-lg">∞</span>
-                    <span className="text-slate-900 font-bold">Unlimited strategies</span>
-                  </li>
-                  <li className="border-t border-slate-200 pt-3 mt-3 flex items-start gap-2">
-                    <span className="text-blue-600 text-lg">✓</span>
-                    <span className="text-slate-700"><strong>100 articles/month</strong></span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600 text-lg">✓</span>
-                    <span className="text-slate-700">5 pipeline projects</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600 text-lg">✓</span>
-                    <span className="text-slate-700">25GB Vault storage</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600 text-lg">✓</span>
-                    <span className="text-slate-700">3 seats</span>
-                  </li>
-                </ul>
-                <Link
-                  href="/sign-up"
-                  className="block w-full text-center rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all"
-                >
-                  Start Free Trial
-                </Link>
-                <p className="text-xs text-center text-blue-700 mt-4 font-semibold">
-                  Close 1 client ($5K) = 20 months paid
-                </p>
-              </div>
-
-              {/* Agency */}
-              <div className="rounded-2xl border-4 border-sunset-orange bg-white p-8 shadow-2xl relative scale-105">
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-sunset-orange to-orange-600 text-white text-sm font-bold shadow-lg">
-                  SMELLS LIKE FREEDOM
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 mb-2">Agency</h3>
-                <p className="text-slate-600 mb-6">Multi-client agencies</p>
-                <div className="mb-6">
-                  <span className="text-5xl font-black bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">$599</span>
-                  <span className="text-slate-600">/month</span>
-                </div>
-
-                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <p className="text-xs font-bold text-orange-900 mb-1">EVERYTHING UNLIMITED:</p>
-                </div>
-
-                <ul className="space-y-3 mb-8 text-sm">
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">∞</span>
-                    <span className="text-slate-900 font-bold">Unlimited AI searchability diagnostics</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">∞</span>
-                    <span className="text-slate-900 font-bold">Unlimited AI Invisibility Reports (white-label!)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">∞</span>
-                    <span className="text-slate-900 font-bold">Unlimited lead searches</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">∞</span>
-                    <span className="text-slate-900 font-bold">Unlimited pipeline projects</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">∞</span>
-                    <span className="text-slate-900 font-bold">Unlimited concurrent sessions</span>
-                  </li>
-                  <li className="border-t border-slate-200 pt-3 mt-3 flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700"><strong>500 articles/month</strong></span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">100GB Vault storage</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">10 seats</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">White-label reports</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">Technical SEO toolkit</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">WCAG accessibility audits</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">Marketplace lead access</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-sunset-orange text-lg">✓</span>
-                    <span className="text-slate-700">Priority support (4-hour)</span>
-                  </li>
-                </ul>
-                <Link
-                  href="/sign-up"
-                  className="block w-full text-center rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-6 py-3 font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all"
-                >
-                  Start Free Trial
-                </Link>
-                <p className="text-xs text-center text-orange-700 mt-4 font-semibold">
-                  Close 1 client ($10K) = 16 months paid
-                </p>
-              </div>
-            </div>
-
-            <div className="text-center mt-12">
-              <p className="text-sm text-slate-500 mb-2">
-                All plans include a 7-day free trial. No credit card required. Cancel anytime.
-              </p>
-              <p className="text-sm font-semibold text-slate-700">
-                Professional & Agency: Unlimited AI searchability diagnostics. Find every client in your market.
+              <p className="text-center text-sm text-slate-500 mt-8">
+                7-day free trial on all plans. No credit card required.
               </p>
             </div>
           </div>
         </section>
 
-        {/* FAQ SECTION */}
-        <section id="faq" className="py-20 bg-gradient-to-br from-slate-50 to-white">
+        {/* FAQ - Short */}
+        <section className="py-16 bg-white">
           <div className="container mx-auto px-6">
-            <div className="text-center mb-16 max-w-3xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-4">
-                Frequently Asked Questions
+            <div className="max-w-2xl mx-auto">
+              <h2 className="text-3xl font-black text-slate-900 mb-8 text-center">
+                Questions
               </h2>
-            </div>
 
-            <div className="max-w-3xl mx-auto space-y-6">
-              <details className="bg-white rounded-lg border border-slate-200 p-6 group">
-                <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
-                  What is AISO scoring?
-                  <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <p className="text-slate-600 mt-4">
-                  AISO = Answer Engine Optimization + Intent-based Readability + SEO + Overall optimization. It's a completely transparent 0-100 scoring system that evaluates content across 6 dimensions: AEO (30%), SEO (20%), Readability (20%), Engagement (15%), GEO (10%), and Fact-Check (30%). Unlike other tools that inflate scores, we tell you the truth.
-                </p>
-              </details>
+              <div className="space-y-4">
+                <details className="bg-slate-50 rounded-lg p-4 group">
+                  <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
+                    What is AISO scoring?
+                    <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
+                  </summary>
+                  <p className="text-slate-600 mt-3 text-sm">
+                    AISO = AI Search Optimization. It's a 0-100 score measuring how well AI systems can understand and cite your content.
+                    We check readability, structure, SEO, fact accuracy, and AI-specific formatting.
+                  </p>
+                </details>
 
-              <details className="bg-white rounded-lg border border-slate-200 p-6 group">
-                <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
-                  How accurate are the scores?
-                  <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <p className="text-slate-600 mt-4">
-                  Our fact-checking system has 98% accuracy verified against Brave Search results. The scoring algorithm is calibrated against 15,000+ audited pages. We intentionally grade harder than competitors—a 75+ from us means genuinely good content, not "participation trophy" quality.
-                </p>
-              </details>
+                <details className="bg-slate-50 rounded-lg p-4 group">
+                  <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
+                    Will rewrites sound like me?
+                    <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
+                  </summary>
+                  <p className="text-slate-600 mt-3 text-sm">
+                    Yes. We use selective optimization—fixing specific issues rather than regenerating everything.
+                    Your voice stays intact while the structure improves.
+                  </p>
+                </details>
 
-              <details className="bg-white rounded-lg border border-slate-200 p-6 group">
-                <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
-                  What AI models do you use?
-                  <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <p className="text-slate-600 mt-4">
-                  We use Claude Sonnet 4 (Anthropic) and GPT-4 (OpenAI) for content generation and analysis. Fact-checking is powered by Brave Search API. Accessibility audits use Playwright with axe-core engine for WCAG 2.1/2.2 compliance.
-                </p>
-              </details>
+                <details className="bg-slate-50 rounded-lg p-4 group">
+                  <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
+                    What if a URL won't scan?
+                    <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
+                  </summary>
+                  <p className="text-slate-600 mt-3 text-sm">
+                    Some sites block automated access. Just copy/paste your content directly instead—the audit works the same way.
+                  </p>
+                </details>
 
-              <details className="bg-white rounded-lg border border-slate-200 p-6 group">
-                <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
-                  Is the rewritten content human-quality?
-                  <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <p className="text-slate-600 mt-4">
-                  Yes. We use selective optimization passes (Readability Pass, SEO Pass, AEO Pass, Engagement Pass) rather than full regeneration. This preserves your voice while fixing specific weaknesses. You can also do multiple iterative rewrites, improving scores 10-30 points per pass.
-                </p>
-              </details>
-
-              <details className="bg-white rounded-lg border border-slate-200 p-6 group">
-                <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
-                  Can I import existing content? What if a URL won't scrape?
-                  <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <p className="text-slate-600 mt-4">
-                  Yes. You have three import options:
-                </p>
-                <ul className="text-slate-600 mt-3 space-y-2 ml-4 list-disc">
-                  <li><strong>Paste content directly</strong> - Always works, gives you full control</li>
-                  <li><strong>Enter URLs</strong> - We'll scrape them automatically (works for most sites)</li>
-                  <li><strong>Batch audit 50+ URLs</strong> - Process multiple pages simultaneously</li>
-                </ul>
-                <p className="text-slate-600 mt-3">
-                  <strong>Why some sites won't scrape:</strong> Websites may block automated access through CAPTCHA, JavaScript rendering, rate limiting, or bot detection. AI search engines like Google and Perplexity bypass this through partnerships, whitelisted IPs, and advanced rendering engines. If scraping fails, simply copy/paste the content directly for instant analysis.
-                </p>
-              </details>
-
-              <details className="bg-white rounded-lg border border-slate-200 p-6 group">
-                <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
-                  Does it support teams?
-                  <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <p className="text-slate-600 mt-4">
-                  Yes. Starter includes 1 seat, Agency includes 10 seats, and Enterprise includes unlimited seats. Team members can collaborate on strategies, share the Vault, manage pipeline together, and leave feedback comments on audits.
-                </p>
-              </details>
-
-              <details className="bg-white rounded-lg border border-slate-200 p-6 group">
-                <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
-                  Can I white-label reports for clients?
-                  <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <p className="text-slate-600 mt-4">
-                  Yes, on the Agency tier and above. You can export white-label PDF reports showing audit results, before/after comparisons, and opportunity analyses. Perfect for client deliverables and proposals.
-                </p>
-              </details>
-
-              <details className="bg-white rounded-lg border border-slate-200 p-6 group">
-                <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
-                  What happens after the free trial?
-                  <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <p className="text-slate-600 mt-4">
-                  Your 7-day free trial gives you full access to try all features. No credit card required to start. After 7 days, you can choose to upgrade to a paid plan or stay on the free tier (limited features). You can cancel anytime with no penalties.
-                </p>
-              </details>
-
-              <details className="bg-white rounded-lg border border-slate-200 p-6 group">
-                <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
-                  Do you integrate with WordPress or other CMS platforms?
-                  <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <p className="text-slate-600 mt-4">
-                  Not yet. Currently, you can copy/paste optimized content or export as Markdown/PDF to any platform. WordPress and CMS integrations are on our roadmap for Q2 2025.
-                </p>
-              </details>
+                <details className="bg-slate-50 rounded-lg p-4 group">
+                  <summary className="font-bold text-slate-900 cursor-pointer list-none flex justify-between items-center">
+                    Can I cancel anytime?
+                    <span className="text-sunset-orange group-open:rotate-180 transition-transform">▼</span>
+                  </summary>
+                  <p className="text-slate-600 mt-3 text-sm">
+                    Yes. No contracts, no cancellation fees. Your trial is free for 7 days with no credit card required.
+                  </p>
+                </details>
+              </div>
             </div>
           </div>
         </section>
 
         {/* FINAL CTA */}
-        <section className="py-20 bg-gradient-to-r from-sunset-orange via-orange-500 to-orange-600">
+        <section className="py-16 bg-gradient-to-r from-sunset-orange to-orange-600">
           <div className="container mx-auto px-6">
-            <div className="max-w-4xl mx-auto text-center text-white">
-              <h2 className="text-4xl md:text-5xl font-black mb-6">
-                See What Your Content Really Scores
+            <div className="max-w-2xl mx-auto text-center text-white">
+              <h2 className="text-3xl font-black mb-4">
+                See How Your Content Scores
               </h2>
-              <p className="text-xl md:text-2xl mb-8 opacity-95">
-                No credit card. No email. Just 3 free audits to see if your content is actually good—or just good enough to fool you.
+              <p className="text-lg mb-8 opacity-95">
+                Free audit. No signup. 30 seconds.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                <Link
-                  href="/audit"
-                  className="rounded-xl bg-white px-10 py-4 text-lg font-bold text-sunset-orange shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
-                >
-                  Run Free Audit
-                </Link>
-                <Link
-                  href="/sign-up"
-                  className="rounded-xl border-2 border-white px-10 py-4 text-lg font-bold text-white hover:bg-white/10 transition-all"
-                >
-                  Start 7-Day Trial
-                </Link>
-              </div>
-              <div className="flex items-center justify-center gap-8 text-sm opacity-90">
-                <div className="flex items-center gap-2">
-                  <span>🔒</span>
-                  <span>No Credit Card</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>⚡</span>
-                  <span>30-Second Results</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>💯</span>
-                  <span>Transparent & Precise Scoring</span>
-                </div>
-              </div>
+              <Link
+                href="/audit"
+                className="inline-block rounded-xl bg-white px-8 py-4 font-bold text-sunset-orange shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+              >
+                Run Free Audit
+              </Link>
             </div>
           </div>
         </section>
       </main>
 
-      {/* FOOTER */}
-      <footer className="border-t border-slate-200 bg-white py-12">
+      {/* FOOTER - Minimal */}
+      <footer className="border-t border-slate-200 bg-white py-8">
         <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <h3 className="font-black text-slate-900 mb-4 text-xl bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
-                AISO Studio
-              </h3>
-              <p className="text-sm text-slate-600">
-                Professional content optimization and agency management platform. Built for agencies that value transparent, precise results.
-              </p>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-sm text-slate-600">
+              © 2025 AISO Studio
             </div>
-            <div>
-              <h4 className="font-bold text-slate-900 mb-3">Product</h4>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li><Link href="/audit" className="hover:text-sunset-orange transition-colors">Free Audit</Link></li>
-                <li><Link href="#features" className="hover:text-sunset-orange transition-colors">Features</Link></li>
-                <li><Link href="#pricing" className="hover:text-sunset-orange transition-colors">Pricing</Link></li>
-                <li><Link href="/sign-up" className="hover:text-sunset-orange transition-colors">Sign Up</Link></li>
-              </ul>
+            <div className="flex gap-6 text-sm text-slate-600">
+              <Link href="/audit" className="hover:text-sunset-orange">Free Audit</Link>
+              <Link href="/sign-up" className="hover:text-sunset-orange">Sign Up</Link>
+              <Link href="/sign-in" className="hover:text-sunset-orange">Sign In</Link>
             </div>
-            <div>
-              <h4 className="font-bold text-slate-900 mb-3">Company</h4>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li><Link href="#" className="hover:text-sunset-orange transition-colors">About</Link></li>
-                <li><Link href="#" className="hover:text-sunset-orange transition-colors">Blog</Link></li>
-                <li><Link href="mailto:contact@aiso.studio" className="hover:text-sunset-orange transition-colors">Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-slate-900 mb-3">Legal</h4>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li><Link href="#" className="hover:text-sunset-orange transition-colors">Privacy Policy</Link></li>
-                <li><Link href="#" className="hover:text-sunset-orange transition-colors">Terms of Service</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-slate-200 pt-8 text-center text-sm text-slate-600">
-            © 2025 AISO Studio. All rights reserved.
           </div>
         </div>
       </footer>
