@@ -160,6 +160,20 @@ Write in a professional but friendly tone. Focus on the opportunity to improve t
       personalizedIntro = `After reviewing ${lead.business_name}'s online presence, we've identified several opportunities to strengthen your digital footprint and attract more customers. Our analysis shows specific areas where strategic improvements could significantly impact your visibility and growth.`;
     }
 
+    // Calculate ROI projections
+    const currentScore = lead.overall_score || 0;
+    const projectedScore = Math.min(currentScore + 25, 95); // Conservative improvement
+    const aiVisibilityIncrease = Math.round((projectedScore - currentScore) * 2); // % increase in AI visibility
+
+    // Estimate traffic/leads improvement based on industry benchmarks
+    const estimatedMonthlyVisitors = lead.estimated_monthly_traffic || 500;
+    const projectedTrafficIncrease = Math.round(estimatedMonthlyVisitors * (aiVisibilityIncrease / 100));
+    const conversionRate = 0.02; // 2% average conversion
+    const avgDealValue = lead.estimated_monthly_value || 500;
+    const projectedNewLeads = Math.round(projectedTrafficIncrease * conversionRate);
+    const projectedMonthlyRevenue = projectedNewLeads * avgDealValue;
+    const annualROI = ((projectedMonthlyRevenue * 12) - (monthlyTotal * 12 + oneTimeTotal)) / (monthlyTotal * 12 + oneTimeTotal) * 100;
+
     // Build the proposal
     const proposal = {
       lead: {
@@ -175,6 +189,17 @@ Write in a professional but friendly tone. Focus on the opportunity to improve t
         seo: lead.seo_score,
         accessibility: lead.accessibility_score,
         wcagViolations: lead.wcag_critical_violations,
+        aisoScore: lead.aiso_opportunity_score,
+      },
+      projections: {
+        currentScore,
+        projectedScore,
+        aiVisibilityIncrease,
+        projectedTrafficIncrease,
+        projectedNewLeads,
+        projectedMonthlyRevenue,
+        annualROI: Math.round(annualROI),
+        timeToResults: '3-6 months',
       },
       personalizedIntro,
       painPoints: {
@@ -186,6 +211,7 @@ Write in a professional but friendly tone. Focus on the opportunity to improve t
         monthlyTotal,
         oneTimeTotal,
         firstMonthTotal: monthlyTotal + oneTimeTotal,
+        annualTotal: monthlyTotal * 12 + oneTimeTotal,
       },
       generatedAt: new Date().toISOString(),
     };

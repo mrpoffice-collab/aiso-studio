@@ -25,6 +25,17 @@ interface Proposal {
     seo: number;
     accessibility?: number;
     wcagViolations?: number;
+    aisoScore?: number;
+  };
+  projections?: {
+    currentScore: number;
+    projectedScore: number;
+    aiVisibilityIncrease: number;
+    projectedTrafficIncrease: number;
+    projectedNewLeads: number;
+    projectedMonthlyRevenue: number;
+    annualROI: number;
+    timeToResults: string;
   };
   personalizedIntro: string;
   painPoints: {
@@ -36,6 +47,7 @@ interface Proposal {
     monthlyTotal: number;
     oneTimeTotal: number;
     firstMonthTotal: number;
+    annualTotal?: number;
   };
   generatedAt: string;
 }
@@ -230,10 +242,62 @@ export default function ProposalModal({ proposal, onClose, onSendEmail }: Propos
               </div>
             </div>
 
+            {/* ROI Projections */}
+            {proposal.projections && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                  Projected ROI
+                </h2>
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {proposal.projections.currentScore} → {proposal.projections.projectedScore}
+                      </div>
+                      <div className="text-xs text-slate-600">AI Readiness Score</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        +{proposal.projections.aiVisibilityIncrease}%
+                      </div>
+                      <div className="text-xs text-slate-600">AI Search Visibility</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        +{proposal.projections.projectedNewLeads}
+                      </div>
+                      <div className="text-xs text-slate-600">New Leads/Month</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {proposal.projections.annualROI > 0 ? '+' : ''}{proposal.projections.annualROI}%
+                      </div>
+                      <div className="text-xs text-slate-600">Projected Annual ROI</div>
+                    </div>
+                  </div>
+                  <div className="bg-white/60 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-slate-900">Projected Monthly Revenue Increase</p>
+                        <p className="text-sm text-slate-600">Based on improved AI search visibility in ChatGPT, Perplexity, and Google AI</p>
+                      </div>
+                      <div className="text-3xl font-bold text-green-600">
+                        +${proposal.projections.projectedMonthlyRevenue.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-4 text-center">
+                    * Projections based on industry benchmarks. Results typically visible within {proposal.projections.timeToResults}.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Recommended Services */}
             <div className="mb-8">
               <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-bold">{proposal.projections ? '3' : '2'}</span>
                 Recommended Solutions
               </h2>
               <div className="space-y-4">
@@ -269,7 +333,7 @@ export default function ProposalModal({ proposal, onClose, onSendEmail }: Propos
             {/* Investment Summary */}
             <div className="mb-8">
               <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-bold">3</span>
+                <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-bold">{proposal.projections ? '4' : '3'}</span>
                 Investment Summary
               </h2>
               <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-6 text-white">
@@ -297,7 +361,7 @@ export default function ProposalModal({ proposal, onClose, onSendEmail }: Propos
             {/* Next Steps */}
             <div className="mb-8">
               <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-bold">4</span>
+                <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-bold">{proposal.projections ? '5' : '4'}</span>
                 Next Steps
               </h2>
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
