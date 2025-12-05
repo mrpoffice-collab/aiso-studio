@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { scoreContent } from '@/lib/content-scoring';
+import { scrapeContent } from '@/lib/aiso-audit-engine';
 import Anthropic from '@anthropic-ai/sdk';
-import * as cheerio from 'cheerio';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -40,119 +40,12 @@ export async function POST(request: NextRequest) {
 
     console.log(`Rewriting content from: ${url}`);
 
-    // Scrape content from URL
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ContentCommandStudio/1.0)',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${response.status}`);
-    }
-
-    const html = await response.text();
-    const $ = cheerio.load(html);
-
-    // Extract title and meta
-    const title = $('title').text() || $('h1').first().text();
-    const metaDescription = $('meta[name="description"]').attr('content');
-
-    // Remove scripts, styles, nav, footer
-    $('script, style, nav, footer, header, .sidebar, aside, #sidebar, #comments, .comments, .comment-form').remove();
-
-    // Try to find main content area
-    let contentElement = null;
-    const selectors = [
-      'article',
-      '.post-content',
-      '.entry-content',
-      '.content-area',
-      '.blog-post',
-      '.post',
-      '.kv-ee-post-content',
-      '.kv-ee-content-inner',
-      '.kv-ee-blog-container',
-      'main',
-      '#content',
-      '.site-content',
-      '[role="main"]',
-      '.blog',
-      '#main',
-      '.main-content',
-    ];
-
-    for (const selector of selectors) {
-      const elem = $(selector).first();
-      if (elem && elem.length > 0) {
-        const text = elem.text().trim();
-        if (text.length >= 100) {
-          contentElement = elem;
-          console.log(`Found content with selector: ${selector}`);
-          break;
-        }
-      }
-    }
-
-    if (!contentElement || contentElement.length === 0) {
-      throw new Error('Could not automatically extract content from this page. This site may use JavaScript to load content. Try using the single audit page and paste the article text manually.');
-    }
-
-    // Convert HTML to Markdown-like format
-    const htmlContent = contentElement.html() || '';
-    const $content = cheerio.load(htmlContent);
-
-    // Convert headers
-    $content('h1').each((i, el) => {
-      const headerText = $content(el).text();
-      $content(el).replaceWith('\n# ' + headerText + '\n');
-    });
-    $content('h2').each((i, el) => {
-      const headerText = $content(el).text();
-      $content(el).replaceWith('\n## ' + headerText + '\n');
-    });
-    $content('h3').each((i, el) => {
-      const headerText = $content(el).text();
-      $content(el).replaceWith('\n### ' + headerText + '\n');
-    });
-
-    // Convert images
-    $content('img').each((i, el) => {
-      const alt = $content(el).attr('alt') || 'image';
-      const src = $content(el).attr('src') || '';
-      $content(el).replaceWith('![' + alt + '](' + src + ')');
-    });
-
-    // Convert links
-    $content('a').each((i, el) => {
-      const text = $content(el).text();
-      const href = $content(el).attr('href') || '';
-      if (text && href) {
-        $content(el).replaceWith('[' + text + '](' + href + ')');
-      }
-    });
-
-    // Convert bold/italic
-    $content('strong, b').each((i, el) => {
-      const boldText = $content(el).text();
-      $content(el).replaceWith('**' + boldText + '**');
-    });
-    $content('em, i').each((i, el) => {
-      const italicText = $content(el).text();
-      $content(el).replaceWith('*' + italicText + '*');
-    });
-
-    // Convert lists
-    $content('ul li').each((i, el) => {
-      const itemText = $content(el).text();
-      $content(el).replaceWith('\n- ' + itemText);
-    });
-    $content('ol li').each((i, el) => {
-      const itemText = $content(el).text();
-      $content(el).replaceWith('\n' + (i + 1) + '. ' + itemText);
-    });
-
-    const originalContent = $content.text().trim();
+    // Scrape content from URL using the engine's scraper
+    // This supports both static sites (fetch) and JS-rendered sites (headless browser)
+    const scraped = await scrapeContent(url);
+    const title = scraped.title;
+    const metaDescription = scraped.metaDescription;
+    const originalContent = scraped.content;
 
     if (!originalContent || originalContent.length < 100) {
       throw new Error('Could not extract meaningful content from URL');

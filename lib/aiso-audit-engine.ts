@@ -107,8 +107,9 @@ function normalizeUrl(url: string): string {
 
 /**
  * Scrape content from URL - tries basic fetch first, then falls back to headless browser
+ * Exported so API routes can use it
  */
-async function scrapeContent(url: string): Promise<{
+export async function scrapeContent(url: string): Promise<{
   content: string;
   title: string;
   metaDescription: string;

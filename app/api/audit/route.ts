@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { performFactCheck } from '@/lib/fact-check';
 import { calculateAISOScore } from '@/lib/content-scoring';
+import { scrapeContent } from '@/lib/aiso-audit-engine';
 import * as cheerio from 'cheerio';
 
 /**
@@ -52,113 +53,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If URL provided, scrape the content
+    // If URL provided, scrape the content using the engine's scraper
+    // This supports both static sites (fetch) and JS-rendered sites (headless browser)
     if (url && !content) {
       console.log(`Scraping content from URL: ${url}`);
 
       try {
-        const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; ContentCommandStudio/1.0)',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch URL: ${response.status}`);
-        }
-
-        const html = await response.text();
-        const $ = cheerio.load(html);
-
-        // Remove scripts, styles, nav, footer
-        $('script, style, nav, footer, header, .sidebar, aside, #sidebar, #comments, .comments, .comment-form').remove();
-
-        // Try to find main content area (get HTML, not just text)
-        // Try multiple selectors in order of specificity
-        let contentElement = null;
-        const selectors = [
-          'article',
-          '.post-content',
-          '.entry-content',
-          '.content-area',
-          '.blog-post',
-          '.post',
-          '.kv-ee-post-content',
-          '.kv-ee-content-inner',
-          '.kv-ee-blog-container',
-          'main',
-          '#content',
-          '.site-content',
-          '[role="main"]',
-          '.blog',
-          '#main',
-          '.main-content',
-        ];
-
-        for (const selector of selectors) {
-          const elem = $(selector).first();
-          if (elem && elem.length > 0) {
-            const text = elem.text().trim();
-            if (text.length >= 100) {  // Must have substantial content
-              contentElement = elem;
-              console.log(`Found content with selector: ${selector}`);
-              break;
-            }
-          }
-        }
-
-        if (!contentElement || contentElement.length === 0) {
-          throw new Error('Could not automatically extract content from this page. This site may use JavaScript to load content. Try copying the article text and pasting it into the "Content" field instead of using the URL.');
-        }
-
-        // Convert HTML to Markdown-like format to preserve structure
-        const htmlContent = contentElement.html() || '';
-        const $content = cheerio.load(htmlContent);
-
-        // Convert headers
-        $content('h1').each((i, el) => {
-          $content(el).replaceWith(`\n# ${$content(el).text()}\n`);
-        });
-        $content('h2').each((i, el) => {
-          $content(el).replaceWith(`\n## ${$content(el).text()}\n`);
-        });
-        $content('h3').each((i, el) => {
-          $content(el).replaceWith(`\n### ${$content(el).text()}\n`);
-        });
-
-        // Convert images
-        $content('img').each((i, el) => {
-          const alt = $content(el).attr('alt') || 'image';
-          const src = $content(el).attr('src') || '';
-          $content(el).replaceWith(`![${alt}](${src})`);
-        });
-
-        // Convert links
-        $content('a').each((i, el) => {
-          const text = $content(el).text();
-          const href = $content(el).attr('href') || '';
-          if (text && href) {
-            $content(el).replaceWith(`[${text}](${href})`);
-          }
-        });
-
-        // Convert bold/italic
-        $content('strong, b').each((i, el) => {
-          $content(el).replaceWith(`**${$content(el).text()}**`);
-        });
-        $content('em, i').each((i, el) => {
-          $content(el).replaceWith(`*${$content(el).text()}*`);
-        });
-
-        // Convert lists
-        $content('ul li').each((i, el) => {
-          $content(el).replaceWith(`\n- ${$content(el).text()}`);
-        });
-        $content('ol li').each((i, el) => {
-          $content(el).replaceWith(`\n${i + 1}. ${$content(el).text()}`);
-        });
-
-        content = $content.text().trim();
+        const scraped = await scrapeContent(url);
+        content = scraped.content;
+        title = title || scraped.title;
+        metaDescription = metaDescription || scraped.metaDescription;
 
         if (!content || content.length < 100) {
           throw new Error('Could not extract meaningful content from URL');
@@ -182,30 +86,8 @@ export async function POST(request: NextRequest) {
 
     console.log(`Auditing content (${content.length} characters)`);
 
-    // Extract title and meta description from URL if not provided and URL exists
-    if (url) {
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; ContentCommandStudio/1.0)',
-          },
-        });
-        const html = await response.text();
-        const $ = cheerio.load(html);
-
-        // Only extract from HTML if not already provided
-        if (!title) {
-          title = $('title').text() || $('h1').first().text();
-        }
-        if (!metaDescription) {
-          metaDescription = $('meta[name="description"]').attr('content');
-        }
-      } catch (error) {
-        console.log('Could not extract title/meta from URL');
-      }
-    }
-
-    // Use empty string if still not provided (for manual content audits without title/meta)
+    // Use empty string if title/meta not provided (for manual content audits)
+    // Note: If URL was provided, scrapeContent already extracted title/meta
     title = title || '';
     metaDescription = metaDescription || '';
 
