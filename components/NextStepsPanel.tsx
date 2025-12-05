@@ -142,7 +142,7 @@ export default function NextStepsPanel({
 
           {leadAdded && newLeadId && (
             <Link
-              href={`/dashboard/pipeline?lead=${newLeadId}`}
+              href={`/dashboard/sales?lead=${newLeadId}`}
               className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-green-500 text-white font-bold shadow-md hover:shadow-lg hover:scale-105 transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,7 +179,7 @@ export default function NextStepsPanel({
         <div className="grid grid-cols-3 gap-3">
           {(leadAdded || hasExistingClient) && (
             <Link
-              href={`/dashboard/leads/${newLeadId || clientId}/proposal`}
+              href={`/dashboard/sales?lead=${newLeadId || clientId}`}
               className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border-2 border-slate-200 text-slate-700 font-semibold text-sm hover:border-orange-300 hover:bg-orange-50 transition-all"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

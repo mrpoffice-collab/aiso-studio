@@ -17,8 +17,7 @@ export default function DashboardNav() {
   const navItems = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/win-client', label: 'Win a Client', highlight: true },
-    { href: '/dashboard/leads', label: 'Leads' },
-    { href: '/dashboard/pipeline', label: 'Pipeline' },
+    { href: '/dashboard/sales', label: 'Sales' },
     { href: '/dashboard/clients', label: 'Clients' },
     { href: '/dashboard/strategies', label: 'Strategies' },
     { href: '/dashboard/posts', label: 'Posts' },

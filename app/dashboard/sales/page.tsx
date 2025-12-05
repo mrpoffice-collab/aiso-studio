@@ -7,6 +7,9 @@ import DashboardNav from '@/components/DashboardNav';
 import KanbanBoard from '@/components/pipeline/KanbanBoard';
 import EmailModal from '@/components/pipeline/EmailModal';
 import ProposalModal from '@/components/pipeline/ProposalModal';
+import LeadDiscovery from '@/components/LeadDiscovery';
+
+type SalesTab = 'pipeline' | 'discover';
 
 // Default service pricing (lower market rates for realistic pipeline value)
 const DEFAULT_SERVICE_PRICING = {
@@ -211,6 +214,7 @@ function PipelinePageContent() {
   const [runningAudit, setRunningAudit] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedLeadId, setHighlightedLeadId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<SalesTab>('pipeline');
 
   // Check for lead param in URL (coming from audit page "Add to Pipeline")
   const leadIdFromUrl = searchParams.get('lead');
@@ -229,7 +233,7 @@ function PipelinePageContent() {
         setShowDetailsModal(true);
         setHighlightedLeadId(leadId);
         // Clear the URL param after opening
-        router.replace('/dashboard/pipeline', { scroll: false });
+        router.replace('/dashboard/sales', { scroll: false });
       }
     }
   }, [leadIdFromUrl, leads]);
@@ -614,16 +618,51 @@ function PipelinePageContent() {
       <DashboardNav />
 
       <main className="container mx-auto px-6 py-12">
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-orange-900 to-slate-900 bg-clip-text text-transparent mb-2">
-            Lead Pipeline
+            Sales
           </h1>
           <p className="text-slate-600">
-            Track and manage your discovered leads
+            Discover new prospects and manage your pipeline
           </p>
         </div>
 
-        {/* Stats Overview */}
+        {/* Tabs */}
+        <div className="flex gap-1 mb-8 bg-slate-100 p-1 rounded-xl w-fit">
+          <button
+            onClick={() => setActiveTab('pipeline')}
+            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
+              activeTab === 'pipeline'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Pipeline
+          </button>
+          <button
+            onClick={() => setActiveTab('discover')}
+            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
+              activeTab === 'discover'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Discover Leads
+          </button>
+        </div>
+
+        {/* Discover Tab Content */}
+        {activeTab === 'discover' && (
+          <LeadDiscovery onLeadSaved={() => {
+            loadData();
+            setActiveTab('pipeline');
+          }} />
+        )}
+
+        {/* Pipeline Tab Content */}
+        {activeTab === 'pipeline' ? (
+          <>
+            {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-white rounded-lg p-4 shadow-sm border border-slate-200">
             <div className="text-2xl font-bold text-slate-900">{filteredLeads.length}</div>
@@ -1080,6 +1119,8 @@ function PipelinePageContent() {
           )}
         </div>
         )}
+          </>
+        ) : null}
       </main>
 
       {/* Email Modal */}

@@ -738,7 +738,7 @@ export default function WinClientWizard() {
               {/* Next Actions */}
               <div className="grid md:grid-cols-2 gap-4">
                 <Link
-                  href={`/dashboard/pipeline?lead=${state.leadId}`}
+                  href={`/dashboard/sales?lead=${state.leadId}`}
                   className="p-4 rounded-xl border-2 border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-center"
                 >
                   <div className="text-2xl mb-2">📧</div>
@@ -747,7 +747,7 @@ export default function WinClientWizard() {
                 </Link>
 
                 <Link
-                  href="/dashboard/pipeline"
+                  href="/dashboard/sales"
                   className="p-4 rounded-xl border-2 border-slate-200 hover:border-purple-300 hover:bg-purple-50 transition-all text-center"
                 >
                   <div className="text-2xl mb-2">📋</div>

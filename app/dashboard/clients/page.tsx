@@ -176,7 +176,7 @@ export default function ClientsPage() {
               Clients appear here when leads are marked as "Won" in the Pipeline.
             </p>
             <a
-              href="/dashboard/pipeline"
+              href="/dashboard/sales"
               className="inline-block mt-4 px-4 py-2 bg-orange-100 text-orange-700 font-medium rounded-lg hover:bg-orange-200 transition"
             >
               Go to Pipeline
