@@ -8,6 +8,7 @@ import AISOBadge from '@/components/AISOBadge';
 import AEOScoreCard from '@/components/AEOScoreCard';
 import ArticlePreview from '@/components/ArticlePreview';
 import AccessibilitySummary from '@/components/AccessibilitySummary';
+import NextStepsPanel from '@/components/NextStepsPanel';
 import { generateComparisonPDF } from '@/lib/comparison-pdf-generator';
 import RepurposeModal from '@/components/RepurposeModal';
 
@@ -685,6 +686,24 @@ function AuditPageContent() {
                 {auditResult.aeoDetails && (
                   <div className="mb-8">
                     <AEOScoreCard score={auditResult.aeoScore || 0} details={auditResult.aeoDetails} />
+                  </div>
+                )}
+
+                {/* What's Next Panel - Guide users on next steps */}
+                {(auditResult.url || urlInput) && (
+                  <div className="mb-8">
+                    <NextStepsPanel
+                      url={auditResult.url || urlInput}
+                      domain={(() => {
+                        try {
+                          return new URL(auditResult.url || urlInput).hostname.replace('www.', '');
+                        } catch {
+                          return (auditResult.url || urlInput).replace(/^https?:\/\//, '').replace('www.', '').split('/')[0];
+                        }
+                      })()}
+                      aisoScore={auditResult.aisoScore || auditResult.overallScore || 0}
+                      accessibilityScore={accessibilityResult?.accessibilityScore}
+                    />
                   </div>
                 )}
 
