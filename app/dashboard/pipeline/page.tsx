@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import DashboardNav from '@/components/DashboardNav';
 import KanbanBoard from '@/components/pipeline/KanbanBoard';
@@ -183,8 +183,9 @@ interface Project {
 
 type ViewMode = 'kanban' | 'table';
 
-export default function PipelinePage() {
+function PipelinePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -208,10 +209,30 @@ export default function PipelinePage() {
   const [generatingProposal, setGeneratingProposal] = useState(false);
   const [proposalEmailBody, setProposalEmailBody] = useState<string | null>(null);
   const [runningAudit, setRunningAudit] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [highlightedLeadId, setHighlightedLeadId] = useState<number | null>(null);
+
+  // Check for lead param in URL (coming from audit page "Add to Pipeline")
+  const leadIdFromUrl = searchParams.get('lead');
 
   useEffect(() => {
     loadData();
   }, [selectedProject, selectedStatus]);
+
+  // Auto-open lead when coming from URL param
+  useEffect(() => {
+    if (leadIdFromUrl && leads.length > 0) {
+      const leadId = parseInt(leadIdFromUrl);
+      const lead = leads.find(l => l.id === leadId);
+      if (lead) {
+        setSelectedLead(lead);
+        setShowDetailsModal(true);
+        setHighlightedLeadId(leadId);
+        // Clear the URL param after opening
+        router.replace('/dashboard/pipeline', { scroll: false });
+      }
+    }
+  }, [leadIdFromUrl, leads]);
 
   const loadData = async () => {
     try {
@@ -393,10 +414,28 @@ export default function PipelinePage() {
     );
   };
 
-  // Filter out archived leads unless specifically viewing archived
-  const filteredLeads = selectedStatus === 'archived'
-    ? leads
-    : leads.filter(l => l.status !== 'archived');
+  // Filter leads by status and search query
+  const filteredLeads = leads.filter(l => {
+    // Status filter
+    if (selectedStatus === 'archived') {
+      // Show all when viewing archived
+    } else if (l.status === 'archived') {
+      return false;
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesName = l.business_name?.toLowerCase().includes(query);
+      const matchesDomain = l.domain?.toLowerCase().includes(query);
+      const matchesIndustry = l.industry?.toLowerCase().includes(query);
+      if (!matchesName && !matchesDomain && !matchesIndustry) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   const leadsByStatus = {
     new: leads.filter(l => l.status === 'new').length,
@@ -686,6 +725,23 @@ export default function PipelinePage() {
                   </select>
                 </div>
               )}
+
+              {/* Search */}
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Search</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by name or domain..."
+                    className="w-full px-4 py-2 pl-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <svg className="absolute left-3 top-2.5 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Action Buttons */}
@@ -1589,5 +1645,13 @@ export default function PipelinePage() {
         />
       )}
     </div>
+  );
+}
+
+export default function PipelinePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading pipeline...</div>}>
+      <PipelinePageContent />
+    </Suspense>
   );
 }
