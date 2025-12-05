@@ -16,6 +16,7 @@ export default function DashboardNav() {
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard' },
+    { href: '/dashboard/win-client', label: 'Win a Client', highlight: true },
     { href: '/dashboard/leads', label: 'Leads' },
     { href: '/dashboard/pipeline', label: 'Pipeline' },
     { href: '/dashboard/clients', label: 'Clients' },
@@ -32,18 +33,22 @@ export default function DashboardNav() {
           <Link href="/dashboard" className="text-2xl font-bold bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
             AISO Studio
           </Link>
-          <nav className="flex gap-8">
+          <nav className="flex gap-8 items-center">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={`text-sm font-semibold transition-all duration-200 ${
-                  isActive(item.href)
-                    ? 'text-deep-indigo border-b-2 border-sunset-orange pb-1'
-                    : 'text-slate-600 hover:text-deep-indigo hover:scale-105'
+                  item.highlight
+                    ? isActive(item.href)
+                      ? 'bg-gradient-to-r from-sunset-orange to-orange-500 text-white px-4 py-2 rounded-full shadow-lg'
+                      : 'bg-gradient-to-r from-sunset-orange to-orange-500 text-white px-4 py-2 rounded-full hover:shadow-lg hover:scale-105'
+                    : isActive(item.href)
+                      ? 'text-deep-indigo border-b-2 border-sunset-orange pb-1'
+                      : 'text-slate-600 hover:text-deep-indigo hover:scale-105'
                 }`}
               >
-                {item.label}
+                {item.highlight && '🎯 '}{item.label}
               </Link>
             ))}
           </nav>
