@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         // Log usage
         await db.logUsage({
           user_id: user.id,
-          operation_type: 'full_aiso_audit',
+          operation_type: 'content_audit',
           cost_usd: 0.05, // Full audit costs more
           tokens_used: 2000,
           metadata: {
@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
             aiso_score: auditResult.aisoScore,
             accessibility_score: auditResult.accessibilityScore,
             audit_id: auditResult.id,
+            audit_type: 'full_with_wcag',
           },
         });
 
