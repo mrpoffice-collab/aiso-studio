@@ -5,6 +5,7 @@ import { HexColorPicker } from 'react-colorful';
 import { useRouter } from 'next/navigation';
 import { AISOMascotLoading } from '@/components/AISOMascot';
 import LogoUpload from '@/components/LogoUpload';
+import DashboardNav from '@/components/DashboardNav';
 
 export default function BrandingSettingsPage() {
   const router = useRouter();
@@ -111,6 +112,7 @@ export default function BrandingSettingsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <DashboardNav />
       <div className="mx-auto max-w-4xl p-6">
         {/* Header */}
         <div className="mb-8">

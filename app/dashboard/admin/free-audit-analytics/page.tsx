@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import DashboardNav from '@/components/DashboardNav';
 
 interface Analytics {
   total_audits: number;
@@ -88,6 +89,7 @@ export default function FreeAuditAnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <DashboardNav />
       {/* Header */}
       <div className="border-b border-slate-200 bg-white">
         <div className="container mx-auto px-6 py-6">
