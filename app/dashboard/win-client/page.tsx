@@ -36,8 +36,10 @@ export default function WinClientWizard() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isDiscovering, setIsDiscovering] = useState(false);
   const [error, setError] = useState('');
   const [proposal, setProposal] = useState<any>(null);
+  const [discoveredCompetitors, setDiscoveredCompetitors] = useState<Array<{ name: string; domain: string }>>([]);
 
   const updateState = (updates: Partial<WizardState>) => {
     setState(prev => ({ ...prev, ...updates }));
@@ -71,6 +73,42 @@ export default function WinClientWizard() {
       setError(err.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Step 3: Auto-discover competitors
+  const handleDiscoverCompetitors = async () => {
+    setIsDiscovering(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/competitors/discover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: state.prospectUrl, limit: 3 }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to discover competitors');
+      }
+
+      setDiscoveredCompetitors(data.competitors || []);
+
+      // Auto-fill the competitor URLs
+      const newUrls = [...state.competitorUrls];
+      data.competitors?.forEach((comp: { domain: string }, index: number) => {
+        if (index < 2) {
+          newUrls[index] = `https://${comp.domain}`;
+        }
+      });
+      updateState({ competitorUrls: newUrls });
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsDiscovering(false);
     }
   };
 
@@ -418,6 +456,58 @@ export default function WinClientWizard() {
                 </div>
                 <h2 className="text-2xl font-black text-slate-900">Step 3: Compare Against Competitors</h2>
                 <p className="text-slate-600 mt-2">Show them how they stack up (creates urgency!)</p>
+              </div>
+
+              {/* Auto-Discover Button */}
+              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-purple-900">🔍 Auto-Discover Competitors</h3>
+                    <p className="text-sm text-purple-700 mt-1">
+                      We'll analyze their website and find similar businesses in their market
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDiscoverCompetitors}
+                    disabled={isDiscovering}
+                    className="px-5 py-2.5 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-700 disabled:opacity-50 transition-all flex items-center gap-2"
+                  >
+                    {isDiscovering ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Finding...
+                      </>
+                    ) : (
+                      <>✨ Find Competitors</>
+                    )}
+                  </button>
+                </div>
+
+                {/* Show discovered competitors */}
+                {discoveredCompetitors.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-purple-200">
+                    <p className="text-sm font-bold text-purple-900 mb-2">Found {discoveredCompetitors.length} competitors:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {discoveredCompetitors.map((comp, i) => (
+                        <span key={i} className="px-3 py-1 bg-white rounded-full text-sm font-medium text-purple-700 border border-purple-200">
+                          {comp.name || comp.domain}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-3 bg-white text-slate-500 font-medium">or enter manually</span>
+                </div>
               </div>
 
               <div className="space-y-4">
