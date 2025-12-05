@@ -137,6 +137,22 @@ function AuditPageContent() {
       }
 
       setAuditResult(data);
+
+      // If WCAG data came back, also set accessibilityResult for detailed view
+      if (data.accessibilityScore !== undefined && data.accessibilityScore !== null) {
+        setAccessibilityResult({
+          accessibilityScore: data.accessibilityScore,
+          criticalCount: data.criticalCount,
+          seriousCount: data.seriousCount,
+          moderateCount: data.moderateCount,
+          minorCount: data.minorCount,
+          totalViolations: data.totalViolations,
+          totalPasses: data.totalPasses,
+          violations: data.violations || [],
+          wcagBreakdown: data.wcagBreakdown,
+          pageTitle: data.title,
+        });
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -622,6 +638,20 @@ function AuditPageContent() {
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-4 mb-8">
+                  {/* WCAG Accessibility Score - Shows when URL was audited */}
+                  {auditResult.accessibilityScore !== undefined && auditResult.accessibilityScore !== null && (
+                    <div className={`p-4 rounded-xl border-2 ${getScoreColor(auditResult.accessibilityScore)}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold uppercase tracking-wider">WCAG ♿</span>
+                        <span className="text-2xl font-black">{auditResult.accessibilityScore}</span>
+                      </div>
+                      <p className="text-xs">
+                        🔴 {auditResult.criticalCount || 0} critical &nbsp; 🟠 {auditResult.seriousCount || 0} serious &nbsp; 🟡 {auditResult.moderateCount || 0} moderate
+                      </p>
+                      <p className="text-xs font-bold text-cyan-600 mt-1">Accessibility</p>
+                    </div>
+                  )}
+
                   {/* Fact-Check Score - 30% weight (KEY DIFFERENTIATOR) */}
                   <div className={`p-4 rounded-xl border-2 ${getScoreColor(auditResult.factCheckScore)}`}>
                     <div className="flex items-center justify-between mb-2">
@@ -634,7 +664,7 @@ function AuditPageContent() {
                     <p className="text-xs font-bold text-purple-600 mt-1">30% weight</p>
                   </div>
 
-                  {/* AEO Score - NEW */}
+                  {/* AEO Score */}
                   {auditResult.aeoScore !== undefined && (
                     <div className={`p-4 rounded-xl border-2 ${getScoreColor(auditResult.aeoScore)}`}>
                       <div className="flex items-center justify-between mb-2">
