@@ -61,6 +61,10 @@ export interface AuditResult {
   isExisting: boolean;  // True if returned existing audit
   vaultAssetId?: string;
   pdfUrl?: string;
+
+  // Scraped content for rewrite
+  content?: string;
+  metaDescription?: string;
 }
 
 export interface RecentAuditCheck {
