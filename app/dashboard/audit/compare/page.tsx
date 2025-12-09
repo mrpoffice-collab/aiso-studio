@@ -83,7 +83,10 @@ export default function CompareAuditPage() {
         });
         setCompetitorUrls(newUrls);
       } else {
-        setError('No competitors found. Please enter them manually.');
+        // Show specific error from API or generic message
+        const errorMsg = data.error || 'No competitors found.';
+        const suggestion = data.suggestion || 'Please enter competitor URLs manually.';
+        setError(`${errorMsg} ${suggestion}`);
       }
     } catch (err: any) {
       setError(err.message);

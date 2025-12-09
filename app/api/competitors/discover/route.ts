@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { searchBusinesses } from '@/lib/serper-client';
 import * as cheerio from 'cheerio';
+import { anthropic } from '@/lib/claude';
 
 /**
  * POST /api/competitors/discover
@@ -176,6 +177,19 @@ async function analyzeSite(domain: string): Promise<{
       'consulting firm': ['consulting', 'consultant', 'advisory', 'strategy'],
       'construction company': ['construction', 'contractor', 'builder', 'renovation', 'remodel'],
       'it services': ['it services', 'tech support', 'managed services', 'cybersecurity', 'network'],
+      // Content/blog niches
+      'church/ministry': ['church', 'pastor', 'ministry', 'sermon', 'faith', 'scripture', 'bible', 'christian', 'worship', 'congregation'],
+      'parenting blog': ['parenting', 'mom blog', 'dad blog', 'children', 'family', 'motherhood', 'fatherhood', 'kids'],
+      'personal finance': ['personal finance', 'budgeting', 'investing', 'money', 'savings', 'debt', 'financial freedom'],
+      'health/wellness blog': ['wellness', 'healthy living', 'nutrition', 'mental health', 'self-care', 'mindfulness'],
+      'travel blog': ['travel', 'destinations', 'vacation', 'trip', 'adventure', 'wanderlust', 'explore'],
+      'food blog': ['recipe', 'cooking', 'baking', 'food blog', 'kitchen', 'ingredients', 'meal'],
+      'tech blog': ['technology', 'software', 'startup', 'coding', 'programming', 'tech news', 'gadget'],
+      'lifestyle blog': ['lifestyle', 'life tips', 'personal development', 'self improvement', 'habits'],
+      'coaching/training': ['coach', 'coaching', 'training', 'mentor', 'course', 'program', 'transform'],
+      'virtual assistant': ['virtual assistant', 'va services', 'remote support', 'administrative', 'business support'],
+      'ecommerce': ['shop', 'store', 'buy now', 'add to cart', 'products', 'shipping', 'checkout'],
+      'saas/software': ['saas', 'platform', 'software', 'app', 'solution', 'features', 'pricing', 'sign up'],
     };
 
     let detectedIndustry: string | null = null;
@@ -192,6 +206,16 @@ async function analyzeSite(domain: string): Promise<{
     // Only accept if we have at least 2 keyword matches
     if (maxMatches < 2) {
       detectedIndustry = null;
+    }
+
+    // AI fallback: If keyword matching failed, use Claude to detect the niche
+    if (!detectedIndustry) {
+      console.log('Keyword matching failed, using AI fallback...');
+      const aiNiche = await detectNicheWithAI(title, metaDescription, h1Text, bodyText.substring(0, 1500));
+      if (aiNiche) {
+        detectedIndustry = aiNiche;
+        console.log(`AI detected niche: ${aiNiche}`);
+      }
     }
 
     // Extract services mentioned
@@ -304,4 +328,52 @@ function cleanBusinessName(name: string): string {
     .replace(/\s*:\s*.+$/, '')
     .trim()
     .substring(0, 50); // Limit length
+}
+
+/**
+ * Use AI to detect the website niche when keyword matching fails
+ */
+async function detectNicheWithAI(
+  title: string,
+  metaDescription: string,
+  h1Text: string,
+  bodyText: string
+): Promise<string | null> {
+  try {
+    const prompt = `Analyze this website content and identify the business type or content niche in 2-4 words.
+
+Title: ${title}
+Description: ${metaDescription}
+Heading: ${h1Text}
+Content excerpt: ${bodyText.substring(0, 800)}
+
+Return ONLY a short niche description (2-4 words) that could be used to search for similar websites/competitors.
+Examples: "christian ministry blog", "virtual assistant services", "fitness coaching", "parenting blog", "saas marketing", "dental practice", "real estate agency"
+
+If you cannot determine the niche, respond with "unknown".
+
+Niche:`;
+
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 50,
+      temperature: 0.3,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const response = message.content[0];
+    if (response.type !== 'text') return null;
+
+    const niche = response.text.trim().toLowerCase();
+
+    // Reject if AI couldn't determine or gave a non-useful response
+    if (niche === 'unknown' || niche.length < 3 || niche.length > 50) {
+      return null;
+    }
+
+    return niche;
+  } catch (error) {
+    console.error('AI niche detection failed:', error);
+    return null;
+  }
 }
