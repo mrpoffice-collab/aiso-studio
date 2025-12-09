@@ -1,0 +1,424 @@
+# AISO Studio - Testing Checklist
+
+**Tester:** _______________
+**Date:** _______________
+**Environment:** https://aiso.studio (Production)
+
+---
+
+## Test Accounts Needed
+
+Create these accounts by signing up at https://aiso.studio:
+
+| Persona | Email | Tier | Status |
+|---------|-------|------|--------|
+| Trial User | [your+trial@email] | trial | [ ] Created |
+| Starter User | [your+starter@email] | starter | [ ] Created [ ] Upgraded |
+| Pro User | [your+pro@email] | professional | [ ] Created [ ] Upgraded |
+| Agency User | [your+agency@email] | agency | [ ] Created [ ] Upgraded |
+
+---
+
+## 1. AUTHENTICATION & ONBOARDING
+
+### 1.1 Sign Up Flow
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Click "Sign Up" | Clerk modal appears | [ ] | |
+| Sign up with email | Verification email sent | [ ] | |
+| Verify email | Redirected to dashboard | [ ] | |
+| User created in database | Check DB has correct tier (trial) | [ ] | |
+
+### 1.2 Sign In Flow
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Click "Sign In" | Clerk modal appears | [ ] | |
+| Sign in with valid credentials | Redirected to dashboard | [ ] | |
+| Sign in with invalid credentials | Error message shown | [ ] | |
+
+### 1.3 Sign Out Flow
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Click user menu → Sign Out | Logged out, redirected to home | [ ] | |
+
+---
+
+## 2. DASHBOARD
+
+### 2.1 Dashboard Load
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Navigate to /dashboard | Page loads without errors | [ ] | |
+| Shows user name/email | Correct user info displayed | [ ] | |
+| Shows subscription tier | Correct tier badge shown | [ ] | |
+| Shows usage stats | Articles used, strategies, etc. | [ ] | |
+
+### 2.2 Navigation
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| All sidebar links work | Each page loads | [ ] | |
+| Active page highlighted | Current page shows active state | [ ] | |
+| Mobile menu works | Hamburger menu opens/closes | [ ] | |
+
+---
+
+## 3. CONTENT AUDIT (Core Feature)
+
+### 3.1 Single URL Audit
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Navigate to Audit page | Page loads | [ ] | |
+| Enter valid URL | URL accepted | [ ] | |
+| Click "Run Audit" | Loading state shown | [ ] | |
+| Audit completes | Results displayed (30-60 seconds) | [ ] | |
+| AISO Score shown | Score 0-100 with breakdown | [ ] | |
+| AEO Score displayed | Answer Engine Optimization score | [ ] | |
+| SEO Score displayed | Search Engine Optimization score | [ ] | |
+| Readability Score displayed | Flesch-based score | [ ] | |
+| Engagement Score displayed | Hooks, CTAs analysis | [ ] | |
+| Fact-Check Score displayed | Claims verified | [ ] | |
+| WCAG/Accessibility Score displayed | Accessibility issues found | [ ] | |
+
+### 3.2 Audit Results Actions
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Download PDF report | PDF generates and downloads | [ ] | |
+| View detailed breakdown | Expandable sections work | [ ] | |
+| Rewrite from URL | Opens rewrite modal/page | [ ] | |
+
+### 3.3 Batch Audit
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Navigate to Batch Audit | Page loads | [ ] | |
+| Enter multiple URLs | URLs accepted (one per line) | [ ] | |
+| Run batch audit | Progress shown for each URL | [ ] | |
+| All results displayed | Table shows all audits | [ ] | |
+
+### 3.4 Audit History
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| View previous audits | List of past audits shown | [ ] | |
+| Click to view details | Old audit results load | [ ] | |
+| Compare audits | Before/after comparison works | [ ] | |
+
+---
+
+## 4. CONTENT STRATEGY
+
+### 4.1 Create Strategy
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Navigate to Strategies | Page loads | [ ] | |
+| Click "New Strategy" | Form/wizard opens | [ ] | |
+| Fill required fields | Form validates | [ ] | |
+| - Client name | Required, accepts text | [ ] | |
+| - Industry | Dropdown or text | [ ] | |
+| - Target audience | Text field | [ ] | |
+| - Brand voice | Options or text | [ ] | |
+| - Content frequency | Weekly/Monthly options | [ ] | |
+| Submit form | Strategy created | [ ] | |
+| AI generates topics | 15 topics created | [ ] | |
+
+### 4.2 View/Edit Strategy
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Click existing strategy | Strategy details load | [ ] | |
+| Edit strategy details | Changes save | [ ] | |
+| View topics list | All 15 topics shown | [ ] | |
+| Edit topic | Topic updates | [ ] | |
+| Delete topic | Topic removed | [ ] | |
+| Reorder topics | Drag/drop works | [ ] | |
+
+### 4.3 Strategy Limits (by tier)
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Trial: Create 1 strategy | Allowed | [ ] | |
+| Trial: Create 2nd strategy | Blocked with upgrade prompt | [ ] | |
+| Starter: Create 3 strategies | Allowed | [ ] | |
+| Starter: Create 4th | Blocked | [ ] | |
+| Pro: Create 10 strategies | Allowed | [ ] | |
+| Agency: Unlimited | No limits | [ ] | |
+
+---
+
+## 5. CONTENT GENERATION
+
+### 5.1 Generate Article
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Select topic from strategy | Topic selected | [ ] | |
+| Click "Generate Content" | Loading state | [ ] | |
+| Article generates | Full article appears (1-3 min) | [ ] | |
+| AISO score calculated | Score shown with breakdown | [ ] | |
+| Word count shown | Matches expected length | [ ] | |
+
+### 5.2 Improvement Passes
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Run Readability Pass | Content rewritten, score updates | [ ] | |
+| Run SEO Pass | SEO elements improved | [ ] | |
+| Run AEO Pass | Answer optimization improved | [ ] | |
+| Run Engagement Pass | Hooks/CTAs added | [ ] | |
+| Run Full Rewrite | Complete regeneration | [ ] | |
+
+### 5.3 Content Actions
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Copy to clipboard | Content copied | [ ] | |
+| Export as Markdown | .md file downloads | [ ] | |
+| Export as HTML | .html file downloads | [ ] | |
+| View version history | Previous versions shown | [ ] | |
+
+---
+
+## 6. FACT-CHECKING
+
+### 6.1 Automatic Fact-Check
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Generate content with claims | Claims auto-detected | [ ] | |
+| Claims listed | Each claim shown | [ ] | |
+| Verification status | Verified/Unverified/Unable | [ ] | |
+| Sources shown | Links to verification sources | [ ] | |
+| Confidence score | Percentage shown | [ ] | |
+
+### 6.2 Manual Fact-Check
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Click "Re-check" on claim | Claim re-verified | [ ] | |
+| Mark as manually verified | Status updates | [ ] | |
+
+---
+
+## 7. LEAD DISCOVERY
+
+### 7.1 Search for Leads
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Navigate to Lead Discovery | Page loads | [ ] | |
+| Enter industry | Field accepts text | [ ] | |
+| Enter location | City/State accepted | [ ] | |
+| Click "Search" | Results load | [ ] | |
+| Businesses displayed | List of businesses shown | [ ] | |
+| Each has AISO score | Pre-scored leads | [ ] | |
+| Each has WCAG score | Accessibility issues noted | [ ] | |
+
+### 7.2 Lead Details
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Click on lead | Details modal/page opens | [ ] | |
+| Website shown | URL displayed | [ ] | |
+| Contact info shown | If available | [ ] | |
+| Pain points identified | AISO/WCAG issues listed | [ ] | |
+| Recommended pitch | Suggested approach shown | [ ] | |
+| Estimated value | Dollar value estimate | [ ] | |
+
+### 7.3 Add to Pipeline
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Click "Add to Pipeline" | Lead added to Kanban | [ ] | |
+| Duplicate prevention | Can't add same lead twice | [ ] | |
+
+---
+
+## 8. PIPELINE / KANBAN
+
+### 8.1 View Pipeline
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Navigate to Pipeline | Kanban board loads | [ ] | |
+| All columns visible | 9 stages shown | [ ] | |
+| Leads in correct columns | Based on status | [ ] | |
+| Toggle to Table view | Table displays correctly | [ ] | |
+
+### 8.2 Manage Leads
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Drag lead to new column | Status updates | [ ] | |
+| Click lead card | Details modal opens | [ ] | |
+| Edit lead details | Changes save | [ ] | |
+| Add notes | Notes saved | [ ] | |
+| Set priority | HOT/WARM/COLD badge updates | [ ] | |
+
+### 8.3 Pipeline Metrics
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Total value shown | Sum of pipeline value | [ ] | |
+| Per-stage counts | Number in each stage | [ ] | |
+
+---
+
+## 9. EMAIL OUTREACH
+
+### 9.1 Send Email
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Click "Send Email" on lead | Email modal opens | [ ] | |
+| Select template | Template loads | [ ] | |
+| - Accessibility Urgent | Legal risk angle template | [ ] | |
+| - Hot Lead | High-value template | [ ] | |
+| - Warm Lead | Moderate opportunity | [ ] | |
+| - Cold Intro | General outreach | [ ] | |
+| - Custom | Empty for custom writing | [ ] | |
+| Preview email | Full email shown | [ ] | |
+| Edit subject/body | Changes reflected | [ ] | |
+| Click "Send" | Email sends | [ ] | |
+| Confirmation shown | Success message | [ ] | |
+| Lead status updates | Changed to "Contacted" | [ ] | |
+
+### 9.2 Email History
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| View sent emails | List of sent emails | [ ] | |
+| Email timestamp | Date/time shown | [ ] | |
+| Open tracking | If opened, shown | [ ] | |
+
+---
+
+## 10. STRATEGIC LINKING
+
+### 10.1 Money Pages
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Navigate to Money Pages | Page loads | [ ] | |
+| Add money page | URL and type accepted | [ ] | |
+| Set as primary/secondary | Designation saves | [ ] | |
+| View linking opportunities | Suggestions shown | [ ] | |
+
+### 10.2 Topic Clusters
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Create topic cluster | Cluster created | [ ] | |
+| Add topics to cluster | Topics grouped | [ ] | |
+| View cluster visualization | Cluster map shown | [ ] | |
+
+---
+
+## 11. REPORTS & EXPORTS
+
+### 11.1 PDF Reports
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Generate audit PDF | PDF downloads | [ ] | |
+| PDF has branding | Logo, colors correct | [ ] | |
+| All scores included | Complete breakdown | [ ] | |
+| Recommendations included | Action items listed | [ ] | |
+
+### 11.2 Proposal Generation
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Generate proposal for lead | Proposal created | [ ] | |
+| Includes audit findings | Issues listed | [ ] | |
+| Pricing suggestions | Based on lead value | [ ] | |
+| Download as PDF | PDF generates | [ ] | |
+
+---
+
+## 12. ADMIN FEATURES (Agency tier only)
+
+### 12.1 Team Management
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Invite team member | Invitation sent | [ ] | |
+| Team member joins | Access granted | [ ] | |
+| Set permissions | Role assigned | [ ] | |
+| Remove team member | Access revoked | [ ] | |
+
+### 12.2 Usage Dashboard
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| View team usage | All members' usage shown | [ ] | |
+| Export usage report | CSV/PDF downloads | [ ] | |
+
+---
+
+## 13. ERROR HANDLING
+
+### 13.1 Graceful Failures
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Enter invalid URL for audit | Error message, not crash | [ ] | |
+| API timeout | Retry option shown | [ ] | |
+| Network disconnection | Offline message | [ ] | |
+| Server error (500) | User-friendly error page | [ ] | |
+
+### 13.2 Validation
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Submit empty required field | Validation error shown | [ ] | |
+| Invalid email format | Rejected with message | [ ] | |
+| URL without protocol | Auto-adds https:// or error | [ ] | |
+
+---
+
+## 14. PERFORMANCE
+
+### 14.1 Load Times
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Dashboard loads | < 3 seconds | [ ] | |
+| Strategy list loads | < 2 seconds | [ ] | |
+| Audit results display | < 60 seconds total | [ ] | |
+| Lead search results | < 10 seconds | [ ] | |
+
+### 14.2 Responsiveness
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Desktop (1920x1080) | Layout correct | [ ] | |
+| Tablet (768x1024) | Responsive layout | [ ] | |
+| Mobile (375x667) | Mobile-friendly | [ ] | |
+
+---
+
+## CRITICAL BUGS FOUND
+
+| # | Feature | Bug Description | Severity | Fixed? |
+|---|---------|-----------------|----------|--------|
+| 1 | | | High/Med/Low | [ ] |
+| 2 | | | | [ ] |
+| 3 | | | | [ ] |
+| 4 | | | | [ ] |
+| 5 | | | | [ ] |
+
+---
+
+## IMPROVEMENT SUGGESTIONS
+
+| # | Feature | Suggestion |
+|---|---------|------------|
+| 1 | | |
+| 2 | | |
+| 3 | | |
+
+---
+
+## TESTING SUMMARY
+
+| Category | Tests | Passed | Failed | Blocked |
+|----------|-------|--------|--------|---------|
+| Authentication | | | | |
+| Dashboard | | | | |
+| Audit | | | | |
+| Strategy | | | | |
+| Content Gen | | | | |
+| Fact-Check | | | | |
+| Lead Discovery | | | | |
+| Pipeline | | | | |
+| Email | | | | |
+| Strategic Linking | | | | |
+| Reports | | | | |
+| Admin | | | | |
+| Error Handling | | | | |
+| Performance | | | | |
+| **TOTAL** | | | | |
+
+---
+
+**Overall Status:** [ ] Ready for Launch  [ ] Needs Work  [ ] Major Issues
+
+**Blocking Issues for Launch:**
+1.
+2.
+3.
+
+**Sign-off:** _______________  Date: _______________

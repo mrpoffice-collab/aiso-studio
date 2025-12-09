@@ -98,10 +98,12 @@ export async function POST(request: NextRequest) {
       iteration++;
       console.log(`Rewrite iteration ${iteration}/${MAX_ITERATIONS}...`);
 
-      // Identify problematic claims from audit
-      const problematicClaims = auditReport.factChecks
-        ?.filter((fc: any) => fc.status === 'unverified' || fc.status === 'uncertain')
-        .map((fc: any) => fc.claim) || [];
+      // Identify problematic claims from audit (ensure factChecks is an array)
+      const problematicClaims = Array.isArray(auditReport.factChecks)
+        ? auditReport.factChecks
+            .filter((fc: any) => fc.status === 'unverified' || fc.status === 'uncertain')
+            .map((fc: any) => fc.claim)
+        : [];
 
       // Calculate what needs improvement
       const factCheckScore = auditReport.factCheckScore || 0;
@@ -332,9 +334,9 @@ Return ONLY the improved content in markdown format. Preserve all original links
         },
         {
           category: 'SEO (15%)',
-          before: auditReport.seoScore,
+          before: auditReport.seoScore || 0,
           after: finalAisoScores.seoScore,
-          improvement: finalAisoScores.seoScore - auditReport.seoScore
+          improvement: finalAisoScores.seoScore - (auditReport.seoScore || 0)
         }
       ],
       newFactCheckSummary: {
@@ -347,6 +349,23 @@ Return ONLY the improved content in markdown format. Preserve all original links
     });
   } catch (error: any) {
     console.error('Rewrite error:', error);
+    console.error('Error stack:', error.stack);
+
+    // Check for specific error types
+    if (error.message?.includes('API key')) {
+      return NextResponse.json(
+        { error: 'AI service configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
+    if (error.message?.includes('rate limit')) {
+      return NextResponse.json(
+        { error: 'AI service rate limit reached. Please try again in a few minutes.' },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
       { error: error.message || 'Failed to rewrite content' },
       { status: 500 }

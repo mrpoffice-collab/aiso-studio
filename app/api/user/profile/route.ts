@@ -24,6 +24,10 @@ export async function GET() {
         email: user.email,
         name: user.name,
         subscription_tier: user.subscription_tier,
+        subscription_status: user.subscription_status,
+        article_limit: user.article_limit,
+        articles_used_this_month: user.articles_used_this_month,
+        locked_domain: user.locked_domain,
         agency_id: user.agency_id,
         agency_status: user.agency_status,
         created_at: user.created_at
