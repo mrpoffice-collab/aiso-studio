@@ -122,6 +122,11 @@ export async function scrapeContent(url: string): Promise<{
   try {
     const result = await scrapeWithFetch(url);
     if (result.content.length >= 200) {
+      // Check if we got an error page instead of real content
+      if (isErrorPageContent(result.content, result.title)) {
+        console.log('Basic fetch returned error page, trying headless browser...');
+        throw new Error('Got error page');
+      }
       return result;
     }
   } catch (e) {
@@ -129,7 +134,20 @@ export async function scrapeContent(url: string): Promise<{
   }
 
   // Fall back to headless browser for JS-rendered sites
-  return await scrapeWithBrowser(url);
+  const result = await scrapeWithBrowser(url);
+
+  // Check if browser also got an error page
+  if (isErrorPageContent(result.content, result.title)) {
+    throw new Error(`Unable to access this page. The website is blocking automated access (403 Forbidden). This may be due to:
+• Cloudflare protection
+• Bot detection
+• Geographic restrictions
+• Required login/authentication
+
+Try auditing a different URL or pasting the content directly.`);
+  }
+
+  return result;
 }
 
 /**
@@ -234,6 +252,42 @@ async function scrapeWithBrowser(url: string): Promise<{
     }
     throw new Error(`Failed to scrape URL: ${error.message}`);
   }
+}
+
+/**
+ * Check if content looks like an error page
+ */
+function isErrorPageContent(content: string, title: string): boolean {
+  const lowerContent = content.toLowerCase();
+  const lowerTitle = title.toLowerCase();
+
+  // Common error page patterns
+  const errorPatterns = [
+    '403 forbidden',
+    '404 not found',
+    '500 internal server error',
+    '502 bad gateway',
+    '503 service unavailable',
+    'access denied',
+    'permission denied',
+    'page not found',
+    'error occurred',
+    'cloudflare',
+    'ray id',
+    'blocked',
+    'captcha',
+    'verify you are human',
+    'please enable javascript',
+    'this site requires javascript',
+  ];
+
+  for (const pattern of errorPatterns) {
+    if (lowerTitle.includes(pattern) || lowerContent.substring(0, 500).includes(pattern)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
