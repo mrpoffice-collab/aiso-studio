@@ -717,6 +717,50 @@ function AuditPageContent() {
                   </div>
                 )}
 
+                {/* AI Crawler Access Warning */}
+                {auditResult.crawlerAccess && (auditResult.crawlerAccess.gptBotBlocked || auditResult.crawlerAccess.claudeBotBlocked) && (
+                  <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 shadow-lg">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-lg font-bold text-amber-900 mb-2">AI Crawler Access Issue Detected</h4>
+                        <p className="text-amber-800 mb-3">
+                          This website is blocking AI crawlers, which may reduce visibility in AI-powered search results like ChatGPT, Claude, and Perplexity.
+                        </p>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {auditResult.crawlerAccess.gptBotBlocked && (
+                            <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm font-medium">
+                              GPTBot Blocked
+                            </span>
+                          )}
+                          {auditResult.crawlerAccess.claudeBotBlocked && (
+                            <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm font-medium">
+                              ClaudeBot Blocked
+                            </span>
+                          )}
+                          {auditResult.crawlerAccess.googleBotBlocked && (
+                            <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm font-medium">
+                              Googlebot Blocked
+                            </span>
+                          )}
+                          {auditResult.crawlerAccess.successfulAgent && (
+                            <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium">
+                              Accessed via: {auditResult.crawlerAccess.successfulAgent}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-amber-700">
+                          <strong>Recommendation:</strong> Review your robots.txt file and server configuration to allow AI crawlers. This is becoming increasingly important for content discoverability.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* What's Next Panel - Guide users on next steps */}
                 {(auditResult.url || urlInput) && (
                   <div className="mb-8">

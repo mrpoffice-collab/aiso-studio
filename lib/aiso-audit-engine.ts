@@ -65,6 +65,9 @@ export interface AuditResult {
   // Scraped content for rewrite
   content?: string;
   metaDescription?: string;
+
+  // Crawler access information (for AEO insights)
+  crawlerAccess?: CrawlerAccessInfo;
 }
 
 export interface RecentAuditCheck {
@@ -109,32 +112,54 @@ function normalizeUrl(url: string): string {
   return normalized;
 }
 
+// Crawler access tracking
+export interface CrawlerAccessInfo {
+  browserBlocked: boolean;
+  gptBotBlocked: boolean;
+  claudeBotBlocked: boolean;
+  googleBotBlocked: boolean;
+  successfulAgent: string | null;
+  blockedAgents: string[];
+}
+
 /**
  * Scrape content from URL - tries basic fetch first, then falls back to headless browser
  * Exported so API routes can use it
+ * Now also returns crawler access information for AEO insights
  */
 export async function scrapeContent(url: string): Promise<{
   content: string;
   title: string;
   metaDescription: string;
+  crawlerAccess?: CrawlerAccessInfo;
 }> {
+  // Track which crawlers are blocked
+  const crawlerAccess: CrawlerAccessInfo = {
+    browserBlocked: false,
+    gptBotBlocked: false,
+    claudeBotBlocked: false,
+    googleBotBlocked: false,
+    successfulAgent: null,
+    blockedAgents: [],
+  };
+
   // First try with basic fetch (faster, cheaper)
   try {
-    const result = await scrapeWithFetch(url);
+    const result = await scrapeWithFetch(url, crawlerAccess);
     if (result.content.length >= 200) {
       // Check if we got an error page instead of real content
       if (isErrorPageContent(result.content, result.title)) {
         console.log('Basic fetch returned error page, trying headless browser...');
         throw new Error('Got error page');
       }
-      return result;
+      return { ...result, crawlerAccess };
     }
   } catch (e) {
     console.log('Basic fetch failed, trying headless browser...');
   }
 
   // Fall back to headless browser for JS-rendered sites
-  const result = await scrapeWithBrowser(url);
+  const result = await scrapeWithBrowser(url, crawlerAccess);
 
   // Check if browser also got an error page
   if (isErrorPageContent(result.content, result.title)) {
@@ -147,42 +172,43 @@ export async function scrapeContent(url: string): Promise<{
 Try auditing a different URL or pasting the content directly.`);
   }
 
-  return result;
+  return { ...result, crawlerAccess };
 }
 
-// User agents to try - ordered by likelihood of access
-const USER_AGENTS = [
-  // Standard browser (most common)
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  // GPTBot - OpenAI's crawler (many sites allow this)
-  'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.0; +https://openai.com/gptbot',
-  // Anthropic's crawler
-  'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; anthropic-ai/1.0; +https://www.anthropic.com/claude',
-  // Google-compatible (many sites whitelist Google)
-  'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+// User agents with names for tracking
+const USER_AGENT_CONFIG = [
+  { name: 'browser', agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+  { name: 'gptbot', agent: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.0; +https://openai.com/gptbot' },
+  { name: 'claudebot', agent: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; anthropic-ai/1.0; +https://www.anthropic.com/claude' },
+  { name: 'googlebot', agent: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' },
 ];
+
+// Keep old array for backwards compatibility
+const USER_AGENTS = USER_AGENT_CONFIG.map(c => c.agent);
 
 /**
  * Basic fetch scraping (for static sites)
- * Tries multiple user agents if blocked
+ * Tries multiple user agents if blocked and tracks access
  */
-async function scrapeWithFetch(url: string): Promise<{
+async function scrapeWithFetch(url: string, crawlerAccess: CrawlerAccessInfo): Promise<{
   content: string;
   title: string;
   metaDescription: string;
 }> {
   let lastError: Error | null = null;
 
-  for (const userAgent of USER_AGENTS) {
+  for (const { name, agent } of USER_AGENT_CONFIG) {
     try {
       const response = await fetch(url, {
         headers: {
-          'User-Agent': userAgent,
+          'User-Agent': agent,
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         },
       });
 
       if (!response.ok) {
+        // Track blocked agent
+        markAgentBlocked(crawlerAccess, name);
         lastError = new Error(`Failed to fetch URL: ${response.status}`);
         continue; // Try next user agent
       }
@@ -192,13 +218,17 @@ async function scrapeWithFetch(url: string): Promise<{
 
       // Check if we got an error page
       if (isErrorPageContent(result.content, result.title)) {
+        markAgentBlocked(crawlerAccess, name);
         lastError = new Error('Got error page with this user agent');
         continue; // Try next user agent
       }
 
-      console.log(`Successfully scraped with user agent: ${userAgent.substring(0, 50)}...`);
+      // Success! Track which agent worked
+      crawlerAccess.successfulAgent = name;
+      console.log(`Successfully scraped with user agent: ${name}`);
       return result;
     } catch (e: any) {
+      markAgentBlocked(crawlerAccess, name);
       lastError = e;
       continue; // Try next user agent
     }
@@ -208,10 +238,23 @@ async function scrapeWithFetch(url: string): Promise<{
 }
 
 /**
- * Headless browser scraping (for JS-rendered sites)
- * Tries multiple user agents if blocked
+ * Helper to mark an agent as blocked
  */
-async function scrapeWithBrowser(url: string): Promise<{
+function markAgentBlocked(crawlerAccess: CrawlerAccessInfo, agentName: string) {
+  crawlerAccess.blockedAgents.push(agentName);
+  switch (agentName) {
+    case 'browser': crawlerAccess.browserBlocked = true; break;
+    case 'gptbot': crawlerAccess.gptBotBlocked = true; break;
+    case 'claudebot': crawlerAccess.claudeBotBlocked = true; break;
+    case 'googlebot': crawlerAccess.googleBotBlocked = true; break;
+  }
+}
+
+/**
+ * Headless browser scraping (for JS-rendered sites)
+ * Tries multiple user agents if blocked and tracks access
+ */
+async function scrapeWithBrowser(url: string, crawlerAccess: CrawlerAccessInfo): Promise<{
   content: string;
   title: string;
   metaDescription: string;
@@ -220,7 +263,7 @@ async function scrapeWithBrowser(url: string): Promise<{
 
   let lastError: Error | null = null;
 
-  for (const userAgent of USER_AGENTS) {
+  for (const { name, agent } of USER_AGENT_CONFIG) {
     let page = null;
     try {
       const browser = await getBrowser();
@@ -228,7 +271,7 @@ async function scrapeWithBrowser(url: string): Promise<{
 
       // Set realistic viewport and user agent
       await page.setViewport({ width: 1920, height: 1080 });
-      await page.setUserAgent(userAgent);
+      await page.setUserAgent(agent);
 
       // Navigate and wait for content to load
       await page.goto(url, {
@@ -287,19 +330,24 @@ async function scrapeWithBrowser(url: string): Promise<{
       if (result) {
         // Check if we got an error page
         if (isErrorPageContent(result.content, result.title)) {
+          markAgentBlocked(crawlerAccess, name);
           lastError = new Error('Got error page with this user agent');
           continue; // Try next user agent
         }
-        console.log(`Successfully scraped with browser using: ${userAgent.substring(0, 50)}...`);
+        // Success! Track which agent worked
+        crawlerAccess.successfulAgent = name;
+        console.log(`Successfully scraped with browser using: ${name}`);
         return result;
       }
 
+      markAgentBlocked(crawlerAccess, name);
       lastError = new Error('Could not extract meaningful content');
       continue; // Try next user agent
     } catch (error: any) {
       if (page) {
         try { await page.close(); } catch (e) { /* ignore */ }
       }
+      markAgentBlocked(crawlerAccess, name);
       lastError = error;
       continue; // Try next user agent
     }
@@ -718,6 +766,11 @@ export async function runAISOAudit(
   if (scrapedContent?.content) {
     result.content = scrapedContent.content;
     result.metaDescription = scrapedContent.metaDescription;
+  }
+
+  // Add crawler access info if available
+  if (scrapedContent?.crawlerAccess) {
+    result.crawlerAccess = scrapedContent.crawlerAccess;
   }
 
   // Generate and save PDF to Vault

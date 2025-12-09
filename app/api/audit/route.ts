@@ -125,6 +125,9 @@ export async function POST(request: NextRequest) {
 
           // PDF
           pdfUrl: auditResult.pdfUrl,
+
+          // Crawler access info (for AEO warnings)
+          crawlerAccess: auditResult.crawlerAccess,
         });
       } catch (error: any) {
         console.error('Full audit failed:', error);
