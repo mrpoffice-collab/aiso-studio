@@ -133,7 +133,7 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          {/* Trial Banner */}
+          {/* Trial Banner with Usage */}
           {user.subscription_tier === 'trial' && user.trial_ends_at && (
             (() => {
               const trialEnd = new Date(user.trial_ends_at);
@@ -141,41 +141,91 @@ export default async function DashboardPage() {
               const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
               const isExpired = daysLeft <= 0;
 
+              // Usage tracking
+              const articlesUsed = user.articles_used_this_month || 0;
+              const articleLimit = user.article_limit || 10;
+              const strategiesUsed = user.strategies_used || 0;
+              const strategiesLimit = user.strategies_limit || 1;
+              const auditsUsed = user.audits_used_this_month || 0;
+              const auditsLimit = user.audit_limit || 10;
+
               return (
-                <div className={`mb-6 rounded-xl p-4 flex items-center justify-between ${
+                <div className={`mb-6 rounded-xl p-4 ${
                   isExpired
                     ? 'bg-red-50 border border-red-200'
                     : daysLeft <= 3
                       ? 'bg-amber-50 border border-amber-200'
                       : 'bg-blue-50 border border-blue-200'
                 }`}>
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{isExpired ? '⏰' : daysLeft <= 3 ? '⚠️' : '🎉'}</span>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{isExpired ? '⏰' : daysLeft <= 3 ? '⚠️' : '🎉'}</span>
+                      <div>
+                        <p className={`font-bold ${isExpired ? 'text-red-800' : daysLeft <= 3 ? 'text-amber-800' : 'text-blue-800'}`}>
+                          {isExpired
+                            ? 'Your trial has expired'
+                            : daysLeft === 1
+                              ? 'Last day of your free trial!'
+                              : `${daysLeft} days left in your free trial`}
+                        </p>
+                        <p className={`text-sm ${isExpired ? 'text-red-600' : daysLeft <= 3 ? 'text-amber-600' : 'text-blue-600'}`}>
+                          {isExpired
+                            ? 'Upgrade now to keep using AISO Studio'
+                            : 'Upgrade anytime to unlock unlimited features'}
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/pricing"
+                      className={`px-4 py-2 font-bold rounded-lg transition ${
+                        isExpired || daysLeft <= 3
+                          ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:shadow-lg'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      {isExpired ? 'Upgrade Now' : 'View Plans'}
+                    </Link>
+                  </div>
+
+                  {/* Usage Meters */}
+                  <div className="grid grid-cols-3 gap-4 pt-3 border-t border-blue-200/50">
                     <div>
-                      <p className={`font-bold ${isExpired ? 'text-red-800' : daysLeft <= 3 ? 'text-amber-800' : 'text-blue-800'}`}>
-                        {isExpired
-                          ? 'Your trial has expired'
-                          : daysLeft === 1
-                            ? 'Last day of your free trial!'
-                            : `${daysLeft} days left in your free trial`}
-                      </p>
-                      <p className={`text-sm ${isExpired ? 'text-red-600' : daysLeft <= 3 ? 'text-amber-600' : 'text-blue-600'}`}>
-                        {isExpired
-                          ? 'Upgrade now to keep using AISO Studio'
-                          : 'Upgrade anytime to unlock unlimited features'}
-                      </p>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className={`font-medium ${isExpired ? 'text-red-700' : 'text-blue-700'}`}>AISO Audits</span>
+                        <span className={`font-bold ${isExpired ? 'text-red-800' : 'text-blue-800'}`}>{auditsUsed}/{auditsLimit}</span>
+                      </div>
+                      <div className="h-1.5 bg-white/50 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${auditsUsed >= auditsLimit ? 'bg-red-500' : isExpired ? 'bg-red-400' : 'bg-blue-500'}`}
+                          style={{ width: `${Math.min((auditsUsed / auditsLimit) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className={`font-medium ${isExpired ? 'text-red-700' : 'text-blue-700'}`}>Articles</span>
+                        <span className={`font-bold ${isExpired ? 'text-red-800' : 'text-blue-800'}`}>{articlesUsed}/{articleLimit}</span>
+                      </div>
+                      <div className="h-1.5 bg-white/50 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${articlesUsed >= articleLimit ? 'bg-red-500' : isExpired ? 'bg-red-400' : 'bg-blue-500'}`}
+                          style={{ width: `${Math.min((articlesUsed / articleLimit) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className={`font-medium ${isExpired ? 'text-red-700' : 'text-blue-700'}`}>Strategies</span>
+                        <span className={`font-bold ${isExpired ? 'text-red-800' : 'text-blue-800'}`}>{strategiesUsed}/{strategiesLimit}</span>
+                      </div>
+                      <div className="h-1.5 bg-white/50 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${strategiesUsed >= strategiesLimit ? 'bg-red-500' : isExpired ? 'bg-red-400' : 'bg-blue-500'}`}
+                          style={{ width: `${Math.min((strategiesUsed / strategiesLimit) * 100, 100)}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
-                  <Link
-                    href="/pricing"
-                    className={`px-4 py-2 font-bold rounded-lg transition ${
-                      isExpired || daysLeft <= 3
-                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:shadow-lg'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    {isExpired ? 'Upgrade Now' : 'View Plans'}
-                  </Link>
                 </div>
               );
             })()

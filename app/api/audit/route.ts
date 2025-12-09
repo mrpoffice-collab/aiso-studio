@@ -24,6 +24,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Check audit limit
+    const auditLimit = await db.checkAuditLimit(user.id);
+    if (!auditLimit.allowed) {
+      return NextResponse.json({
+        error: 'Audit limit reached',
+        message: `You've used all ${auditLimit.limit} audits this month. Upgrade your plan for more.`,
+        used: auditLimit.used,
+        limit: auditLimit.limit,
+        upgrade: true,
+      }, { status: 403 });
+    }
+
     const body = await request.json();
     let { content, url, title, metaDescription } = body;
 
@@ -54,6 +66,9 @@ export async function POST(request: NextRequest) {
         const auditResult = await runAISOAudit(url, user.id, {
           checkRecent: false, // Always run fresh for explicit audit requests
         });
+
+        // Increment audit usage
+        await db.incrementAuditUsage(user.id);
 
         // Log usage
         await db.logUsage({
@@ -134,6 +149,9 @@ export async function POST(request: NextRequest) {
         metaDescription,
         factCheckResult.overallScore
       );
+
+      // Increment audit usage
+      await db.incrementAuditUsage(user.id);
 
       // Log usage
       await db.logUsage({

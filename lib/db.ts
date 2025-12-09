@@ -1251,10 +1251,44 @@ export const db = {
     return result[0];
   },
 
+  async incrementAuditUsage(userId: number | string) {
+    const result = await query(
+      `UPDATE users
+       SET audits_used_this_month = COALESCE(audits_used_this_month, 0) + 1
+       WHERE id = $1
+       RETURNING audits_used_this_month, audit_limit`,
+      [userId]
+    );
+    return result[0];
+  },
+
+  async checkAuditLimit(userId: number | string) {
+    const result = await query(
+      `SELECT audits_used_this_month, audit_limit, subscription_tier
+       FROM users WHERE id = $1`,
+      [userId]
+    );
+    const user = result[0];
+    if (!user) return { allowed: false, used: 0, limit: 0 };
+
+    const used = user.audits_used_this_month || 0;
+    const limit = user.audit_limit || 10;
+    // Enterprise tier has unlimited audits
+    const isUnlimited = user.subscription_tier === 'enterprise';
+
+    return {
+      allowed: isUnlimited || used < limit,
+      used,
+      limit,
+      isUnlimited,
+    };
+  },
+
   async resetMonthlyUsage(userId: number | string) {
     await query(
       `UPDATE users
        SET articles_used_this_month = 0,
+           audits_used_this_month = 0,
            billing_cycle_start = CURRENT_TIMESTAMP,
            billing_cycle_end = CURRENT_TIMESTAMP + INTERVAL '1 month'
        WHERE id = $1`,
@@ -2486,5 +2520,32 @@ export const db = {
       [userId]
     );
     return result[0];
+  },
+
+  // Domain Locking for Starter tier
+  async setLockedDomain(userId: number | string, domain: string) {
+    const result = await query(
+      `UPDATE users
+       SET locked_domain = $1
+       WHERE id = $2 AND locked_domain IS NULL
+       RETURNING locked_domain`,
+      [domain, userId]
+    );
+    return result[0]?.locked_domain || null;
+  },
+
+  async getLockedDomain(userId: number | string) {
+    const result = await query(
+      `SELECT locked_domain FROM users WHERE id = $1`,
+      [userId]
+    );
+    return result[0]?.locked_domain || null;
+  },
+
+  async clearLockedDomain(userId: number | string) {
+    await query(
+      `UPDATE users SET locked_domain = NULL WHERE id = $1`,
+      [userId]
+    );
   },
 };
