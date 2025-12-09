@@ -177,31 +177,34 @@ function FreeAuditContent() {
             </div>
 
             {error && (
-              <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 p-6">
+              <div className="rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 p-6">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="text-2xl">🔍</span>
+                  <span className="text-3xl">🤖</span>
                   <div className="flex-1">
-                    <h3 className="font-bold text-slate-900 mb-2">We Found an Opportunity to Improve Your AI Visibility</h3>
-                    <p className="text-sm text-slate-700 mb-3">
-                      Your site uses modern technology that AI search engines like ChatGPT, Perplexity, and Google SGE may have trouble reading.
+                    <h3 className="font-bold text-slate-900 text-lg mb-2">This Page is Not AI Search Friendly</h3>
+                    <p className="text-slate-700 mb-3">
+                      AI-powered search is changing how people find information online. Tools like <strong>ChatGPT, Perplexity, Google AI Overviews, and Claude</strong> are increasingly becoming the first place people look for answers.
                     </p>
-                    <p className="text-sm text-slate-600 mb-4">
-                      <strong>Good news:</strong> This is a common issue with an easy fix. AISO Studio can help you optimize your content so AI engines can discover and recommend your site to millions of users.
+                    <p className="text-slate-700 mb-3">
+                      Right now, <strong>your content isn't optimized for these AI engines</strong> — which means you could be missing out on a massive new source of traffic and leads.
+                    </p>
+                    <p className="text-slate-600 mb-4">
+                      <strong>AISO Studio</strong> helps you create and optimize content that AI search engines can read, understand, and recommend to users searching for exactly what you offer.
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-blue-200">
+                <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-amber-200">
                   <Link
                     href="/sign-up"
-                    className="flex-1 text-center rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+                    className="flex-1 text-center rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
                   >
-                    Start Your Free Trial
+                    Start Your Free 7-Day Trial
                   </Link>
                   <Link
                     href="/pricing"
-                    className="flex-1 text-center rounded-lg border-2 border-blue-600 bg-white px-6 py-3 font-bold text-blue-600 hover:bg-blue-50 transition-all"
+                    className="flex-1 text-center rounded-lg border-2 border-orange-600 bg-white px-6 py-3 font-bold text-orange-600 hover:bg-orange-50 transition-all"
                   >
-                    See How AISO Can Help
+                    Learn How AISO Can Help
                   </Link>
                 </div>
               </div>
