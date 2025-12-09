@@ -345,6 +345,18 @@ Return ONLY the improved content in markdown format. Preserve all original links
           before: auditReport.seoScore || 0,
           after: finalAisoScores.seoScore,
           improvement: finalAisoScores.seoScore - (auditReport.seoScore || 0)
+        },
+        {
+          category: 'Readability (15%)',
+          before: auditReport.readabilityScore || 0,
+          after: finalAisoScores.readabilityScore,
+          improvement: finalAisoScores.readabilityScore - (auditReport.readabilityScore || 0)
+        },
+        {
+          category: 'Engagement (15%)',
+          before: auditReport.engagementScore || 0,
+          after: finalAisoScores.engagementScore,
+          improvement: finalAisoScores.engagementScore - (auditReport.engagementScore || 0)
         }
       ],
       newFactCheckSummary: {

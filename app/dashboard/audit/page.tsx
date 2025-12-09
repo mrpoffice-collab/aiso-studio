@@ -241,36 +241,19 @@ function AuditPageContent() {
           console.log('Original score:', originalScore);
           console.log('New score:', data.newScore);
 
+          // Use the API's scoreBreakdown directly - it compares original vs final correctly
           generateComparisonPDF({
             title: originalTitle,
             originalContent: originalContent,
             improvedContent: data.improvedContent,
             originalScore: originalScore,
             improvedScore: data.newScore,
-            scoreBreakdown: [
+            scoreBreakdown: data.scoreBreakdown || [
               {
                 category: 'AISO Score',
                 before: originalScore,
                 after: data.newScore,
                 improvement: data.newScore - originalScore
-              },
-              {
-                category: 'Fact-Check (30%)',
-                before: auditResult.factCheckScore || 0,
-                after: data.factCheckScore || auditResult.factCheckScore || 0,
-                improvement: (data.factCheckScore || auditResult.factCheckScore || 0) - (auditResult.factCheckScore || 0)
-              },
-              {
-                category: 'AEO (25%)',
-                before: auditResult.aeoScore || 0,
-                after: data.aeoScore || auditResult.aeoScore || 0,
-                improvement: (data.aeoScore || auditResult.aeoScore || 0) - (auditResult.aeoScore || 0)
-              },
-              {
-                category: 'SEO (15%)',
-                before: auditResult.seoScore,
-                after: data.seoScore || auditResult.seoScore,
-                improvement: (data.seoScore || auditResult.seoScore) - auditResult.seoScore
               }
             ],
             generatedDate: new Date().toLocaleDateString(),
@@ -1131,8 +1114,8 @@ function AuditPageContent() {
                           <div className="text-4xl font-black text-deep-indigo">{rewriteResult.iterations || 5}</div>
                         </div>
                         <div className="p-6 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
-                          <div className="text-sm font-bold text-slate-600 uppercase mb-2">Est. Cost</div>
-                          <div className="text-4xl font-black text-green-700">$0.{rewriteResult.iterations * 15}</div>
+                          <div className="text-sm font-bold text-slate-600 uppercase mb-2">Improvement</div>
+                          <div className="text-4xl font-black text-green-700">+{rewriteResult.improvement || (rewriteResult.newScore - (auditResult?.aisoScore || auditResult?.overallScore || 0))}</div>
                         </div>
                         <div className="p-6 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200">
                           <div className="text-sm font-bold text-slate-600 uppercase mb-2">Time Saved</div>

@@ -740,12 +740,6 @@ export default function PostEditorPage({ params }: { params: Promise<{ id: strin
                       <p className="text-lg font-black text-deep-indigo">{post.generation_iterations}</p>
                     </div>
                   )}
-                  {post?.generation_cost_cents && (
-                    <div>
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Est. Cost</p>
-                      <p className="text-lg font-black text-deep-indigo">${(post.generation_cost_cents / 100).toFixed(2)}</p>
-                    </div>
-                  )}
                   {post?.generation_time_seconds && (
                     <div>
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Time</p>
