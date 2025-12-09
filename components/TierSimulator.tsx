@@ -31,7 +31,7 @@ export default function TierSimulator({
   // Don't render for non-admins
   if (!isAdmin) return null;
 
-  const tiers: SubscriptionTier[] = ['trial', 'starter', 'professional', 'agency', 'enterprise'];
+  const tiers: SubscriptionTier[] = ['trial', 'starter', 'professional', 'agency'];
   const isSimulating = currentSimulatedTier !== null;
 
   return (
