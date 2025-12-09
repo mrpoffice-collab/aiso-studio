@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import DashboardNav from '@/components/DashboardNav';
 import AISOMascot, { AISOMascotLoading } from '@/components/AISOMascot';
+import { generateCompetitorComparisonPDF } from '@/lib/competitor-comparison-pdf';
 
 interface AuditResult {
   url: string;
@@ -503,8 +504,43 @@ export default function CompareAuditPage() {
               </button>
               <button
                 onClick={() => {
-                  // TODO: Export to PDF
-                  alert('PDF export coming soon!');
+                  if (!result) return;
+
+                  const getDomain = (url: string) => {
+                    try {
+                      return new URL(url).hostname;
+                    } catch {
+                      return url;
+                    }
+                  };
+
+                  generateCompetitorComparisonPDF({
+                    target: {
+                      url: result.target.url,
+                      domain: getDomain(result.target.url),
+                      isTarget: true,
+                      overall: result.target.scores?.overall || 0,
+                      aeo: result.target.scores?.aeo || 0,
+                      seo: result.target.scores?.seo || 0,
+                      readability: result.target.scores?.readability || 0,
+                      engagement: result.target.scores?.engagement || 0,
+                    },
+                    competitors: result.competitors.map(comp => ({
+                      url: comp.url,
+                      domain: getDomain(comp.url),
+                      isTarget: false,
+                      overall: comp.scores?.overall || 0,
+                      aeo: comp.scores?.aeo || 0,
+                      seo: comp.scores?.seo || 0,
+                      readability: comp.scores?.readability || 0,
+                      engagement: comp.scores?.engagement || 0,
+                    })),
+                    ranking: {
+                      position: result.ranking.position,
+                      total: result.ranking.total,
+                    },
+                    insights: result.insights,
+                  });
                 }}
                 className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl hover:shadow-lg transition"
               >
