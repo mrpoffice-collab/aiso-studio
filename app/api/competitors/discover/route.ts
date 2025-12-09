@@ -153,69 +153,13 @@ async function analyzeSite(domain: string): Promise<{
     const metaDescription = $('meta[name="description"]').attr('content')?.toLowerCase() || '';
     const h1Text = $('h1').first().text().toLowerCase();
     const bodyText = $('body').text().toLowerCase().substring(0, 5000);
-    const fullText = `${title} ${metaDescription} ${h1Text} ${bodyText}`;
 
-    // Detect industry based on keywords
-    const industryPatterns: Record<string, string[]> = {
-      'dental practice': ['dentist', 'dental', 'orthodont', 'teeth', 'smile', 'oral health'],
-      'law firm': ['attorney', 'lawyer', 'law firm', 'legal', 'litigation', 'counsel'],
-      'medical practice': ['doctor', 'physician', 'medical', 'clinic', 'healthcare', 'patient care'],
-      'real estate agency': ['real estate', 'realtor', 'property', 'homes for sale', 'buying a home'],
-      'marketing agency': ['marketing', 'digital agency', 'advertising', 'seo', 'branding', 'web design'],
-      'accounting firm': ['accountant', 'cpa', 'tax', 'bookkeeping', 'financial services'],
-      'restaurant': ['restaurant', 'dining', 'menu', 'cuisine', 'chef', 'reservation'],
-      'fitness center': ['gym', 'fitness', 'workout', 'personal training', 'health club'],
-      'salon/spa': ['salon', 'spa', 'beauty', 'hair', 'nails', 'skincare', 'massage'],
-      'auto service': ['auto repair', 'mechanic', 'car service', 'automotive', 'oil change'],
-      'plumbing service': ['plumber', 'plumbing', 'drain', 'pipe', 'water heater'],
-      'hvac service': ['hvac', 'heating', 'cooling', 'air conditioning', 'furnace'],
-      'roofing company': ['roofing', 'roof repair', 'shingles', 'gutters'],
-      'landscaping': ['landscaping', 'lawn care', 'garden', 'tree service', 'hardscape'],
-      'insurance agency': ['insurance', 'coverage', 'policy', 'claims', 'quote'],
-      'veterinary clinic': ['veterinar', 'pet', 'animal hospital', 'dog', 'cat'],
-      'photography studio': ['photograph', 'portrait', 'wedding photo', 'studio'],
-      'consulting firm': ['consulting', 'consultant', 'advisory', 'strategy'],
-      'construction company': ['construction', 'contractor', 'builder', 'renovation', 'remodel'],
-      'it services': ['it services', 'tech support', 'managed services', 'cybersecurity', 'network'],
-      // Content/blog niches
-      'church/ministry': ['church', 'pastor', 'ministry', 'sermon', 'faith', 'scripture', 'bible', 'christian', 'worship', 'congregation'],
-      'parenting blog': ['parenting', 'mom blog', 'dad blog', 'children', 'family', 'motherhood', 'fatherhood', 'kids'],
-      'personal finance': ['personal finance', 'budgeting', 'investing', 'money', 'savings', 'debt', 'financial freedom'],
-      'health/wellness blog': ['wellness', 'healthy living', 'nutrition', 'mental health', 'self-care', 'mindfulness'],
-      'travel blog': ['travel', 'destinations', 'vacation', 'trip', 'adventure', 'wanderlust', 'explore'],
-      'food blog': ['recipe', 'cooking', 'baking', 'food blog', 'kitchen', 'ingredients', 'meal'],
-      'tech blog': ['technology', 'software', 'startup', 'coding', 'programming', 'tech news', 'gadget'],
-      'lifestyle blog': ['lifestyle', 'life tips', 'personal development', 'self improvement', 'habits'],
-      'coaching/training': ['coach', 'coaching', 'training', 'mentor', 'course', 'program', 'transform'],
-      'virtual assistant': ['virtual assistant', 'va services', 'remote support', 'administrative', 'business support'],
-      'ecommerce': ['shop', 'store', 'buy now', 'add to cart', 'products', 'shipping', 'checkout'],
-      'saas/software': ['saas', 'platform', 'software', 'app', 'solution', 'features', 'pricing', 'sign up'],
-    };
+    // Use AI to detect the business niche
+    console.log('Detecting niche with AI...');
+    const detectedIndustry = await detectNicheWithAI(title, metaDescription, h1Text, bodyText.substring(0, 1500));
 
-    let detectedIndustry: string | null = null;
-    let maxMatches = 0;
-
-    for (const [industry, keywords] of Object.entries(industryPatterns)) {
-      const matches = keywords.filter(kw => fullText.includes(kw)).length;
-      if (matches > maxMatches) {
-        maxMatches = matches;
-        detectedIndustry = industry;
-      }
-    }
-
-    // Only accept if we have at least 2 keyword matches
-    if (maxMatches < 2) {
-      detectedIndustry = null;
-    }
-
-    // AI fallback: If keyword matching failed, use Claude to detect the niche
-    if (!detectedIndustry) {
-      console.log('Keyword matching failed, using AI fallback...');
-      const aiNiche = await detectNicheWithAI(title, metaDescription, h1Text, bodyText.substring(0, 1500));
-      if (aiNiche) {
-        detectedIndustry = aiNiche;
-        console.log(`AI detected niche: ${aiNiche}`);
-      }
+    if (detectedIndustry) {
+      console.log(`AI detected niche: ${detectedIndustry}`);
     }
 
     // Extract services mentioned
