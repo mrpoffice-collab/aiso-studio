@@ -267,10 +267,6 @@ export default function PostEditorPage({ params }: { params: Promise<{ id: strin
   };
 
   const handleRepurpose = async () => {
-    if (!confirm(`This will generate 4-5 platform-specific social media posts from this blog article.\n\nPlatforms: LinkedIn, Facebook, Instagram, Twitter\n\nEstimated cost: $0.03\nTime: 30-60 seconds\n\nContinue?`)) {
-      return;
-    }
-
     setIsRepurposing(true);
     setError('');
 

@@ -1,4 +1,4 @@
--- Fix usage_logs check constraint to allow 'content_improvement'
+-- Fix usage_logs check constraint to allow all operation types
 
 ALTER TABLE usage_logs DROP CONSTRAINT IF EXISTS usage_logs_operation_type_check;
 
@@ -11,5 +11,7 @@ CHECK (operation_type IN (
   'mou_generation',
   'content_audit',
   'content_rewrite',
-  'content_improvement'
+  'content_improvement',
+  'content_repurpose',
+  'lead_discovery'
 ));
