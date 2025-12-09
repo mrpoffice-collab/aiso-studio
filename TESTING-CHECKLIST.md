@@ -3,6 +3,39 @@
 **Tester:** _______________
 **Date:** _______________
 **Environment:** https://aiso.studio (Production)
+**Last Updated:** 2025-12-09
+
+---
+
+## TIER STRUCTURE (Updated 2025-12-09)
+
+| Feature | Trial | Starter ($39) | Professional ($249) | Agency ($599) |
+|---------|-------|---------------|---------------------|---------------|
+| Active Clients | 1 | 1 | 5 | Unlimited |
+| Strategies/mo | 1 | 1 | 10 | Unlimited |
+| Posts/mo | 10 | 10 | 100 | Unlimited |
+| Audits/mo | 5 | 5 | 50 | Unlimited |
+| Rewrites/mo | 5 | 5 | 50 | Unlimited |
+| Repurposes/mo | 1 | 1 | 25 | Unlimited |
+| Vault Storage | 5 GB | 5 GB | 20 GB | 1 TB |
+| Data Retention | 90 days | 90 days | 90 days | Unlimited |
+| Sales/Pipeline | ❌ | ❌ | ✅ | ✅ |
+| Win-Client | ❌ | ❌ | ✅ | ✅ |
+| Clients Mgmt | ❌ | ❌ | ✅ | ✅ |
+| Trial Duration | 7 days | N/A | N/A | N/A |
+
+---
+
+## TESTING PROGRESS
+
+### Tier Testing Status
+| Tier | Status | Date Tested | Notes |
+|------|--------|-------------|-------|
+| Free Audit (Public) | ✅ DONE | 2025-12-09 | Marketing message updated |
+| Trial | ✅ DONE | 2025-12-09 | All limits enforced, 7-day expiration |
+| Starter | ✅ DONE | 2025-12-09 | Same as Trial (functionally identical) |
+| Professional | ⏳ PENDING | - | Need to test Sales/Pipeline/Win-Client |
+| Agency | ⏳ PENDING | - | Need to test unlimited features |
 
 ---
 
@@ -12,7 +45,7 @@ Create these accounts by signing up at https://aiso.studio:
 
 | Persona | Email | Tier | Status |
 |---------|-------|------|--------|
-| Trial User | [your+trial@email] | trial | [ ] Created |
+| Trial User | [your+trial@email] | trial | [x] Created |
 | Starter User | [your+starter@email] | starter | [ ] Created [ ] Upgraded |
 | Pro User | [your+pro@email] | professional | [ ] Created [ ] Upgraded |
 | Agency User | [your+agency@email] | agency | [ ] Created [ ] Upgraded |
@@ -132,11 +165,13 @@ Create these accounts by signing up at https://aiso.studio:
 ### 4.3 Strategy Limits (by tier)
 | Test | Expected | Pass/Fail | Notes |
 |------|----------|-----------|-------|
-| Trial: Create 1 strategy | Allowed | [ ] | |
-| Trial: Create 2nd strategy | Blocked with upgrade prompt | [ ] | |
-| Starter: Create 3 strategies | Allowed | [ ] | |
-| Starter: Create 4th | Blocked | [ ] | |
+| Trial: Create 1 strategy | Allowed | [x] | Tested 2025-12-09 |
+| Trial: Create 2nd strategy | Blocked with upgrade prompt | [x] | Tested 2025-12-09 |
+| Trial: Add 2nd domain/client | Blocked (1 active client limit) | [x] | Tested 2025-12-09 |
+| Starter: Same as Trial | 1 strategy, 1 client | [ ] | |
 | Pro: Create 10 strategies | Allowed | [ ] | |
+| Pro: 5 active clients | Allowed | [ ] | |
+| Pro: 6th client | Blocked | [ ] | |
 | Agency: Unlimited | No limits | [ ] | |
 
 ---
