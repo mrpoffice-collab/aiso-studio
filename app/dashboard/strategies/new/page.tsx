@@ -577,7 +577,7 @@ export default function NewStrategyPage() {
               <div>
                 <p className="font-bold text-blue-900 mb-1">Thinking Really Hard...</p>
                 <p className="text-sm text-blue-700 font-medium">
-                  Generating your personalized content strategy with 12 SEO-optimized topics. This may take 20-30 seconds.
+                  Generating your personalized content strategy with AI-validated topics optimized for search and readability. This may take 30-60 seconds.
                 </p>
               </div>
             </div>
