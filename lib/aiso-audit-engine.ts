@@ -150,31 +150,66 @@ Try auditing a different URL or pasting the content directly.`);
   return result;
 }
 
+// User agents to try - ordered by likelihood of access
+const USER_AGENTS = [
+  // Standard browser (most common)
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  // GPTBot - OpenAI's crawler (many sites allow this)
+  'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.0; +https://openai.com/gptbot',
+  // Anthropic's crawler
+  'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; anthropic-ai/1.0; +https://www.anthropic.com/claude',
+  // Google-compatible (many sites whitelist Google)
+  'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+];
+
 /**
  * Basic fetch scraping (for static sites)
+ * Tries multiple user agents if blocked
  */
 async function scrapeWithFetch(url: string): Promise<{
   content: string;
   title: string;
   metaDescription: string;
 }> {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    },
-  });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch URL: ${response.status}`);
+  for (const userAgent of USER_AGENTS) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': userAgent,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+      });
+
+      if (!response.ok) {
+        lastError = new Error(`Failed to fetch URL: ${response.status}`);
+        continue; // Try next user agent
+      }
+
+      const html = await response.text();
+      const result = extractContentFromHtml(html);
+
+      // Check if we got an error page
+      if (isErrorPageContent(result.content, result.title)) {
+        lastError = new Error('Got error page with this user agent');
+        continue; // Try next user agent
+      }
+
+      console.log(`Successfully scraped with user agent: ${userAgent.substring(0, 50)}...`);
+      return result;
+    } catch (e: any) {
+      lastError = e;
+      continue; // Try next user agent
+    }
   }
 
-  const html = await response.text();
-  return extractContentFromHtml(html);
+  throw lastError || new Error('Failed to fetch URL with all user agents');
 }
 
 /**
  * Headless browser scraping (for JS-rendered sites)
+ * Tries multiple user agents if blocked
  */
 async function scrapeWithBrowser(url: string): Promise<{
   content: string;
@@ -183,75 +218,94 @@ async function scrapeWithBrowser(url: string): Promise<{
 }> {
   const { getBrowser, closeBrowser: closeBrowserFn } = await import('./accessibility-scanner-playwright');
 
-  let page = null;
-  try {
-    const browser = await getBrowser();
-    page = await browser.newPage();
+  let lastError: Error | null = null;
 
-    // Set realistic viewport and user agent
-    await page.setViewport({ width: 1920, height: 1080 });
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-
-    // Navigate and wait for content to load
-    await page.goto(url, {
-      waitUntil: 'networkidle0',
-      timeout: 30000
-    });
-
-    // Wait a bit for any lazy-loaded content
-    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 2000)));
-
-    // Get the fully rendered HTML
-    const html = await page.content();
-
-    // Also try to get text directly from the page as backup
-    const pageText = await page.evaluate(() => {
-      // Remove script/style elements from consideration
-      const clone = document.body.cloneNode(true) as HTMLElement;
-      clone.querySelectorAll('script, style, nav, footer, header, aside, .sidebar, #sidebar, .comments, #comments').forEach(el => el.remove());
-
-      // Try to find main content
-      const selectors = ['article', '.post-content', '.entry-content', 'main', '[role="main"]', '.content', '#content'];
-      for (const sel of selectors) {
-        const el = clone.querySelector(sel);
-        if (el && el.textContent && el.textContent.trim().length > 200) {
-          return el.textContent.trim();
-        }
-      }
-
-      return clone.textContent?.trim() || '';
-    });
-
-    const title = await page.title();
-    const metaDescription = await page.evaluate(() => {
-      const meta = document.querySelector('meta[name="description"]');
-      return meta?.getAttribute('content') || '';
-    });
-
-    await page.close();
-
-    // Try HTML extraction first, fall back to pageText
+  for (const userAgent of USER_AGENTS) {
+    let page = null;
     try {
-      const result = extractContentFromHtml(html);
-      if (result.content.length >= 200) {
-        return { ...result, title: title || result.title };
+      const browser = await getBrowser();
+      page = await browser.newPage();
+
+      // Set realistic viewport and user agent
+      await page.setViewport({ width: 1920, height: 1080 });
+      await page.setUserAgent(userAgent);
+
+      // Navigate and wait for content to load
+      await page.goto(url, {
+        waitUntil: 'networkidle0',
+        timeout: 30000
+      });
+
+      // Wait a bit for any lazy-loaded content
+      await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 2000)));
+
+      // Get the fully rendered HTML
+      const html = await page.content();
+
+      // Also try to get text directly from the page as backup
+      const pageText = await page.evaluate(() => {
+        // Remove script/style elements from consideration
+        const clone = document.body.cloneNode(true) as HTMLElement;
+        clone.querySelectorAll('script, style, nav, footer, header, aside, .sidebar, #sidebar, .comments, #comments').forEach(el => el.remove());
+
+        // Try to find main content
+        const selectors = ['article', '.post-content', '.entry-content', 'main', '[role="main"]', '.content', '#content'];
+        for (const sel of selectors) {
+          const el = clone.querySelector(sel);
+          if (el && el.textContent && el.textContent.trim().length > 200) {
+            return el.textContent.trim();
+          }
+        }
+
+        return clone.textContent?.trim() || '';
+      });
+
+      const title = await page.title();
+      const metaDescription = await page.evaluate(() => {
+        const meta = document.querySelector('meta[name="description"]');
+        return meta?.getAttribute('content') || '';
+      });
+
+      await page.close();
+
+      // Try HTML extraction first, fall back to pageText
+      let result: { content: string; title: string; metaDescription: string } | null = null;
+      try {
+        const extracted = extractContentFromHtml(html);
+        if (extracted.content.length >= 200) {
+          result = { ...extracted, title: title || extracted.title };
+        }
+      } catch (e) {
+        // Ignore extraction error
       }
-    } catch (e) {
-      // Ignore extraction error
-    }
 
-    // Use the text we got from page evaluation
-    if (pageText.length >= 100) {
-      return { content: pageText, title, metaDescription };
-    }
+      // Use the text we got from page evaluation as fallback
+      if (!result && pageText.length >= 100) {
+        result = { content: pageText, title, metaDescription };
+      }
 
-    throw new Error('Failed to scrape URL: Could not extract meaningful content from this page even with JavaScript rendering.');
-  } catch (error: any) {
-    if (page) {
-      try { await page.close(); } catch (e) { /* ignore */ }
+      if (result) {
+        // Check if we got an error page
+        if (isErrorPageContent(result.content, result.title)) {
+          lastError = new Error('Got error page with this user agent');
+          continue; // Try next user agent
+        }
+        console.log(`Successfully scraped with browser using: ${userAgent.substring(0, 50)}...`);
+        return result;
+      }
+
+      lastError = new Error('Could not extract meaningful content');
+      continue; // Try next user agent
+    } catch (error: any) {
+      if (page) {
+        try { await page.close(); } catch (e) { /* ignore */ }
+      }
+      lastError = error;
+      continue; // Try next user agent
     }
-    throw new Error(`Failed to scrape URL: ${error.message}`);
   }
+
+  throw new Error(`Failed to scrape URL with browser: ${lastError?.message || 'Unknown error'}`);
 }
 
 /**
