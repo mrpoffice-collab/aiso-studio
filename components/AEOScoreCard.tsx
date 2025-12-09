@@ -19,6 +19,21 @@ interface AEOScoreCardProps {
  * - Topical Authority: 10 points
  */
 export default function AEOScoreCard({ score, details }: AEOScoreCardProps) {
+  // Ensure all details have default values to prevent NaN
+  const safeDetails: AEODetails = {
+    hasDirectAnswer: details?.hasDirectAnswer ?? false,
+    answerInFirstParagraph: details?.answerInFirstParagraph ?? false,
+    hasFAQSection: details?.hasFAQSection ?? false,
+    faqCount: details?.faqCount ?? 0,
+    hasHowToSteps: details?.hasHowToSteps ?? false,
+    hasDataTables: details?.hasDataTables ?? false,
+    hasStatistics: details?.hasStatistics ?? false,
+    hasDefinitions: details?.hasDefinitions ?? false,
+    quotableStatementsCount: details?.quotableStatementsCount ?? 0,
+    topicalDepth: details?.topicalDepth ?? 0,
+    internalLinksCount: details?.internalLinksCount ?? 0,
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 85) return 'text-green-700 bg-green-50 border-green-200';
     if (score >= 75) return 'text-blue-700 bg-blue-50 border-blue-200';
@@ -33,32 +48,32 @@ export default function AEOScoreCard({ score, details }: AEOScoreCardProps) {
     return 'Needs Improvement';
   };
 
-  // Calculate component scores
+  // Calculate component scores using safe defaults
   const answerQualityScore = Math.round(
-    (details.hasDirectAnswer ? 15 : 0) +
-    (details.answerInFirstParagraph ? 15 : 0)
+    (safeDetails.hasDirectAnswer ? 15 : 0) +
+    (safeDetails.answerInFirstParagraph ? 15 : 0)
   );
 
   const citationWorthinessScore = Math.round(
-    (details.hasStatistics ? 10 : 0) +
-    (details.quotableStatementsCount >= 3 ? 10 : details.quotableStatementsCount * 3) +
-    (details.hasDefinitions ? 5 : 0)
+    (safeDetails.hasStatistics ? 10 : 0) +
+    (safeDetails.quotableStatementsCount >= 3 ? 10 : safeDetails.quotableStatementsCount * 3) +
+    (safeDetails.hasDefinitions ? 5 : 0)
   );
 
   const structuredDataScore = Math.round(
-    (details.hasFAQSection ? 10 : 0) +
-    (details.hasHowToSteps ? 5 : 0) +
-    (details.hasDataTables ? 5 : 0)
+    (safeDetails.hasFAQSection ? 10 : 0) +
+    (safeDetails.hasHowToSteps ? 5 : 0) +
+    (safeDetails.hasDataTables ? 5 : 0)
   );
 
   const aiFriendlyFormattingScore = Math.round(
-    (details.faqCount >= 5 ? 10 : details.faqCount * 2) +
-    (details.hasHowToSteps ? 5 : 0)
+    (safeDetails.faqCount >= 5 ? 10 : safeDetails.faqCount * 2) +
+    (safeDetails.hasHowToSteps ? 5 : 0)
   );
 
   const topicalAuthorityScore = Math.round(
-    (details.topicalDepth >= 3 ? 5 : details.topicalDepth * 1.5) +
-    (details.internalLinksCount >= 3 ? 5 : details.internalLinksCount * 1.5)
+    (safeDetails.topicalDepth >= 3 ? 5 : safeDetails.topicalDepth * 1.5) +
+    (safeDetails.internalLinksCount >= 3 ? 5 : safeDetails.internalLinksCount * 1.5)
   );
 
   return (
@@ -84,9 +99,9 @@ export default function AEOScoreCard({ score, details }: AEOScoreCardProps) {
 
       {/* Key Indicators */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className={`p-3 rounded-lg border ${details.hasDirectAnswer ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+        <div className={`p-3 rounded-lg border ${safeDetails.hasDirectAnswer ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
           <div className="flex items-center gap-2">
-            {details.hasDirectAnswer ? (
+            {safeDetails.hasDirectAnswer ? (
               <span className="text-green-600 text-xl">✓</span>
             ) : (
               <span className="text-slate-400 text-xl">○</span>
@@ -94,9 +109,9 @@ export default function AEOScoreCard({ score, details }: AEOScoreCardProps) {
             <span className="text-xs font-bold text-slate-900">Direct Answer</span>
           </div>
         </div>
-        <div className={`p-3 rounded-lg border ${details.hasFAQSection ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+        <div className={`p-3 rounded-lg border ${safeDetails.hasFAQSection ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
           <div className="flex items-center gap-2">
-            {details.hasFAQSection ? (
+            {safeDetails.hasFAQSection ? (
               <span className="text-green-600 text-xl">✓</span>
             ) : (
               <span className="text-slate-400 text-xl">○</span>
@@ -104,9 +119,9 @@ export default function AEOScoreCard({ score, details }: AEOScoreCardProps) {
             <span className="text-xs font-bold text-slate-900">FAQ Section</span>
           </div>
         </div>
-        <div className={`p-3 rounded-lg border ${details.hasDefinitions ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+        <div className={`p-3 rounded-lg border ${safeDetails.hasDefinitions ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
           <div className="flex items-center gap-2">
-            {details.hasDefinitions ? (
+            {safeDetails.hasDefinitions ? (
               <span className="text-green-600 text-xl">✓</span>
             ) : (
               <span className="text-slate-400 text-xl">○</span>
@@ -134,10 +149,10 @@ export default function AEOScoreCard({ score, details }: AEOScoreCardProps) {
               />
             </div>
             <div className="flex gap-2 mt-1">
-              {details.hasDirectAnswer && (
+              {safeDetails.hasDirectAnswer && (
                 <span className="text-xs text-green-600">✓ Direct answer</span>
               )}
-              {details.answerInFirstParagraph && (
+              {safeDetails.answerInFirstParagraph && (
                 <span className="text-xs text-green-600">✓ Answer-first structure</span>
               )}
             </div>
@@ -158,13 +173,13 @@ export default function AEOScoreCard({ score, details }: AEOScoreCardProps) {
               />
             </div>
             <div className="flex gap-2 mt-1">
-              {details.hasStatistics && (
+              {safeDetails.hasStatistics && (
                 <span className="text-xs text-green-600">✓ Statistics</span>
               )}
-              {details.quotableStatementsCount > 0 && (
-                <span className="text-xs text-green-600">✓ {details.quotableStatementsCount} quotable insights</span>
+              {safeDetails.quotableStatementsCount > 0 && (
+                <span className="text-xs text-green-600">✓ {safeDetails.quotableStatementsCount} quotable insights</span>
               )}
-              {details.hasDefinitions && (
+              {safeDetails.hasDefinitions && (
                 <span className="text-xs text-green-600">✓ Definitions</span>
               )}
             </div>
@@ -185,13 +200,13 @@ export default function AEOScoreCard({ score, details }: AEOScoreCardProps) {
               />
             </div>
             <div className="flex gap-2 mt-1">
-              {details.hasFAQSection && (
+              {safeDetails.hasFAQSection && (
                 <span className="text-xs text-green-600">✓ FAQ schema</span>
               )}
-              {details.hasHowToSteps && (
+              {safeDetails.hasHowToSteps && (
                 <span className="text-xs text-green-600">✓ HowTo steps</span>
               )}
-              {details.hasDataTables && (
+              {safeDetails.hasDataTables && (
                 <span className="text-xs text-green-600">✓ Data tables</span>
               )}
             </div>
@@ -212,10 +227,10 @@ export default function AEOScoreCard({ score, details }: AEOScoreCardProps) {
               />
             </div>
             <div className="flex gap-2 mt-1">
-              {details.faqCount > 0 && (
-                <span className="text-xs text-green-600">✓ {details.faqCount} FAQ items</span>
+              {safeDetails.faqCount > 0 && (
+                <span className="text-xs text-green-600">✓ {safeDetails.faqCount} FAQ items</span>
               )}
-              {details.hasHowToSteps && (
+              {safeDetails.hasHowToSteps && (
                 <span className="text-xs text-green-600">✓ Step-by-step</span>
               )}
             </div>
@@ -236,11 +251,11 @@ export default function AEOScoreCard({ score, details }: AEOScoreCardProps) {
               />
             </div>
             <div className="flex gap-2 mt-1">
-              {details.topicalDepth > 0 && (
-                <span className="text-xs text-green-600">✓ Depth: {details.topicalDepth}</span>
+              {safeDetails.topicalDepth > 0 && (
+                <span className="text-xs text-green-600">✓ Depth: {safeDetails.topicalDepth}</span>
               )}
-              {details.internalLinksCount > 0 && (
-                <span className="text-xs text-green-600">✓ {details.internalLinksCount} internal links</span>
+              {safeDetails.internalLinksCount > 0 && (
+                <span className="text-xs text-green-600">✓ {safeDetails.internalLinksCount} internal links</span>
               )}
             </div>
           </div>
@@ -252,22 +267,22 @@ export default function AEOScoreCard({ score, details }: AEOScoreCardProps) {
         <div className="mt-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
           <h4 className="text-sm font-bold text-slate-900 mb-2">💡 Recommendations to Improve AEO</h4>
           <ul className="space-y-1 text-sm text-slate-700">
-            {!details.hasDirectAnswer && (
+            {!safeDetails.hasDirectAnswer && (
               <li>• Add a clear, direct answer in the first paragraph</li>
             )}
-            {!details.hasFAQSection && (
+            {!safeDetails.hasFAQSection && (
               <li>• Include an FAQ section with 5-8 common questions</li>
             )}
-            {details.quotableStatementsCount < 3 && (
+            {safeDetails.quotableStatementsCount < 3 && (
               <li>• Add more quotable insights and key takeaways</li>
             )}
-            {!details.hasStatistics && (
+            {!safeDetails.hasStatistics && (
               <li>• Include data, statistics, or research findings</li>
             )}
-            {!details.hasDefinitions && (
+            {!safeDetails.hasDefinitions && (
               <li>• Define key terms for better AI understanding</li>
             )}
-            {details.faqCount < 5 && (
+            {safeDetails.faqCount < 5 && (
               <li>• Expand FAQ section to at least 5 questions</li>
             )}
           </ul>

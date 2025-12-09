@@ -133,10 +133,58 @@ export default async function DashboardPage() {
             </div>
           )}
 
+          {/* Trial Banner */}
+          {user.subscription_tier === 'trial' && user.trial_ends_at && (
+            (() => {
+              const trialEnd = new Date(user.trial_ends_at);
+              const now = new Date();
+              const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              const isExpired = daysLeft <= 0;
+
+              return (
+                <div className={`mb-6 rounded-xl p-4 flex items-center justify-between ${
+                  isExpired
+                    ? 'bg-red-50 border border-red-200'
+                    : daysLeft <= 3
+                      ? 'bg-amber-50 border border-amber-200'
+                      : 'bg-blue-50 border border-blue-200'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{isExpired ? '⏰' : daysLeft <= 3 ? '⚠️' : '🎉'}</span>
+                    <div>
+                      <p className={`font-bold ${isExpired ? 'text-red-800' : daysLeft <= 3 ? 'text-amber-800' : 'text-blue-800'}`}>
+                        {isExpired
+                          ? 'Your trial has expired'
+                          : daysLeft === 1
+                            ? 'Last day of your free trial!'
+                            : `${daysLeft} days left in your free trial`}
+                      </p>
+                      <p className={`text-sm ${isExpired ? 'text-red-600' : daysLeft <= 3 ? 'text-amber-600' : 'text-blue-600'}`}>
+                        {isExpired
+                          ? 'Upgrade now to keep using AISO Studio'
+                          : 'Upgrade anytime to unlock unlimited features'}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/pricing"
+                    className={`px-4 py-2 font-bold rounded-lg transition ${
+                      isExpired || daysLeft <= 3
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:shadow-lg'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                  >
+                    {isExpired ? 'Upgrade Now' : 'View Plans'}
+                  </Link>
+                </div>
+              );
+            })()
+          )}
+
           {/* Welcome */}
           <div className="mb-8">
             <h1 className="text-3xl font-black text-slate-900">
-              Welcome back, {clerkUser.firstName || 'there'}!
+              Welcome back, {clerkUser.firstName || user.name || clerkUser.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'there'}!
             </h1>
             <p className="text-slate-600 mt-1">Here's what's happening with your agency today.</p>
           </div>
@@ -165,10 +213,10 @@ export default async function DashboardPage() {
                   </svg>
                 </span>
               </div>
-              <p className="text-3xl font-black text-slate-900">{taskStats.todo + taskStats.in_progress}</p>
+              <p className="text-3xl font-black text-slate-900">{(taskStats.todo || 0) + (taskStats.in_progress || 0)}</p>
               <p className="text-xs text-slate-500 mt-1">
-                {taskStats.overdue > 0 && <span className="text-red-500">{taskStats.overdue} overdue</span>}
-                {taskStats.overdue === 0 && 'Open tasks'}
+                {(taskStats.overdue || 0) > 0 && <span className="text-red-500">{taskStats.overdue} overdue</span>}
+                {(taskStats.overdue || 0) === 0 && 'Open tasks'}
               </p>
             </div>
 
