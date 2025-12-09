@@ -34,6 +34,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Check repurpose limit
+    const repurposeLimit = await db.checkRepurposeLimit(user.id);
+    if (!repurposeLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: `Repurpose limit reached (${repurposeLimit.used}/${repurposeLimit.limit}). Upgrade to Professional for unlimited repurposing.`,
+          limitReached: true,
+          used: repurposeLimit.used,
+          limit: repurposeLimit.limit,
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const {
       postId,
@@ -181,6 +195,9 @@ Important:
         social_posts_count: postsWithUrl.length,
       },
     });
+
+    // Increment repurpose usage counter
+    await db.incrementRepurposeUsage(user.id);
 
     console.log(`✓ Generated ${postsWithUrl.length} social media posts`);
     console.log(`Cost: $${estimatedCost.toFixed(4)}`);

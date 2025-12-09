@@ -1289,11 +1289,97 @@ export const db = {
       `UPDATE users
        SET articles_used_this_month = 0,
            audits_used_this_month = 0,
+           rewrites_used_this_month = 0,
+           repurposes_used_this_month = 0,
            billing_cycle_start = CURRENT_TIMESTAMP,
            billing_cycle_end = CURRENT_TIMESTAMP + INTERVAL '1 month'
        WHERE id = $1`,
       [userId]
     );
+  },
+
+  // Strategy limit check
+  async checkStrategyLimit(userId: number | string) {
+    const result = await query(
+      `SELECT strategies_used, strategies_limit, subscription_tier
+       FROM users WHERE id = $1`,
+      [userId]
+    );
+    const user = result[0];
+    if (!user) return { allowed: false, used: 0, limit: 0 };
+
+    const used = user.strategies_used || 0;
+    const limit = user.strategies_limit || 1;
+    const isUnlimited = ['agency', 'enterprise'].includes(user.subscription_tier);
+
+    return { allowed: isUnlimited || used < limit, used, limit, isUnlimited };
+  },
+
+  async incrementStrategyUsage(userId: number | string) {
+    const result = await query(
+      `UPDATE users
+       SET strategies_used = COALESCE(strategies_used, 0) + 1
+       WHERE id = $1
+       RETURNING strategies_used, strategies_limit`,
+      [userId]
+    );
+    return result[0];
+  },
+
+  // Rewrite limit check
+  async checkRewriteLimit(userId: number | string) {
+    const result = await query(
+      `SELECT rewrites_used_this_month, rewrites_limit, subscription_tier
+       FROM users WHERE id = $1`,
+      [userId]
+    );
+    const user = result[0];
+    if (!user) return { allowed: false, used: 0, limit: 0 };
+
+    const used = user.rewrites_used_this_month || 0;
+    const limit = user.rewrites_limit || 5;
+    const isUnlimited = ['professional', 'agency', 'enterprise'].includes(user.subscription_tier);
+
+    return { allowed: isUnlimited || used < limit, used, limit, isUnlimited };
+  },
+
+  async incrementRewriteUsage(userId: number | string) {
+    const result = await query(
+      `UPDATE users
+       SET rewrites_used_this_month = COALESCE(rewrites_used_this_month, 0) + 1
+       WHERE id = $1
+       RETURNING rewrites_used_this_month, rewrites_limit`,
+      [userId]
+    );
+    return result[0];
+  },
+
+  // Repurpose limit check
+  async checkRepurposeLimit(userId: number | string) {
+    const result = await query(
+      `SELECT repurposes_used_this_month, repurposes_limit, subscription_tier
+       FROM users WHERE id = $1`,
+      [userId]
+    );
+    const user = result[0];
+    if (!user) return { allowed: false, used: 0, limit: 0 };
+
+    const used = user.repurposes_used_this_month || 0;
+    const limit = user.repurposes_limit || 1;
+    const isUnlimited = ['professional', 'agency', 'enterprise'].includes(user.subscription_tier);
+
+    return { allowed: isUnlimited || used < limit, used, limit, isUnlimited };
+  },
+
+  async incrementRepurposeUsage(userId: number | string) {
+    const result = await query(
+      `UPDATE users
+       SET repurposes_used_this_month = COALESCE(repurposes_used_this_month, 0) + 1
+       WHERE id = $1
+       RETURNING repurposes_used_this_month, repurposes_limit`,
+      [userId]
+    );
+    return result[0];
   },
 
   // Agency Branding

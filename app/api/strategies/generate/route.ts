@@ -18,6 +18,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Check strategy limit
+    const strategyLimit = await db.checkStrategyLimit(user.id);
+    if (!strategyLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: `Strategy limit reached (${strategyLimit.used}/${strategyLimit.limit}). Upgrade your plan to create more strategies.`,
+          limitReached: true,
+          used: strategyLimit.used,
+          limit: strategyLimit.limit,
+        },
+        { status: 403 }
+      );
+    }
+
     // Parse request body
     const body = await request.json();
     const {
@@ -207,6 +221,10 @@ Return ONLY a JSON object:
       service_area: serviceArea || null,
       website_url: websiteUrl || null,
     });
+
+    // Increment strategy usage counter
+    await db.incrementStrategyUsage(user.id);
+    console.log(`✅ Strategy usage incremented: ${strategyLimit.used + 1}/${strategyLimit.limit}`);
 
     // Check for duplicate content against audited site pages (if audit exists)
     let sitePages: any[] = [];

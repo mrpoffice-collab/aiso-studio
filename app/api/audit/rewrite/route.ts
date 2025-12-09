@@ -59,14 +59,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check article limit (rewrites count as articles)
-    if (subscription.articles_used_this_month >= subscription.article_limit) {
+    // Check rewrite limit
+    const rewriteLimit = await db.checkRewriteLimit(user.id);
+    if (!rewriteLimit.allowed) {
       return NextResponse.json(
         {
-          error: 'Article limit reached',
-          message: `You've used all ${subscription.article_limit} articles this month. Upgrade your plan for more.`,
-          current_usage: subscription.articles_used_this_month,
-          limit: subscription.article_limit,
+          error: 'Rewrite limit reached',
+          message: `You've used all ${rewriteLimit.limit} rewrites this month. Upgrade to Professional for unlimited rewrites.`,
+          current_usage: rewriteLimit.used,
+          limit: rewriteLimit.limit,
           upgrade_url: '/pricing'
         },
         { status: 403 }
@@ -307,9 +308,9 @@ Return ONLY the improved content in markdown format. Preserve all original links
       finalFactCheck.overallScore
     );
 
-    // Increment article usage counter (rewrites count as articles)
-    await db.incrementArticleUsage(user.id);
-    console.log(`✅ Rewrite usage incremented: ${subscription.articles_used_this_month + 1}/${subscription.article_limit}`);
+    // Increment rewrite usage counter
+    await db.incrementRewriteUsage(user.id);
+    console.log(`✅ Rewrite usage incremented: ${rewriteLimit.used + 1}/${rewriteLimit.limit}`);
 
     return NextResponse.json({
       success: true,

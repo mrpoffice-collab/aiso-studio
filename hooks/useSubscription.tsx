@@ -9,6 +9,14 @@ interface SubscriptionInfo {
   status: string;
   articleLimit: number;
   articlesUsed: number;
+  strategiesLimit: number;
+  strategiesUsed: number;
+  auditsLimit: number;
+  auditsUsed: number;
+  rewritesLimit: number;
+  rewritesUsed: number;
+  repurposesLimit: number;
+  repurposesUsed: number;
   lockedDomain?: string;
   isLoading: boolean;
   error: string | null;
@@ -39,6 +47,14 @@ const defaultContext: SubscriptionContextType = {
   status: 'trialing',
   articleLimit: 10,
   articlesUsed: 0,
+  strategiesLimit: 1,
+  strategiesUsed: 0,
+  auditsLimit: 5,
+  auditsUsed: 0,
+  rewritesLimit: 5,
+  rewritesUsed: 0,
+  repurposesLimit: 1,
+  repurposesUsed: 0,
   lockedDomain: undefined,
   isLoading: true,
   error: null,
@@ -78,6 +94,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     status: 'trialing',
     articleLimit: 10,
     articlesUsed: 0,
+    strategiesLimit: 1,
+    strategiesUsed: 0,
+    auditsLimit: 5,
+    auditsUsed: 0,
+    rewritesLimit: 5,
+    rewritesUsed: 0,
+    repurposesLimit: 1,
+    repurposesUsed: 0,
     lockedDomain: undefined,
     isLoading: true,
     error: null,
@@ -117,6 +141,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         status: data.user?.subscription_status || 'trialing',
         articleLimit: data.user?.article_limit || 10,
         articlesUsed: data.user?.articles_used_this_month || 0,
+        strategiesLimit: data.user?.strategies_limit || 1,
+        strategiesUsed: data.user?.strategies_used || 0,
+        auditsLimit: data.user?.audits_limit || 5,
+        auditsUsed: data.user?.audits_used_this_month || 0,
+        rewritesLimit: data.user?.rewrites_limit || 5,
+        rewritesUsed: data.user?.rewrites_used_this_month || 0,
+        repurposesLimit: data.user?.repurposes_limit || 1,
+        repurposesUsed: data.user?.repurposes_used_this_month || 0,
         lockedDomain: data.user?.locked_domain || undefined,
         isLoading: false,
         error: null,
