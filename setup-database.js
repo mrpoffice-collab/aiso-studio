@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 async function setupDatabase() {
-  console.log('🗄️  Setting up Content Command Studio database...\n');
+  console.log('🗄️  Setting up AISO Studio database...\n');
 
   // Load environment variables
   require('dotenv').config({ path: '.env.local' });

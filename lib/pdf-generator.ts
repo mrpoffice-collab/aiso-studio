@@ -237,7 +237,7 @@ export function generateBatchAuditPDF(
     doc.setTextColor(100, 116, 139); // slate-500
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text('Content Command Studio • Professional Content Optimization', 14, pageHeight - 8);
+    doc.text('AISO Studio • AI Search Optimization • aiso.studio', 14, pageHeight - 8);
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
   }
 

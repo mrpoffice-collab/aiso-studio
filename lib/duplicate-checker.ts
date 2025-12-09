@@ -180,7 +180,7 @@ export async function scrapeExistingContent(
     // Use a simple fetch to get the page
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ContentCommandStudio/1.0)',
+        'User-Agent': 'Mozilla/5.0 (compatible; AISOStudio/1.0; +https://aiso.studio)',
       },
     });
 

@@ -316,7 +316,7 @@ Write professionally but conversationally. This goes in a sales proposal.`;
       strengths,
       gaps,
       opportunities,
-      generatedBy: user.email || 'Content Command Studio',
+      generatedBy: user.email || 'AISO Studio',
       generatedDate: new Date().toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',

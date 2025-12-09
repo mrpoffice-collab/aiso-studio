@@ -1,5 +1,5 @@
 /**
- * Video Forge Client for Content Command Studio
+ * Video Forge Client for AISO Studio
  *
  * This client integrates with the Video Forge service to generate
  * faceless videos from scripts.

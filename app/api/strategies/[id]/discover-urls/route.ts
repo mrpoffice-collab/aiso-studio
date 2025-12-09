@@ -130,7 +130,7 @@ async function fetchFromSitemap(
 ): Promise<string[]> {
   const response = await fetch(sitemapUrl, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; ContentCommandStudio/1.0)',
+      'User-Agent': 'Mozilla/5.0 (compatible; AISOStudio/1.0; +https://aiso.studio)',
     },
   });
 
@@ -159,7 +159,7 @@ async function fetchFromSitemap(
 async function scrapeIndexPage(indexUrl: string, domain: string): Promise<string[]> {
   const response = await fetch(indexUrl, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; ContentCommandStudio/1.0)',
+      'User-Agent': 'Mozilla/5.0 (compatible; AISOStudio/1.0; +https://aiso.studio)',
     },
   });
 
@@ -204,7 +204,7 @@ async function scrapeIndexPage(indexUrl: string, domain: string): Promise<string
 async function fetchFromRSS(feedUrl: string, domain: string): Promise<string[]> {
   const response = await fetch(feedUrl, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; ContentCommandStudio/1.0)',
+      'User-Agent': 'Mozilla/5.0 (compatible; AISOStudio/1.0; +https://aiso.studio)',
     },
   });
 

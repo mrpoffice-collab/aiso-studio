@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         // Scrape content from URL
         const response = await fetch(url, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; ContentCommandStudio/1.0)',
+            'User-Agent': 'Mozilla/5.0 (compatible; AISOStudio/1.0; +https://aiso.studio)',
           },
         });
 

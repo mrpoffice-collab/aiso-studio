@@ -159,7 +159,7 @@ async function fetchContactPageEmail(domain: string): Promise<string | undefined
     try {
       const response = await fetch(`https://${domain}${path}`, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; ContentCommandStudio/1.0)',
+          'User-Agent': 'Mozilla/5.0 (compatible; AISOStudio/1.0; +https://aiso.studio)',
         },
         signal: AbortSignal.timeout(5000), // Quick timeout
       });
@@ -801,7 +801,7 @@ async function scoreWebsite(domain: string): Promise<{
 
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ContentCommandStudio/1.0)',
+        'User-Agent': 'Mozilla/5.0 (compatible; AISOStudio/1.0; +https://aiso.studio)',
       },
       signal: AbortSignal.timeout(15000), // 15 second timeout for slower sites
     });
