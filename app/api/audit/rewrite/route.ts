@@ -76,12 +76,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { originalContent, auditReport } = body;
 
-    if (!originalContent) {
+    if (!originalContent || originalContent.trim().length < 100) {
       return NextResponse.json(
-        { error: 'Original content is required' },
+        { error: 'Original content is required (minimum 100 characters)' },
         { status: 400 }
       );
     }
+
+    console.log(`Rewrite request received. Content length: ${originalContent.length} characters`);
+    console.log(`Content preview: ${originalContent.substring(0, 200)}...`);
 
     console.log('Rewriting content to improve AISO quality...');
 
@@ -117,13 +120,17 @@ export async function POST(request: NextRequest) {
       const currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
 
       // Create AISO-focused improvement prompt with iteration-specific guidance
-      const prompt = `You are a professional content editor improving blog post quality. Your goal is to make this content genuinely better for readers while improving AISO score.
+      const prompt = `You are a professional content editor improving an EXISTING blog post. Your ONLY job is to improve the content provided below - DO NOT write new content on a different topic.
+
+**CRITICAL RULE:** You MUST keep the same topic and subject matter as the original. If the original is about "Crisis Counseling for Pastors", your output MUST be about crisis counseling for pastors. NEVER replace the content with a different topic.
 
 **CORE PHILOSOPHY:**
+- PRESERVE the original topic, subject matter, and key information
 - PRESERVE what's already good (voice, links, structure, valuable content)
 - IMPROVE clarity, accuracy, and readability
 - ADD structure ONLY when it genuinely helps the reader
 - NEVER add generic filler just to hit metrics
+- NEVER change the topic or subject of the article
 
 **IMPORTANT CONTEXT - CURRENT DATE:**
 - Today's Date: ${currentMonth} ${currentYear}
@@ -240,6 +247,7 @@ Return ONLY the improved content in markdown format. Preserve all original links
         ? message.content[0].text
         : currentContent;
 
+      console.log(`Rewritten content preview: ${rewrittenContent.substring(0, 200)}...`);
       console.log('Scoring rewritten content with AISO...');
 
       // Fact-check the rewritten content
