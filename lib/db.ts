@@ -1382,6 +1382,100 @@ export const db = {
     return result[0];
   },
 
+  // Active Client Limits
+  async checkActiveClientLimit(userId: number | string) {
+    const result = await query(
+      `SELECT active_clients_used, active_clients_limit, subscription_tier
+       FROM users WHERE id = $1`,
+      [userId]
+    );
+    const user = result[0];
+    if (!user) return { allowed: false, used: 0, limit: 0 };
+
+    const used = user.active_clients_used || 0;
+    const limit = user.active_clients_limit || 1;
+    // Agency tier has unlimited clients (9999)
+    const isUnlimited = user.subscription_tier === 'agency' || limit >= 9999;
+
+    return { allowed: isUnlimited || used < limit, used, limit, isUnlimited };
+  },
+
+  async incrementActiveClients(userId: number | string) {
+    const result = await query(
+      `UPDATE users
+       SET active_clients_used = COALESCE(active_clients_used, 0) + 1
+       WHERE id = $1
+       RETURNING active_clients_used, active_clients_limit`,
+      [userId]
+    );
+    return result[0];
+  },
+
+  async decrementActiveClients(userId: number | string) {
+    const result = await query(
+      `UPDATE users
+       SET active_clients_used = GREATEST(COALESCE(active_clients_used, 0) - 1, 0)
+       WHERE id = $1
+       RETURNING active_clients_used, active_clients_limit`,
+      [userId]
+    );
+    return result[0];
+  },
+
+  // Vault Storage Limits
+  async checkVaultStorageLimit(userId: number | string) {
+    const result = await query(
+      `SELECT vault_storage_used_mb, vault_storage_limit_mb, subscription_tier
+       FROM users WHERE id = $1`,
+      [userId]
+    );
+    const user = result[0];
+    if (!user) return { allowed: false, usedMB: 0, limitMB: 0, percentUsed: 0 };
+
+    const usedMB = user.vault_storage_used_mb || 0;
+    const limitMB = user.vault_storage_limit_mb || 5120;
+    const percentUsed = Math.round((usedMB / limitMB) * 100);
+
+    return {
+      allowed: usedMB < limitMB,
+      usedMB,
+      limitMB,
+      percentUsed,
+      usedFormatted: usedMB >= 1024 ? `${(usedMB / 1024).toFixed(1)} GB` : `${usedMB} MB`,
+      limitFormatted: limitMB >= 1024 ? `${(limitMB / 1024).toFixed(0)} GB` : `${limitMB} MB`,
+    };
+  },
+
+  async updateVaultStorageUsed(userId: number | string, deltaBytes: number) {
+    // Convert bytes to MB (positive = add, negative = remove)
+    const deltaMB = Math.ceil(deltaBytes / (1024 * 1024));
+    const result = await query(
+      `UPDATE users
+       SET vault_storage_used_mb = GREATEST(COALESCE(vault_storage_used_mb, 0) + $2, 0)
+       WHERE id = $1
+       RETURNING vault_storage_used_mb, vault_storage_limit_mb`,
+      [userId, deltaMB]
+    );
+    return result[0];
+  },
+
+  // Data Retention
+  async getDataRetentionDays(userId: number | string) {
+    const result = await query(
+      `SELECT data_retention_days, subscription_tier FROM users WHERE id = $1`,
+      [userId]
+    );
+    const user = result[0];
+    if (!user) return { days: 90, isUnlimited: false };
+
+    // NULL means unlimited (agency tier)
+    const isUnlimited = user.data_retention_days === null || user.subscription_tier === 'agency';
+    return {
+      days: user.data_retention_days || 90,
+      isUnlimited,
+    };
+  },
+
   // Agency Branding
   async getUserBranding(userId: number | string) {
     const result = await query(

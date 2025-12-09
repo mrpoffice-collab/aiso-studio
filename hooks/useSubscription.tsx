@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-export type SubscriptionTier = 'trial' | 'starter' | 'professional' | 'agency' | 'enterprise';
+export type SubscriptionTier = 'trial' | 'starter' | 'professional' | 'agency';
 
 interface SubscriptionInfo {
   tier: SubscriptionTier;
@@ -17,6 +17,12 @@ interface SubscriptionInfo {
   rewritesUsed: number;
   repurposesLimit: number;
   repurposesUsed: number;
+  // New tier limits
+  activeClientsLimit: number;
+  activeClientsUsed: number;
+  vaultStorageLimitMB: number;
+  vaultStorageUsedMB: number;
+  dataRetentionDays: number | null; // null = unlimited
   lockedDomain?: string;
   isLoading: boolean;
   error: string | null;
@@ -55,6 +61,11 @@ const defaultContext: SubscriptionContextType = {
   rewritesUsed: 0,
   repurposesLimit: 1,
   repurposesUsed: 0,
+  activeClientsLimit: 1,
+  activeClientsUsed: 0,
+  vaultStorageLimitMB: 5120,
+  vaultStorageUsedMB: 0,
+  dataRetentionDays: 90,
   lockedDomain: undefined,
   isLoading: true,
   error: null,
@@ -79,8 +90,7 @@ const TIER_FEATURES = {
   trial: ['audit', 'strategies', 'posts', 'vault'],
   starter: ['audit', 'strategies', 'posts', 'vault'],
   professional: ['audit', 'strategies', 'posts', 'vault', 'sales', 'clients', 'win-client', 'multi-domain'],
-  agency: ['audit', 'strategies', 'posts', 'vault', 'sales', 'clients', 'win-client', 'multi-domain'],
-  enterprise: ['audit', 'strategies', 'posts', 'vault', 'sales', 'clients', 'win-client', 'multi-domain'],
+  agency: ['audit', 'strategies', 'posts', 'vault', 'sales', 'clients', 'win-client', 'multi-domain', 'unlimited-retention'],
 } as const;
 
 // Check if a tier has access to a feature
@@ -102,6 +112,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     rewritesUsed: 0,
     repurposesLimit: 1,
     repurposesUsed: 0,
+    activeClientsLimit: 1,
+    activeClientsUsed: 0,
+    vaultStorageLimitMB: 5120,
+    vaultStorageUsedMB: 0,
+    dataRetentionDays: 90,
     lockedDomain: undefined,
     isLoading: true,
     error: null,
@@ -113,7 +128,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   // Load simulated tier from sessionStorage on mount
   useEffect(() => {
     const stored = sessionStorage.getItem('aiso_simulated_tier');
-    if (stored && ['trial', 'starter', 'professional', 'agency', 'enterprise'].includes(stored)) {
+    if (stored && ['trial', 'starter', 'professional', 'agency'].includes(stored)) {
       setSimulatedTierState(stored as SubscriptionTier);
     }
   }, []);
@@ -149,6 +164,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         rewritesUsed: data.user?.rewrites_used_this_month || 0,
         repurposesLimit: data.user?.repurposes_limit || 1,
         repurposesUsed: data.user?.repurposes_used_this_month || 0,
+        activeClientsLimit: data.user?.active_clients_limit || 1,
+        activeClientsUsed: data.user?.active_clients_used || 0,
+        vaultStorageLimitMB: data.user?.vault_storage_limit_mb || 5120,
+        vaultStorageUsedMB: data.user?.vault_storage_used_mb || 0,
+        dataRetentionDays: data.user?.data_retention_days ?? 90,
         lockedDomain: data.user?.locked_domain || undefined,
         isLoading: false,
         error: null,
@@ -250,5 +270,12 @@ export const TIER_INFO = {
   starter: { name: 'Starter', price: 39, label: '$39/mo' },
   professional: { name: 'Pro', price: 249, label: '$249/mo' },
   agency: { name: 'Agency', price: 599, label: '$599/mo' },
-  enterprise: { name: 'Enterprise', price: 999, label: 'Custom' },
+} as const;
+
+// Tier limits summary
+export const TIER_LIMITS = {
+  trial: { activeClients: 1, vaultGB: 5, retentionDays: 90 },
+  starter: { activeClients: 1, vaultGB: 5, retentionDays: 90 },
+  professional: { activeClients: 5, vaultGB: 20, retentionDays: 90 },
+  agency: { activeClients: 9999, vaultGB: 1024, retentionDays: null }, // null = unlimited
 } as const;

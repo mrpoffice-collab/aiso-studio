@@ -66,6 +66,36 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
+
+    // Check active client limit (if this is a new domain/client)
+    const { websiteUrl: newWebsiteUrl } = body;
+    let isNewDomain = false;
+    if (newWebsiteUrl) {
+      // Check if this domain is already in user's strategies
+      const existingStrategies = await db.getStrategiesByUserId(user.id);
+      const normalizedNewDomain = newWebsiteUrl.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase();
+      const existingDomains = existingStrategies.map((s: any) =>
+        s.website_url?.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase()
+      ).filter(Boolean);
+
+      isNewDomain = !existingDomains.includes(normalizedNewDomain);
+
+      if (isNewDomain) {
+        const clientLimit = await db.checkActiveClientLimit(user.id);
+        if (!clientLimit.allowed) {
+          return NextResponse.json(
+            {
+              error: 'Active client limit reached',
+              message: `You've reached your limit of ${clientLimit.limit} active clients. Upgrade to Professional for 5 clients or Agency for unlimited.`,
+              used: clientLimit.used,
+              limit: clientLimit.limit,
+              upgrade_url: '/pricing'
+            },
+            { status: 403 }
+          );
+        }
+      }
+    }
     const {
       clientName,
       industry,
@@ -257,6 +287,12 @@ Return ONLY a JSON object:
     // Increment strategy usage counter
     await db.incrementStrategyUsage(user.id);
     console.log(`✅ Strategy usage incremented: ${strategyLimit.used + 1}/${strategyLimit.limit}`);
+
+    // If this is a new domain/client, increment active clients count
+    if (isNewDomain) {
+      await db.incrementActiveClients(user.id);
+      console.log(`✅ New client added - active clients incremented`);
+    }
 
     // Check for duplicate content against audited site pages (if audit exists)
     let sitePages: any[] = [];
