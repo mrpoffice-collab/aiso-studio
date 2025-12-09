@@ -177,30 +177,32 @@ function FreeAuditContent() {
             </div>
 
             {error && (
-              <div className="rounded-lg bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 p-6">
+              <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 p-6">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="text-2xl">⚠️</span>
+                  <span className="text-2xl">🔍</span>
                   <div className="flex-1">
-                    <h3 className="font-bold text-slate-900 mb-2">AI Searchability Issue Detected</h3>
-                    <p className="text-sm text-slate-700 mb-3">{error}</p>
+                    <h3 className="font-bold text-slate-900 mb-2">We Found an Opportunity to Improve Your AI Visibility</h3>
+                    <p className="text-sm text-slate-700 mb-3">
+                      Your site uses modern technology that AI search engines like ChatGPT, Perplexity, and Google SGE may have trouble reading.
+                    </p>
                     <p className="text-sm text-slate-600 mb-4">
-                      <strong>This means ChatGPT, Perplexity, and Google SGE can't access this content either.</strong> Your site may be invisible to AI search engines due to technical barriers (robots.txt, JavaScript rendering, bot detection, or CAPTCHA).
+                      <strong>Good news:</strong> This is a common issue with an easy fix. AISO Studio can help you optimize your content so AI engines can discover and recommend your site to millions of users.
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-orange-200">
+                <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-blue-200">
                   <Link
                     href="/sign-up"
-                    className="flex-1 text-center rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
+                    className="flex-1 text-center rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
                   >
-                    Sign Up to Fix This Issue
+                    Start Your Free Trial
                   </Link>
-                  <a
-                    href="mailto:support@aiso.studio?subject=Need%20Agency%20Help%20with%20AI%20Searchability"
-                    className="flex-1 text-center rounded-lg border-2 border-orange-600 bg-white px-6 py-3 font-bold text-orange-600 hover:bg-orange-50 transition-all"
+                  <Link
+                    href="/pricing"
+                    className="flex-1 text-center rounded-lg border-2 border-blue-600 bg-white px-6 py-3 font-bold text-blue-600 hover:bg-blue-50 transition-all"
                   >
-                    Find an Agency to Help
-                  </a>
+                    See How AISO Can Help
+                  </Link>
                 </div>
               </div>
             )}
