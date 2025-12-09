@@ -163,6 +163,12 @@ function AuditPageContent() {
   const handleRewrite = async () => {
     if (!auditResult) return;
 
+    // Check if content is available
+    if (!auditResult.content) {
+      setError('No content available for rewrite. Please run a fresh audit on this URL.');
+      return;
+    }
+
     setIsRewriting(true);
     setError('');
 
@@ -184,7 +190,16 @@ function AuditPageContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Rewrite failed');
+        // Show detailed error with upgrade link if needed
+        if (data.upgrade_url) {
+          throw new Error(`${data.message || data.error}. Click here to upgrade.`);
+        }
+        throw new Error(data.message || data.error || 'Rewrite failed');
+      }
+
+      // Check if content was empty
+      if (!auditResult.content) {
+        throw new Error('No content available. Please run a fresh audit first.');
       }
 
       setRewriteResult(data);
