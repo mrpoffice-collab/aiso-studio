@@ -34,6 +34,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Check subscription and trial status
+    const subscription = await db.getUserSubscriptionInfo(user.id);
+    if (!subscription) {
+      return NextResponse.json({ error: 'Subscription info not found' }, { status: 500 });
+    }
+
+    // Check if trial expired
+    if (subscription.subscription_status === 'trialing' && subscription.trial_ends_at) {
+      if (new Date() > new Date(subscription.trial_ends_at)) {
+        return NextResponse.json(
+          {
+            error: 'Trial expired',
+            message: 'Your 7-day trial has ended. Please upgrade to continue repurposing content.',
+            upgrade_url: '/pricing'
+          },
+          { status: 402 }
+        );
+      }
+    }
+
+    // Check if subscription is active
+    if (!['trialing', 'active'].includes(subscription.subscription_status)) {
+      return NextResponse.json(
+        {
+          error: 'Subscription inactive',
+          message: 'Your subscription is not active. Please upgrade or renew.',
+          upgrade_url: '/pricing'
+        },
+        { status: 402 }
+      );
+    }
+
     // Check repurpose limit
     const repurposeLimit = await db.checkRepurposeLimit(user.id);
     if (!repurposeLimit.allowed) {
