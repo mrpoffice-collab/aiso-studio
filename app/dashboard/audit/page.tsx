@@ -1219,7 +1219,7 @@ function AuditPageContent() {
                                 <div className="space-y-2 text-sm text-slate-700">
                                   <div className="flex items-center gap-2">
                                     <span className="text-green-600 font-bold">✓</span>
-                                    <span>Removed {auditResult.factChecks?.filter((fc: any) => fc.status === 'unverified').length || 0} unverifiable claims</span>
+                                    <span>Removed {Array.isArray(auditResult.factChecks) ? auditResult.factChecks.filter((fc: any) => fc.status === 'unverified').length : 0} unverifiable claims</span>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-green-600 font-bold">✓</span>
