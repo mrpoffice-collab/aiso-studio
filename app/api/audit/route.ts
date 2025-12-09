@@ -119,6 +119,10 @@ export async function POST(request: NextRequest) {
           aeoDetails: auditResult.aeoDetails,
           factChecks: auditResult.factChecks,
 
+          // Content for rewrite
+          content: auditResult.content,
+          metaDescription: auditResult.metaDescription,
+
           // PDF
           pdfUrl: auditResult.pdfUrl,
         });

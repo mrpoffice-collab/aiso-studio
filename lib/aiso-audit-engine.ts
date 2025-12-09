@@ -602,6 +602,12 @@ export async function runAISOAudit(
 
   const result = formatAuditResult(audit);
 
+  // Add scraped content to result for rewrite functionality
+  if (scrapedContent?.content) {
+    result.content = scrapedContent.content;
+    result.metaDescription = scrapedContent.metaDescription;
+  }
+
   // Generate and save PDF to Vault
   try {
     const pdfBuffer = generateAuditPDF(result);
