@@ -177,34 +177,42 @@ function FreeAuditContent() {
             </div>
 
             {error && (
-              <div className="rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 p-6">
+              <div className="rounded-lg bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 p-6">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="text-3xl">🤖</span>
+                  <span className="text-3xl">⚠️</span>
                   <div className="flex-1">
-                    <h3 className="font-bold text-slate-900 text-lg mb-2">This Page is Not AI Search Friendly</h3>
+                    <h3 className="font-bold text-red-800 text-lg mb-2">Problem: AI Search Engines Can't Read This Page</h3>
                     <p className="text-slate-700 mb-3">
-                      AI-powered search is changing how people find information online. Tools like <strong>ChatGPT, Perplexity, Google AI Overviews, and Claude</strong> are increasingly becoming the first place people look for answers.
+                      We scanned your page and <strong>couldn't extract the content</strong>. This means ChatGPT, Perplexity, Google AI Overviews, and other AI search tools can't read it either.
                     </p>
                     <p className="text-slate-700 mb-3">
-                      Right now, <strong>your content isn't optimized for these AI engines</strong> — which means you could be missing out on a massive new source of traffic and leads.
+                      <strong>Why this matters:</strong> Millions of people now use AI to find products, services, and answers. If AI can't read your content, you're invisible to this growing audience.
                     </p>
-                    <p className="text-slate-600 mb-4">
-                      <strong>AISO Studio</strong> helps you create and optimize content that AI search engines can read, understand, and recommend to users searching for exactly what you offer.
+                    <div className="bg-white/60 rounded-lg p-3 mb-3">
+                      <p className="text-sm font-semibold text-slate-800 mb-1">Common causes:</p>
+                      <ul className="text-sm text-slate-600 list-disc list-inside space-y-1">
+                        <li>JavaScript-rendered content (React, Vue, Angular)</li>
+                        <li>Bot detection or CAPTCHA blocking crawlers</li>
+                        <li>Content loaded dynamically after page load</li>
+                      </ul>
+                    </div>
+                    <p className="text-slate-700">
+                      <strong>The fix:</strong> AISO Studio analyzes your content and rewrites it to be AI-search friendly — so you show up when people ask AI for recommendations in your industry.
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-amber-200">
+                <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-red-200">
                   <Link
                     href="/sign-up"
                     className="flex-1 text-center rounded-lg bg-gradient-to-r from-sunset-orange to-orange-600 px-6 py-3 font-bold text-white shadow-md hover:shadow-lg transition-all hover:scale-105"
                   >
-                    Start Your Free 7-Day Trial
+                    Fix This With a Free Trial
                   </Link>
                   <Link
                     href="/pricing"
                     className="flex-1 text-center rounded-lg border-2 border-orange-600 bg-white px-6 py-3 font-bold text-orange-600 hover:bg-orange-50 transition-all"
                   >
-                    Learn How AISO Can Help
+                    See How It Works
                   </Link>
                 </div>
               </div>
