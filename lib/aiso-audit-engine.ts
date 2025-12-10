@@ -549,14 +549,30 @@ export function generateAuditPDF(audit: AuditResult, agencyBranding?: {
     return [239, 68, 68];  // red
   };
 
-  // Header
-  doc.setFillColor(249, 115, 22);  // orange
+  // Parse agency primary color or use default orange
+  const parseHexColor = (hex?: string): [number, number, number] => {
+    if (!hex) return [249, 115, 22]; // default orange
+    const cleanHex = hex.replace('#', '');
+    if (cleanHex.length !== 6) return [249, 115, 22];
+    const r = parseInt(cleanHex.substring(0, 2), 16);
+    const g = parseInt(cleanHex.substring(2, 4), 16);
+    const b = parseInt(cleanHex.substring(4, 6), 16);
+    return [r, g, b];
+  };
+
+  const headerColor = parseHexColor(agencyBranding?.primaryColor);
+  const reportTitle = agencyBranding?.name
+    ? `${agencyBranding.name} - Audit Report`
+    : 'AISO Audit Report';
+
+  // Header with agency branding
+  doc.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
   doc.rect(0, 0, pageWidth, 50, 'F');
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
+  doc.setFontSize(agencyBranding?.name ? 20 : 24);
   doc.setFont('helvetica', 'bold');
-  doc.text('AISO Audit Report', pageWidth / 2, 25, { align: 'center' });
+  doc.text(reportTitle, pageWidth / 2, 25, { align: 'center' });
 
   doc.setFontSize(12);
   doc.text(audit.domain, pageWidth / 2, 38, { align: 'center' });

@@ -128,7 +128,7 @@ Use Kim Kelley's account (kim@aliidesign.com) for Agency testing:
 | WordPress one-click publish | Save 15 min/post | High | [x] Added |
 | Content calendar view | Client visibility | Medium | [ ] |
 | Bulk content generation | Time savings | Medium | [ ] |
-| White-label PDF reports | Agency branding | Low | [ ] Verify |
+| White-label PDF reports | Agency branding | Low | [x] Fixed - uses agency name & color |
 
 ### UX Improvements
 
