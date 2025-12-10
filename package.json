@@ -38,6 +38,7 @@
     "jsdom": "^27.2.0",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
+    "jszip": "^3.10.1",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.552.0",
     "marked": "^17.0.1",

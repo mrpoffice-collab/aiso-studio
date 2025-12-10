@@ -10,6 +10,7 @@ import ExistingContentManager from './ExistingContentManager';
 import AuditWebsiteButton from './AuditWebsiteButton';
 import AuditResults from './AuditResults';
 import StrategicLinkingSection from './StrategicLinkingSection';
+import BulkActionsBar from './BulkActionsBar';
 
 export default async function StrategyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -234,6 +235,15 @@ export default async function StrategyDetailPage({ params }: { params: Promise<{
           initialMoneyPages={moneyPages}
           initialClusters={clusters}
         />
+
+        {/* Bulk Actions Bar (Agency tier) */}
+        {topics.length > 0 && (
+          <BulkActionsBar
+            strategyId={id}
+            topics={topics}
+            isAgencyTier={user.subscription_tier === 'agency'}
+          />
+        )}
 
         {/* Topics Section */}
         <div className="mb-8 flex items-end justify-between">

@@ -2860,4 +2860,102 @@ export const db = {
     );
     return result[0] || null;
   },
+
+  // Bulk Jobs
+  async createBulkJob(data: {
+    id: string;
+    user_id: string;
+    strategy_id: string;
+    job_type: 'generate' | 'approve' | 'export';
+    status: string;
+    total_items: number;
+    completed_items: number;
+    failed_items: number;
+    topic_ids: string[];
+  }) {
+    const result = await query(
+      `INSERT INTO bulk_jobs (
+        id, user_id, strategy_id, job_type, status,
+        total_items, completed_items, failed_items, topic_ids
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *`,
+      [
+        data.id,
+        data.user_id,
+        data.strategy_id,
+        data.job_type,
+        data.status,
+        data.total_items,
+        data.completed_items,
+        data.failed_items,
+        JSON.stringify(data.topic_ids),
+      ]
+    );
+    return result[0];
+  },
+
+  async getBulkJob(jobId: string) {
+    const result = await query(
+      'SELECT * FROM bulk_jobs WHERE id = $1',
+      [jobId]
+    );
+    return result[0] || null;
+  },
+
+  async getBulkJobsByStrategy(strategyId: string, userId: string) {
+    return await query(
+      `SELECT * FROM bulk_jobs
+       WHERE strategy_id = $1 AND user_id = $2
+       ORDER BY created_at DESC
+       LIMIT 10`,
+      [strategyId, userId]
+    );
+  },
+
+  async updateBulkJob(jobId: string, data: {
+    status?: string;
+    completed_items?: number;
+    failed_items?: number;
+    results?: string;
+    error?: string;
+    completed_at?: string;
+  }) {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+
+    if (data.status !== undefined) {
+      updates.push(`status = $${paramCount++}`);
+      values.push(data.status);
+    }
+    if (data.completed_items !== undefined) {
+      updates.push(`completed_items = $${paramCount++}`);
+      values.push(data.completed_items);
+    }
+    if (data.failed_items !== undefined) {
+      updates.push(`failed_items = $${paramCount++}`);
+      values.push(data.failed_items);
+    }
+    if (data.results !== undefined) {
+      updates.push(`results = $${paramCount++}`);
+      values.push(data.results);
+    }
+    if (data.error !== undefined) {
+      updates.push(`error = $${paramCount++}`);
+      values.push(data.error);
+    }
+    if (data.completed_at !== undefined) {
+      updates.push(`completed_at = $${paramCount++}`);
+      values.push(data.completed_at);
+    }
+
+    updates.push(`updated_at = NOW()`);
+    values.push(jobId);
+
+    const result = await query(
+      `UPDATE bulk_jobs SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+    return result[0] || null;
+  },
 };
