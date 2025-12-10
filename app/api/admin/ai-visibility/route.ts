@@ -6,6 +6,7 @@ import {
   checkPerplexityCitation,
   checkVisibilityForKeywords,
   calculateVisibilityScore,
+  findKeywordLeaders,
 } from '@/lib/perplexity-client';
 
 /**
@@ -181,6 +182,22 @@ export async function POST(request: NextRequest) {
         score,
         checkedAt: new Date(),
       });
+    }
+
+    // Find keyword leaders - who's being cited for this keyword
+    if (action === 'keyword-leaders') {
+      const { keyword, location } = body;
+
+      if (!keyword) {
+        return NextResponse.json(
+          { error: 'Keyword required' },
+          { status: 400 }
+        );
+      }
+
+      const result = await findKeywordLeaders(keyword, location);
+
+      return NextResponse.json(result);
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

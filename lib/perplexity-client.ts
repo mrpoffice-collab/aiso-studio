@@ -313,3 +313,142 @@ export function calculateVisibilityScore(results: CitationCheckResult[]): {
     breakdown,
   };
 }
+
+export interface KeywordLeader {
+  domain: string;
+  url: string;
+  citationCount: number;
+  queries: string[];
+  positions: number[];
+  avgPosition: number;
+}
+
+export interface KeywordLeadersResult {
+  keyword: string;
+  queries: string[];
+  leaders: KeywordLeader[];
+  totalQueriesRun: number;
+  checkedAt: Date;
+}
+
+/**
+ * Find who is being cited for a given keyword
+ * Returns the top domains/URLs that appear in AI search results
+ */
+export async function findKeywordLeaders(
+  keyword: string,
+  location?: string
+): Promise<KeywordLeadersResult> {
+  const apiKey = process.env.PERPLEXITY_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('PERPLEXITY_API_KEY not configured');
+  }
+
+  // Build search queries for this keyword
+  const queries: string[] = [
+    keyword,
+    `best ${keyword}`,
+    `top ${keyword}`,
+  ];
+
+  if (location) {
+    queries.push(`${keyword} in ${location}`);
+    queries.push(`best ${keyword} ${location}`);
+  }
+
+  // Limit to 5 queries max
+  const queriesToRun = queries.slice(0, 5);
+
+  // Track citations per domain
+  const domainCitations: Map<string, {
+    urls: Set<string>;
+    queries: string[];
+    positions: number[];
+  }> = new Map();
+
+  for (const query of queriesToRun) {
+    try {
+      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'sonar',
+          messages: [{ role: 'user', content: query }],
+          return_related_questions: false,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`Perplexity API error for "${query}": ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const citations = data.citations || [];
+
+      // Process each citation
+      citations.forEach((url: string, index: number) => {
+        const domain = extractDomainFromUrl(url);
+        const position = index + 1;
+
+        if (!domainCitations.has(domain)) {
+          domainCitations.set(domain, {
+            urls: new Set(),
+            queries: [],
+            positions: [],
+          });
+        }
+
+        const entry = domainCitations.get(domain)!;
+        entry.urls.add(url);
+        entry.queries.push(query);
+        entry.positions.push(position);
+      });
+
+      // Rate limiting
+      await sleep(1100);
+    } catch (error) {
+      console.error(`Failed to check query "${query}":`, error);
+    }
+  }
+
+  // Convert to sorted array of leaders
+  const leaders: KeywordLeader[] = Array.from(domainCitations.entries())
+    .map(([domain, data]) => ({
+      domain,
+      url: Array.from(data.urls)[0], // Primary URL
+      citationCount: data.queries.length,
+      queries: [...new Set(data.queries)], // Unique queries
+      positions: data.positions,
+      avgPosition: data.positions.reduce((a, b) => a + b, 0) / data.positions.length,
+    }))
+    .sort((a, b) => {
+      // Sort by citation count desc, then by avg position asc
+      if (b.citationCount !== a.citationCount) {
+        return b.citationCount - a.citationCount;
+      }
+      return a.avgPosition - b.avgPosition;
+    })
+    .slice(0, 15); // Top 15 leaders
+
+  return {
+    keyword,
+    queries: queriesToRun,
+    leaders,
+    totalQueriesRun: queriesToRun.length,
+    checkedAt: new Date(),
+  };
+}
+
+function extractDomainFromUrl(url: string): string {
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return parsed.hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return url.toLowerCase().replace(/^www\./, '');
+  }
+}
