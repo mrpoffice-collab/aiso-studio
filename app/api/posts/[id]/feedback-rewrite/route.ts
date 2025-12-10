@@ -89,13 +89,17 @@ ${preserveLength ? `- Similar word count (target: ${targetWordCount} words ±10%
 6. If feedback mentions "shorter" - trim unnecessary content while keeping key points
 
 **OUTPUT FORMAT:**
-Return the rewritten content in this JSON structure:
+Return the rewritten content in this EXACT JSON structure. Use proper JSON escaping for newlines (\\n) and quotes (\\""):
+\`\`\`json
 {
   "title": "Updated title (if needed, otherwise keep original)",
   "metaDescription": "Updated meta description (150-160 chars)",
-  "content": "The full rewritten article in Markdown format",
-  "changesApplied": ["List of specific changes you made based on the feedback"]
-}`;
+  "content": "The full rewritten article in Markdown format. Use \\n for line breaks.",
+  "changesApplied": ["Change 1", "Change 2", "Change 3"]
+}
+\`\`\`
+
+CRITICAL: The content field MUST have all newlines escaped as \\n and all quotes escaped as \\". Do not use actual line breaks inside the JSON string.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -114,14 +118,53 @@ Return the rewritten content in this JSON structure:
       throw new Error('Unexpected response type from Claude');
     }
 
-    // Parse the JSON response
-    const jsonMatch = response.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Could not parse JSON from Claude response');
+    // Parse the JSON response - try multiple extraction methods
+    let result;
+    const responseText = response.text;
+
+    // Method 1: Try to find JSON in code block
+    const codeBlockMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch) {
+      try {
+        result = JSON.parse(codeBlockMatch[1]);
+      } catch (e) {
+        console.log('Code block JSON parse failed, trying next method');
+      }
     }
 
-    const result = JSON.parse(jsonMatch[0]);
-    const newWordCount = result.content.split(/\s+/).filter(Boolean).length;
+    // Method 2: Try to find raw JSON object
+    if (!result) {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          result = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          console.log('Raw JSON parse failed, trying cleanup');
+          // Try to clean up common issues
+          let cleaned = jsonMatch[0]
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t');
+          try {
+            result = JSON.parse(cleaned);
+          } catch (e2) {
+            console.error('All JSON parse methods failed');
+          }
+        }
+      }
+    }
+
+    if (!result) {
+      console.error('Response text:', responseText.substring(0, 500));
+      throw new Error('Could not parse JSON from Claude response. The AI may have returned malformed output.');
+    }
+
+    // Ensure content has proper newlines (unescape if needed)
+    if (result.content) {
+      result.content = result.content.replace(/\\n/g, '\n');
+    }
+
+    const newWordCount = result.content?.split(/\s+/).filter(Boolean).length || 0;
 
     // Update the post with rewritten content
     await db.updatePost(postId, {
