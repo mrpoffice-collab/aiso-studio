@@ -3,6 +3,25 @@
  * AISO Stack: AEO, GEO, SEO, Readability, Engagement metrics
  */
 
+/**
+ * HTML Structure data from scraped web pages
+ * Used for accurate scoring of HTML content (vs markdown)
+ */
+export interface HtmlStructure {
+  h1Count: number;
+  h2Count: number;
+  h3Count: number;
+  h4Count: number;
+  internalLinkCount: number;
+  externalLinkCount: number;
+  imageCount: number;
+  imagesWithAlt: number;
+  hasSchema: boolean;
+  hasFaqSchema: boolean;
+  hasCanonical: boolean;
+  hasOpenGraph: boolean;
+}
+
 export interface ContentScores {
   seoScore: number;
   readabilityScore: number;
@@ -94,8 +113,21 @@ export interface GEODetails {
 
 /**
  * Calculate SEO score (0-100)
+ *
+ * @param content - Text content (used for word count and markdown detection if no htmlStructure)
+ * @param title - Page title
+ * @param metaDescription - Meta description
+ * @param htmlStructure - Optional HTML structure data from scraped pages (for accurate HTML scoring)
+ *
+ * When htmlStructure is provided, we use actual HTML element counts.
+ * When not provided (markdown content), we use regex patterns for markdown syntax.
  */
-export function calculateSEOScore(content: string, title?: string, metaDescription?: string): { score: number; details: SEODetails } {
+export function calculateSEOScore(
+  content: string,
+  title?: string,
+  metaDescription?: string,
+  htmlStructure?: HtmlStructure
+): { score: number; details: SEODetails } {
   const details: SEODetails = {
     hasTitle: !!title,
     titleLength: title?.length || 0,
@@ -137,19 +169,36 @@ export function calculateSEOScore(content: string, title?: string, metaDescripti
     else score += 5;
   }
 
-  // Header structure (25 points) - more granular and higher weight
-  const h2Matches = content.match(/^##\s+.+$/gm);
-  const h3Matches = content.match(/^###\s+.+$/gm);
-  details.h2Count = h2Matches?.length || 0;
-  details.h3Count = h3Matches?.length || 0;
-  details.hasHeaders = details.h2Count > 0;
-  details.headerStructure = details.h2Count >= 3 && details.h3Count >= 2;
+  // Header structure (25 points) - use HTML structure if available, else markdown regex
+  if (htmlStructure) {
+    // HTML-based scoring (for scraped web pages)
+    details.h2Count = htmlStructure.h2Count;
+    details.h3Count = htmlStructure.h3Count;
+    details.hasHeaders = htmlStructure.h1Count > 0 || htmlStructure.h2Count > 0;
+    details.headerStructure = htmlStructure.h2Count >= 3 && htmlStructure.h3Count >= 2;
 
-  if (details.h2Count >= 4 && details.h3Count >= 3) score += 25; // Excellent structure
-  else if (details.headerStructure) score += 20; // Good structure
-  else if (details.h2Count >= 2) score += 15; // Decent structure
-  else if (details.hasHeaders) score += 10; // Has some headers
-  else score += 0;
+    // Include h1 in scoring evaluation
+    const totalMajorHeaders = htmlStructure.h1Count + htmlStructure.h2Count;
+    if (totalMajorHeaders >= 4 && details.h3Count >= 3) score += 25; // Excellent structure
+    else if (details.headerStructure) score += 20; // Good structure
+    else if (totalMajorHeaders >= 2) score += 15; // Decent structure
+    else if (details.hasHeaders) score += 10; // Has some headers
+    else score += 0;
+  } else {
+    // Markdown-based scoring (for generated content)
+    const h2Matches = content.match(/^##\s+.+$/gm);
+    const h3Matches = content.match(/^###\s+.+$/gm);
+    details.h2Count = h2Matches?.length || 0;
+    details.h3Count = h3Matches?.length || 0;
+    details.hasHeaders = details.h2Count > 0;
+    details.headerStructure = details.h2Count >= 3 && details.h3Count >= 2;
+
+    if (details.h2Count >= 4 && details.h3Count >= 3) score += 25; // Excellent structure
+    else if (details.headerStructure) score += 20; // Good structure
+    else if (details.h2Count >= 2) score += 15; // Decent structure
+    else if (details.hasHeaders) score += 10; // Has some headers
+    else score += 0;
+  }
 
   // Word count (no scoring - just informational)
   const words = content.trim().split(/\s+/);
@@ -162,26 +211,51 @@ export function calculateSEOScore(content: string, title?: string, metaDescripti
   details.keywordOptimal = true;
   score += 15;
 
-  // Links (15 points) - more granular
-  const linkMatches = content.match(/\[.+?\]\(.+?\)/g);
-  const linkCount = linkMatches?.length || 0;
-  details.hasInternalLinks = linkCount > 0;
-  details.hasExternalLinks = linkCount > 0;
+  // Links (15 points) - use HTML structure if available, else markdown regex
+  if (htmlStructure) {
+    // HTML-based link scoring
+    const totalLinks = htmlStructure.internalLinkCount + htmlStructure.externalLinkCount;
+    details.hasInternalLinks = htmlStructure.internalLinkCount > 0;
+    details.hasExternalLinks = htmlStructure.externalLinkCount > 0;
 
-  if (linkCount >= 5) score += 15; // Excellent linking
-  else if (linkCount >= 3) score += 12; // Good linking
-  else if (linkCount >= 1) score += 8; // Some links
-  else score += 0;
+    if (totalLinks >= 5) score += 15; // Excellent linking
+    else if (totalLinks >= 3) score += 12; // Good linking
+    else if (totalLinks >= 1) score += 8; // Some links
+    else score += 0;
+  } else {
+    // Markdown-based link scoring
+    const linkMatches = content.match(/\[.+?\]\(.+?\)/g);
+    const linkCount = linkMatches?.length || 0;
+    details.hasInternalLinks = linkCount > 0;
+    details.hasExternalLinks = linkCount > 0;
 
-  // Images (10 points) - more realistic
-  const imageMatches = content.match(/!\[.+?\]\(.+?\)/g);
-  details.imageCount = imageMatches?.length || 0;
-  details.hasAltText = details.imageCount > 0;
+    if (linkCount >= 5) score += 15; // Excellent linking
+    else if (linkCount >= 3) score += 12; // Good linking
+    else if (linkCount >= 1) score += 8; // Some links
+    else score += 0;
+  }
 
-  if (details.imageCount >= 3) score += 10; // Multiple images
-  else if (details.imageCount >= 2) score += 8; // Couple images
-  else if (details.imageCount >= 1) score += 5; // At least one
-  else score += 0;
+  // Images (10 points) - use HTML structure if available, else markdown regex
+  if (htmlStructure) {
+    // HTML-based image scoring
+    details.imageCount = htmlStructure.imageCount;
+    details.hasAltText = htmlStructure.imagesWithAlt > 0;
+
+    if (details.imageCount >= 3) score += 10; // Multiple images
+    else if (details.imageCount >= 2) score += 8; // Couple images
+    else if (details.imageCount >= 1) score += 5; // At least one
+    else score += 0;
+  } else {
+    // Markdown-based image scoring
+    const imageMatches = content.match(/!\[.+?\]\(.+?\)/g);
+    details.imageCount = imageMatches?.length || 0;
+    details.hasAltText = details.imageCount > 0;
+
+    if (details.imageCount >= 3) score += 10; // Multiple images
+    else if (details.imageCount >= 2) score += 8; // Couple images
+    else if (details.imageCount >= 1) score += 5; // At least one
+    else score += 0;
+  }
 
   return { score: Math.min(score, 100), details };
 }
@@ -460,9 +534,6 @@ export function calculateEngagementScore(content: string): { score: number; deta
 
 /**
  * Calculate AEO (Answer Engine Optimization) score (0-100)
- */
-/**
- * Calculate AEO (Answer Engine Optimization) score
  *
  * IMPORTANT: This function primarily scores STRUCTURED sections:
  * - FAQ sections and Q&A format
@@ -471,10 +542,14 @@ export function calculateEngagementScore(content: string): { score: number; deta
  * - Key Takeaways and bullet lists
  * - How-to steps and instructions
  *
- * These sections should NOT be simplified for readability - they are meant
- * to be comprehensive and citation-worthy for AI answer engines.
+ * @param content - Text content for pattern matching
+ * @param htmlStructure - Optional HTML structure data from scraped pages
+ *
+ * When htmlStructure is provided, we use actual HTML element counts for
+ * topical depth and links. Other patterns (FAQ, definitions, statistics)
+ * are analyzed from the text content.
  */
-export function calculateAEOScore(content: string): { score: number; details: AEODetails } {
+export function calculateAEOScore(content: string, htmlStructure?: HtmlStructure): { score: number; details: AEODetails } {
   const details: AEODetails = {
     hasDirectAnswer: false,
     answerInFirstParagraph: false,
@@ -517,10 +592,16 @@ export function calculateAEOScore(content: string): { score: number; details: AE
   else if (details.hasDataTables) score += 15;
 
   // Structured Data Opportunities (20 points)
+  // For FAQ, check both text patterns AND HTML schema
   const faqPattern = /###?\s*(?:Q:|Question:|FAQ)|\?\s*\n\n/gi;
   const faqMatches = content.match(faqPattern) || [];
   details.faqCount = faqMatches.length;
-  details.hasFAQSection = details.faqCount >= 3;
+
+  // If HTML structure indicates FAQ schema, count it
+  if (htmlStructure?.hasFaqSchema) {
+    details.faqCount = Math.max(details.faqCount, 3); // FAQ schema implies at least 3 questions typically
+  }
+  details.hasFAQSection = details.faqCount >= 3 || (htmlStructure?.hasFaqSchema ?? false);
 
   const howToPattern = /(?:step \d+|^\d+\.|how to|instructions|guide)/gi;
   const howToMatches = content.match(howToPattern) || [];
@@ -545,18 +626,33 @@ export function calculateAEOScore(content: string): { score: number; details: AE
   else if (bulletMatches.length >= 5 || details.hasDefinitions) score += 8;
   else if (bulletMatches.length >= 2) score += 5;
 
-  // Topical Authority (10 points)
-  const h2Count = (content.match(/^##\s+.+$/gm) || []).length;
-  const h3Count = (content.match(/^###\s+.+$/gm) || []).length;
-  details.topicalDepth = h2Count + h3Count;
+  // Topical Authority (10 points) - use HTML structure if available
+  if (htmlStructure) {
+    // HTML-based topical depth
+    details.topicalDepth = htmlStructure.h1Count + htmlStructure.h2Count + htmlStructure.h3Count + htmlStructure.h4Count;
+    details.internalLinksCount = htmlStructure.internalLinkCount;
 
-  const linkMatches = content.match(/\[.+?\]\(.+?\)/g) || [];
-  details.internalLinksCount = linkMatches.length;
+    // Also consider schema markup as a sign of authority
+    const hasStructuredData = htmlStructure.hasSchema || htmlStructure.hasFaqSchema;
 
-  if (details.topicalDepth >= 8 && details.internalLinksCount >= 5) score += 10;
-  else if (details.topicalDepth >= 6 && details.internalLinksCount >= 3) score += 8;
-  else if (details.topicalDepth >= 4 || details.internalLinksCount >= 2) score += 5;
-  else if (details.topicalDepth >= 2) score += 3;
+    if (details.topicalDepth >= 8 && details.internalLinksCount >= 5) score += 10;
+    else if (details.topicalDepth >= 6 && details.internalLinksCount >= 3) score += 8;
+    else if (details.topicalDepth >= 4 || details.internalLinksCount >= 2) score += 5;
+    else if (details.topicalDepth >= 2 || hasStructuredData) score += 3;
+  } else {
+    // Markdown-based topical depth
+    const h2Count = (content.match(/^##\s+.+$/gm) || []).length;
+    const h3Count = (content.match(/^###\s+.+$/gm) || []).length;
+    details.topicalDepth = h2Count + h3Count;
+
+    const linkMatches = content.match(/\[.+?\]\(.+?\)/g) || [];
+    details.internalLinksCount = linkMatches.length;
+
+    if (details.topicalDepth >= 8 && details.internalLinksCount >= 5) score += 10;
+    else if (details.topicalDepth >= 6 && details.internalLinksCount >= 3) score += 8;
+    else if (details.topicalDepth >= 4 || details.internalLinksCount >= 2) score += 5;
+    else if (details.topicalDepth >= 2) score += 3;
+  }
 
   return { score: Math.min(score, 100), details };
 }
@@ -683,17 +779,20 @@ export function calculateGEOScore(content: string, localContext?: { city?: strin
 
 /**
  * Calculate comprehensive content scores with AISO Stack
+ *
+ * @param htmlStructure - Optional HTML structure data for accurate web page scoring
  */
 export function scoreContent(
   content: string,
   title?: string,
   metaDescription?: string,
-  localContext?: { city?: string; state?: string; serviceArea?: string }
+  localContext?: { city?: string; state?: string; serviceArea?: string },
+  htmlStructure?: HtmlStructure
 ): ContentScores {
-  const seo = calculateSEOScore(content, title, metaDescription);
+  const seo = calculateSEOScore(content, title, metaDescription, htmlStructure);
   const readability = calculateReadabilityScore(content);
   const engagement = calculateEngagementScore(content);
-  const aeo = calculateAEOScore(content);
+  const aeo = calculateAEOScore(content, htmlStructure);
   const geo = localContext ? calculateGEOScore(content, localContext) : undefined;
 
   // Weighted overall score with AISO Stack
@@ -734,6 +833,8 @@ export function scoreContent(
 /**
  * Calculate complete AISO score including fact-checking
  * This is the MAIN scoring function that includes our key differentiator
+ *
+ * @param htmlStructure - Optional HTML structure data for accurate web page scoring
  */
 export function calculateAISOScore(
   content: string,
@@ -741,12 +842,13 @@ export function calculateAISOScore(
   metaDescription?: string,
   factCheckScore?: number,
   localContext?: { city?: string; state?: string; serviceArea?: string },
-  targetFleschScore?: number
+  targetFleschScore?: number,
+  htmlStructure?: HtmlStructure
 ): ContentScores {
-  const seo = calculateSEOScore(content, title, metaDescription);
+  const seo = calculateSEOScore(content, title, metaDescription, htmlStructure);
   const readability = calculateReadabilityScore(content, targetFleschScore);
   const engagement = calculateEngagementScore(content);
-  const aeo = calculateAEOScore(content);
+  const aeo = calculateAEOScore(content, htmlStructure);
   const geo = localContext ? calculateGEOScore(content, localContext) : undefined;
 
   // Base overall score without fact-check (for content without fact-checking yet)

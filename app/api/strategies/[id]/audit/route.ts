@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db, query } from '@/lib/db';
 import { crawlWebsite } from '@/lib/site-crawler';
-import { calculateAISOScore } from '@/lib/content-scoring';
+import { calculateAISOScore, HtmlStructure } from '@/lib/content-scoring';
 
 
 /**
@@ -92,7 +92,7 @@ export async function POST(
     let imagesStored = 0;
 
     for (const page of crawledPages) {
-      // Calculate AISO score for the page
+      // Calculate AISO score for the page with HTML structure for accurate scoring
       const aisoScores = calculateAISOScore(
         page.contentPreview,
         page.title,
@@ -104,7 +104,9 @@ export async function POST(
               state: strategy.state,
               serviceArea: strategy.service_area,
             }
-          : undefined
+          : undefined,
+        undefined, // targetFleschScore
+        page.htmlStructure // Pass HTML structure for accurate HTML-based scoring
       );
 
       // Use overallScore if aisoScore is undefined (when no fact-checking)

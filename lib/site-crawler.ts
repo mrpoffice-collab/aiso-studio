@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { URL } from 'url';
+import type { HtmlStructure } from '@/lib/content-scoring';
 
 export interface CrawledPage {
   url: string;
@@ -9,6 +10,7 @@ export interface CrawledPage {
   contentPreview: string; // First 500 chars
   wordCount: number;
   images: CrawledImage[];
+  htmlStructure: HtmlStructure; // For consistent scoring with single URL audits
 }
 
 export interface CrawledImage {
@@ -147,7 +149,8 @@ export async function scrapePage(url: string): Promise<CrawledPage | null> {
       maxRedirects: 5,
     });
 
-    const $ = cheerio.load(response.data);
+    const html = response.data;
+    const $ = cheerio.load(html);
 
     // Extract title
     const title = $('title').text().trim() ||
@@ -159,6 +162,43 @@ export async function scrapePage(url: string): Promise<CrawledPage | null> {
     const metaDescription = $('meta[name="description"]').attr('content') ||
                             $('meta[property="og:description"]').attr('content') ||
                             '';
+
+    // Extract HTML structure BEFORE removing elements (for consistent scoring)
+    const htmlStructure: HtmlStructure = {
+      h1Count: $('h1').length,
+      h2Count: $('h2').length,
+      h3Count: $('h3').length,
+      h4Count: $('h4').length,
+      internalLinkCount: 0,
+      externalLinkCount: 0,
+      imageCount: $('img').length,
+      imagesWithAlt: $('img[alt]').filter((_, el) => ($(el).attr('alt')?.trim().length || 0) > 0).length,
+      hasSchema: $('script[type="application/ld+json"]').length > 0,
+      hasFaqSchema: html.includes('"@type":"FAQPage"') || html.includes('"@type": "FAQPage"'),
+      hasCanonical: $('link[rel="canonical"]').length > 0,
+      hasOpenGraph: $('meta[property^="og:"]').length > 0,
+    };
+
+    // Count internal vs external links
+    const pageUrl = new URL(url);
+    const baseDomain = pageUrl.hostname;
+
+    $('a[href]').each((_, el) => {
+      const href = $(el).attr('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+      try {
+        const linkUrl = new URL(href, url);
+        if (linkUrl.hostname === baseDomain) {
+          htmlStructure.internalLinkCount++;
+        } else {
+          htmlStructure.externalLinkCount++;
+        }
+      } catch {
+        // Relative or invalid URL - count as internal
+        htmlStructure.internalLinkCount++;
+      }
+    });
 
     // Extract main content (try to avoid header/footer/nav)
     $('script').remove();
@@ -180,18 +220,19 @@ export async function scrapePage(url: string): Promise<CrawledPage | null> {
 
     // Extract images
     const images: CrawledImage[] = [];
-    $('img').each((_, element) => {
-      const src = $(element).attr('src');
-      const alt = $(element).attr('alt') || '';
-      const width = parseInt($(element).attr('width') || '0');
-      const height = parseInt($(element).attr('height') || '0');
+    // Re-parse to get images before they were affected by content stripping
+    const $fresh = cheerio.load(html);
+    $fresh('img').each((_, element) => {
+      const src = $fresh(element).attr('src');
+      const alt = $fresh(element).attr('alt') || '';
+      const width = parseInt($fresh(element).attr('width') || '0');
+      const height = parseInt($fresh(element).attr('height') || '0');
 
       if (src) {
         // Convert relative URLs to absolute
         let absoluteUrl = src;
         if (!src.startsWith('http')) {
           try {
-            const pageUrl = new URL(url);
             absoluteUrl = new URL(src, pageUrl.origin).href;
           } catch (e) {
             // Skip invalid URLs
@@ -208,7 +249,7 @@ export async function scrapePage(url: string): Promise<CrawledPage | null> {
       }
     });
 
-    console.log(`      ✅ Scraped: ${title} (${wordCount} words, ${images.length} images)`);
+    console.log(`      ✅ Scraped: ${title} (${wordCount} words, ${images.length} images, h2:${htmlStructure.h2Count}, h3:${htmlStructure.h3Count})`);
 
     return {
       url,
@@ -217,6 +258,7 @@ export async function scrapePage(url: string): Promise<CrawledPage | null> {
       contentPreview,
       wordCount,
       images,
+      htmlStructure,
     };
   } catch (error: any) {
     console.error(`      ❌ Failed to scrape ${url}: ${error.message}`);

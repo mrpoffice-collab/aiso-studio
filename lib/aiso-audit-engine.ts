@@ -11,7 +11,7 @@
 import { db } from '@/lib/db';
 import { scanAccessibilityFull, closeBrowser } from '@/lib/accessibility-scanner-playwright';
 import { performFactCheck } from '@/lib/fact-check';
-import { calculateAISOScore } from '@/lib/content-scoring';
+import { calculateAISOScore, HtmlStructure } from '@/lib/content-scoring';
 import * as cheerio from 'cheerio';
 import jsPDF from 'jspdf';
 
@@ -125,13 +125,14 @@ export interface CrawlerAccessInfo {
 /**
  * Scrape content from URL - tries basic fetch first, then falls back to headless browser
  * Exported so API routes can use it
- * Now also returns crawler access information for AEO insights
+ * Now also returns crawler access information for AEO insights and HTML structure for accurate scoring
  */
 export async function scrapeContent(url: string): Promise<{
   content: string;
   title: string;
   metaDescription: string;
   crawlerAccess?: CrawlerAccessInfo;
+  htmlStructure?: HtmlStructure;
 }> {
   // Track which crawlers are blocked
   const crawlerAccess: CrawlerAccessInfo = {
@@ -194,6 +195,7 @@ async function scrapeWithFetch(url: string, crawlerAccess: CrawlerAccessInfo): P
   content: string;
   title: string;
   metaDescription: string;
+  htmlStructure: HtmlStructure;
 }> {
   let lastError: Error | null = null;
 
@@ -258,6 +260,7 @@ async function scrapeWithBrowser(url: string, crawlerAccess: CrawlerAccessInfo):
   content: string;
   title: string;
   metaDescription: string;
+  htmlStructure: HtmlStructure;
 }> {
   const { getBrowser, closeBrowser: closeBrowserFn } = await import('./accessibility-scanner-playwright');
 
@@ -312,19 +315,38 @@ async function scrapeWithBrowser(url: string, crawlerAccess: CrawlerAccessInfo):
       await page.close();
 
       // Try HTML extraction first, fall back to pageText
-      let result: { content: string; title: string; metaDescription: string } | null = null;
+      let result: { content: string; title: string; metaDescription: string; htmlStructure: HtmlStructure } | null = null;
       try {
         const extracted = extractContentFromHtml(html);
         if (extracted.content.length >= 200) {
-          result = { ...extracted, title: title || extracted.title };
+          result = {
+            content: extracted.content,
+            title: title || extracted.title,
+            metaDescription: extracted.metaDescription,
+            htmlStructure: extracted.htmlStructure,
+          };
         }
       } catch (e) {
         // Ignore extraction error
       }
 
-      // Use the text we got from page evaluation as fallback
+      // Use the text we got from page evaluation as fallback - create default htmlStructure
       if (!result && pageText.length >= 100) {
-        result = { content: pageText, title, metaDescription };
+        // If we only have pageText, we need to extract structure from html
+        let htmlStructure: HtmlStructure;
+        try {
+          const extracted = extractContentFromHtml(html);
+          htmlStructure = extracted.htmlStructure;
+        } catch {
+          // Default empty structure if extraction fails
+          htmlStructure = {
+            h1Count: 0, h2Count: 0, h3Count: 0, h4Count: 0,
+            internalLinkCount: 0, externalLinkCount: 0,
+            imageCount: 0, imagesWithAlt: 0,
+            hasSchema: false, hasFaqSchema: false, hasCanonical: false, hasOpenGraph: false,
+          };
+        }
+        result = { content: pageText, title, metaDescription, htmlStructure };
       }
 
       if (result) {
@@ -392,17 +414,65 @@ function isErrorPageContent(content: string, title: string): boolean {
   return false;
 }
 
+// HtmlStructure is imported from content-scoring.ts for unified type
+
 /**
  * Extract content from HTML string
+ * Now also extracts HTML structure for accurate SEO scoring
  */
 function extractContentFromHtml(html: string): {
   content: string;
   title: string;
   metaDescription: string;
+  htmlStructure: HtmlStructure;
 } {
   const $ = cheerio.load(html);
 
-  // Remove non-content elements
+  // Extract HTML structure BEFORE removing elements
+  const htmlStructure: HtmlStructure = {
+    h1Count: $('h1').length,
+    h2Count: $('h2').length,
+    h3Count: $('h3').length,
+    h4Count: $('h4').length,
+    internalLinkCount: 0,
+    externalLinkCount: 0,
+    imageCount: $('img').length,
+    imagesWithAlt: $('img[alt]').filter((_, el) => ($(el).attr('alt')?.trim().length || 0) > 0).length,
+    hasSchema: $('script[type="application/ld+json"]').length > 0,
+    hasFaqSchema: html.includes('"@type":"FAQPage"') || html.includes('"@type": "FAQPage"'),
+    hasCanonical: $('link[rel="canonical"]').length > 0,
+    hasOpenGraph: $('meta[property^="og:"]').length > 0,
+  };
+
+  // Count internal vs external links
+  const baseUrl = $('link[rel="canonical"]').attr('href') || '';
+  let baseDomain = '';
+  try {
+    if (baseUrl) baseDomain = new URL(baseUrl).hostname;
+  } catch {}
+
+  $('a[href]').each((_, el) => {
+    const href = $(el).attr('href') || '';
+    if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+      return; // Skip anchors, JS, mailto, tel
+    }
+    try {
+      if (href.startsWith('/') || href.startsWith('./') || href.startsWith('../')) {
+        htmlStructure.internalLinkCount++;
+      } else if (href.startsWith('http')) {
+        const linkDomain = new URL(href).hostname;
+        if (baseDomain && linkDomain.includes(baseDomain.replace('www.', ''))) {
+          htmlStructure.internalLinkCount++;
+        } else {
+          htmlStructure.externalLinkCount++;
+        }
+      }
+    } catch {
+      // Invalid URL, skip
+    }
+  });
+
+  // Remove non-content elements for text extraction
   $('script, style, nav, footer, header, .sidebar, aside, #sidebar, #comments, .comments, .ad, .advertisement, .social-share').remove();
 
   // Find main content with expanded selectors
@@ -437,6 +507,7 @@ function extractContentFromHtml(html: string): {
         content: bodyText.substring(0, 50000), // Limit content length
         title: $('title').text() || $('h1').first().text() || '',
         metaDescription: $('meta[name="description"]').attr('content') || '',
+        htmlStructure,
       };
     }
   }
@@ -449,7 +520,7 @@ function extractContentFromHtml(html: string): {
   const title = $('title').text() || $('h1').first().text() || '';
   const metaDescription = $('meta[name="description"]').attr('content') || '';
 
-  return { content, title, metaDescription };
+  return { content, title, metaDescription, htmlStructure };
 }
 
 /**
@@ -833,18 +904,25 @@ export async function runAISOAudit(
         console.log(`Title: "${scrapedContent.title}" (${scrapedContent.title?.length || 0} chars)`);
         console.log(`Meta: "${scrapedContent.metaDescription}" (${scrapedContent.metaDescription?.length || 0} chars)`);
         console.log(`Content: ${scrapedContent.content.length} chars`);
+        console.log(`HTML Structure: ${scrapedContent.htmlStructure ? JSON.stringify(scrapedContent.htmlStructure) : 'none'}`);
 
+        // Pass htmlStructure for accurate HTML-based scoring (not markdown)
         contentScores = calculateAISOScore(
           scrapedContent.content,
           scrapedContent.title,
           scrapedContent.metaDescription,
-          factCheckResult.overallScore
+          factCheckResult.overallScore,
+          undefined, // localContext
+          undefined, // targetFleschScore
+          scrapedContent.htmlStructure // HTML structure for accurate element counting
         );
 
         // Debug: log what scoring returned
         console.log('=== SCORING OUTPUT ===');
         console.log(`seoDetails.metaLength: ${contentScores.seoDetails?.metaLength}`);
         console.log(`seoDetails.titleLength: ${contentScores.seoDetails?.titleLength}`);
+        console.log(`seoDetails.h2Count: ${contentScores.seoDetails?.h2Count}`);
+        console.log(`seoDetails.h3Count: ${contentScores.seoDetails?.h3Count}`);
         console.log('Full seoDetails:', JSON.stringify(contentScores.seoDetails));
 
         contentScores.factChecks = factCheckResult.factChecks;
