@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 interface MoneyPageFormProps {
   strategyId: string;
-  onSuccess: () => void;
+  onSuccess: (newPage: any) => void;
 }
 
 export default function MoneyPageForm({ strategyId, onSuccess }: MoneyPageFormProps) {
@@ -63,10 +63,8 @@ export default function MoneyPageForm({ strategyId, onSuccess }: MoneyPageFormPr
       });
       setIsOpen(false);
 
-      // Small delay before refresh to ensure state is updated
-      setTimeout(() => {
-        onSuccess();
-      }, 100);
+      // Pass the new page back to parent for immediate UI update
+      onSuccess(result.moneyPage);
     } catch (err: any) {
       console.error('Form submission error:', err);
       setError(err.message);

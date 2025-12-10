@@ -5,7 +5,7 @@ import { useState } from 'react';
 interface ClusterFormProps {
   strategyId: string;
   moneyPages: any[];
-  onSuccess: () => void;
+  onSuccess: (newCluster: any) => void;
 }
 
 export default function ClusterForm({ strategyId, moneyPages, onSuccess }: ClusterFormProps) {
@@ -54,10 +54,8 @@ export default function ClusterForm({ strategyId, moneyPages, onSuccess }: Clust
       });
       setIsOpen(false);
 
-      // Small delay before refresh
-      setTimeout(() => {
-        onSuccess();
-      }, 100);
+      // Pass the new cluster back to parent for immediate UI update
+      onSuccess(result.cluster);
     } catch (err: any) {
       console.error('Form submission error:', err);
       setError(err.message);

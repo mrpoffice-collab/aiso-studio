@@ -3,8 +3,64 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 
 /**
+ * PUT /api/money-pages/[id]
+ * Update a money page (full update)
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+
+    // Get existing money page
+    const existing = await db.getMoneyPageById(id);
+    if (!existing) {
+      return NextResponse.json({ error: 'Money page not found' }, { status: 404 });
+    }
+
+    // Verify user owns the strategy
+    const strategy = await db.getStrategyById(existing.strategy_id);
+    if (!strategy) {
+      return NextResponse.json({ error: 'Strategy not found' }, { status: 404 });
+    }
+
+    const user = await db.getUserByClerkId(userId);
+    if (!user || strategy.user_id !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    // Update money page
+    const moneyPage = await db.updateMoneyPage(id, {
+      url: body.url,
+      title: body.title,
+      page_type: body.page_type,
+      description: body.description,
+      priority: body.priority,
+      target_keywords: body.target_keywords,
+    });
+
+    console.log(`✅ Updated money page: ${moneyPage?.title}`);
+
+    return NextResponse.json({ moneyPage });
+  } catch (error: any) {
+    console.error('Error updating money page:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to update money page' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * PATCH /api/money-pages/[id]
- * Update a money page
+ * Update a money page (partial update)
  */
 export async function PATCH(
   request: NextRequest,
