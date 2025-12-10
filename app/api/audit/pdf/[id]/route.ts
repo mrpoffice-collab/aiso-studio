@@ -51,6 +51,9 @@ export async function GET(
           name: userBranding.agency_name,
           logo: userBranding.agency_logo_url,
           primaryColor: userBranding.agency_primary_color,
+          email: userBranding.agency_email,
+          phone: userBranding.agency_phone,
+          website: userBranding.agency_website,
         };
       }
     } catch (e) {
@@ -103,8 +106,8 @@ export async function GET(
       isExisting: false,
     };
 
-    // Generate PDF
-    const pdfBuffer = generateAuditPDF(formattedAudit as any, branding);
+    // Generate PDF (async for logo loading)
+    const pdfBuffer = await generateAuditPDF(formattedAudit as any, branding);
 
     // Return PDF
     const domain = formattedAudit.domain;
