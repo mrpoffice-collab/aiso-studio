@@ -478,6 +478,8 @@ export default function LandingPage() {
               <Link href="/audit" className="hover:text-sunset-orange">Free Audit</Link>
               <Link href="/sign-up" className="hover:text-sunset-orange">Sign Up</Link>
               <Link href="/sign-in" className="hover:text-sunset-orange">Sign In</Link>
+              <Link href="/terms" className="hover:text-sunset-orange">Terms</Link>
+              <Link href="/privacy" className="hover:text-sunset-orange">Privacy</Link>
             </div>
           </div>
         </div>
