@@ -2967,4 +2967,183 @@ export const db = {
     );
     return result[0] || null;
   },
+
+  // ============================================
+  // AI Visibility Tracking (Internal Only)
+  // ============================================
+
+  async createAIVisibilityMonitor(data: {
+    user_id: string;
+    url: string;
+    domain: string;
+    business_name?: string;
+    industry?: string;
+    target_keywords?: string[];
+    check_frequency?: string;
+    notes?: string;
+  }) {
+    const result = await query(
+      `INSERT INTO ai_visibility_monitors (
+        user_id, url, domain, business_name, industry,
+        target_keywords, check_frequency, notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *`,
+      [
+        data.user_id,
+        data.url,
+        data.domain,
+        data.business_name || null,
+        data.industry || null,
+        data.target_keywords || [],
+        data.check_frequency || 'weekly',
+        data.notes || null,
+      ]
+    );
+    return result[0];
+  },
+
+  async getAIVisibilityMonitorsByUser(userId: string) {
+    return await query(
+      `SELECT * FROM ai_visibility_monitors
+       WHERE user_id = $1
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+  },
+
+  async getAIVisibilityMonitorById(id: string) {
+    const result = await query(
+      `SELECT * FROM ai_visibility_monitors WHERE id = $1`,
+      [id]
+    );
+    return result[0] || null;
+  },
+
+  async updateAIVisibilityMonitor(id: string, data: {
+    target_keywords?: string[];
+    is_active?: boolean;
+    check_frequency?: string;
+    last_checked_at?: Date;
+    notes?: string;
+  }) {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+
+    if (data.target_keywords !== undefined) {
+      updates.push(`target_keywords = $${paramCount++}`);
+      values.push(data.target_keywords);
+    }
+    if (data.is_active !== undefined) {
+      updates.push(`is_active = $${paramCount++}`);
+      values.push(data.is_active);
+    }
+    if (data.check_frequency !== undefined) {
+      updates.push(`check_frequency = $${paramCount++}`);
+      values.push(data.check_frequency);
+    }
+    if (data.last_checked_at !== undefined) {
+      updates.push(`last_checked_at = $${paramCount++}`);
+      values.push(data.last_checked_at);
+    }
+    if (data.notes !== undefined) {
+      updates.push(`notes = $${paramCount++}`);
+      values.push(data.notes);
+    }
+
+    updates.push(`updated_at = NOW()`);
+    values.push(id);
+
+    const result = await query(
+      `UPDATE ai_visibility_monitors SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+    return result[0] || null;
+  },
+
+  async deleteAIVisibilityMonitor(id: string) {
+    await query(`DELETE FROM ai_visibility_monitors WHERE id = $1`, [id]);
+  },
+
+  async createAIVisibilityCheck(data: {
+    monitor_id: string;
+    platform: string;
+    query_used: string;
+    keyword?: string;
+    was_cited: boolean;
+    citation_type?: string;
+    citation_position?: number;
+    response_snippet?: string;
+    sources_returned?: string[];
+    full_response?: string;
+  }) {
+    const result = await query(
+      `INSERT INTO ai_visibility_checks (
+        monitor_id, platform, query_used, keyword,
+        was_cited, citation_type, citation_position,
+        response_snippet, sources_returned, full_response
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *`,
+      [
+        data.monitor_id,
+        data.platform,
+        data.query_used,
+        data.keyword || null,
+        data.was_cited,
+        data.citation_type || null,
+        data.citation_position || null,
+        data.response_snippet || null,
+        data.sources_returned || [],
+        data.full_response || null,
+      ]
+    );
+    return result[0];
+  },
+
+  async getAIVisibilityChecksByMonitor(monitorId: string, limit = 50) {
+    return await query(
+      `SELECT * FROM ai_visibility_checks
+       WHERE monitor_id = $1
+       ORDER BY check_date DESC
+       LIMIT $2`,
+      [monitorId, limit]
+    );
+  },
+
+  async getRecentAIVisibilityChecks(userId: string, limit = 20) {
+    return await query(
+      `SELECT c.*, m.url, m.domain, m.business_name
+       FROM ai_visibility_checks c
+       JOIN ai_visibility_monitors m ON c.monitor_id = m.id
+       WHERE m.user_id = $1
+       ORDER BY c.check_date DESC
+       LIMIT $2`,
+      [userId, limit]
+    );
+  },
+
+  async getAIVisibilityStats(monitorId: string) {
+    const result = await query(
+      `SELECT
+        COUNT(*) as total_checks,
+        SUM(CASE WHEN was_cited THEN 1 ELSE 0 END) as total_citations,
+        ROUND(AVG(CASE WHEN was_cited THEN citation_position ELSE NULL END)::numeric, 1) as avg_position,
+        SUM(CASE WHEN platform = 'perplexity' THEN 1 ELSE 0 END) as perplexity_checks,
+        SUM(CASE WHEN platform = 'perplexity' AND was_cited THEN 1 ELSE 0 END) as perplexity_citations
+       FROM ai_visibility_checks
+       WHERE monitor_id = $1`,
+      [monitorId]
+    );
+    return result[0] || null;
+  },
+
+  async getAllAIVisibilityMonitors() {
+    return await query(
+      `SELECT m.*, u.email as user_email
+       FROM ai_visibility_monitors m
+       JOIN users u ON m.user_id = u.id
+       WHERE m.is_active = true
+       ORDER BY m.last_checked_at ASC NULLS FIRST`
+    );
+  },
 };
