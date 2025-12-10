@@ -32,14 +32,14 @@
 - [ ] Verify settings save correctly to database
 - [ ] Test with a real WordPress site (if available)
 
-### 4. Content Generation Flow
-- [ ] Create strategy → generates 15 topics
-- [ ] Generate article from topic
-- [ ] Run improvement passes (Readability, SEO, AEO, Engagement)
-- [ ] Approve post
-- [ ] Export as Markdown
-- [ ] Export as HTML
-- [ ] Publish to WordPress (mock)
+### 4. Content Generation Flow ✅ TESTED (Starter/Kim)
+- [x] Create strategy → generates 15 topics
+- [x] Generate article from topic
+- [x] Run improvement passes (Readability, SEO, AEO, Engagement)
+- [x] Approve post
+- [x] Export as Markdown
+- [x] Export as HTML
+- [ ] Publish to WordPress (mock) - NEW FEATURE, needs testing
 
 ### 5. Lead Discovery → Pipeline Flow
 - [ ] Search for leads by industry/location
