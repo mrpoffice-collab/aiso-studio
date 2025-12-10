@@ -1107,9 +1107,11 @@ export const db = {
   },
 
   async getContentAuditsByUserId(userId: number | string, limit = 50) {
+    // content_audits.user_id is INTEGER but users.id is UUID
+    // Try to cast or compare appropriately
     return await query(
       `SELECT * FROM content_audits
-       WHERE user_id = $1
+       WHERE user_id::text = $1::text
        ORDER BY created_at DESC
        LIMIT $2`,
       [userId, limit]
@@ -1130,6 +1132,48 @@ export const db = {
       [id]
     );
     return result[0] || null;
+  },
+
+  // Site Audits (strategy-based website audits)
+  async getSiteAuditsByUserId(userId: number | string, limit = 50) {
+    return await query(
+      `SELECT sa.*, s.client_name, s.website_url
+       FROM site_audits sa
+       JOIN strategies s ON sa.strategy_id = s.id
+       WHERE s.user_id = $1
+       ORDER BY sa.created_at DESC
+       LIMIT $2`,
+      [userId, limit]
+    );
+  },
+
+  async getSiteAuditById(auditId: string) {
+    const result = await query(
+      `SELECT sa.*, s.client_name, s.website_url
+       FROM site_audits sa
+       JOIN strategies s ON sa.strategy_id = s.id
+       WHERE sa.id = $1`,
+      [auditId]
+    );
+    return result[0] || null;
+  },
+
+  async getSiteAuditPages(auditId: string) {
+    return await query(
+      `SELECT * FROM site_pages
+       WHERE audit_id = $1
+       ORDER BY aiso_score DESC`,
+      [auditId]
+    );
+  },
+
+  async getSiteAuditImages(auditId: string) {
+    return await query(
+      `SELECT * FROM site_images
+       WHERE audit_id = $1
+       ORDER BY created_at DESC`,
+      [auditId]
+    );
   },
 
   // Subscription Management

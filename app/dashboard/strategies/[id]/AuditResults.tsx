@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 interface AuditResultsProps {
   strategyId: string;
+  clientName?: string;
 }
 
 interface Audit {
@@ -39,13 +40,15 @@ interface Image {
   context: string;
 }
 
-export default function AuditResults({ strategyId }: AuditResultsProps) {
+export default function AuditResults({ strategyId, clientName }: AuditResultsProps) {
   const [audit, setAudit] = useState<Audit | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [images, setImages] = useState<Image[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPages, setShowPages] = useState(false);
   const [showImages, setShowImages] = useState(false);
+  const [savingToPipeline, setSavingToPipeline] = useState(false);
+  const [savedToPipeline, setSavedToPipeline] = useState(false);
 
   useEffect(() => {
     fetchAuditResults();
@@ -65,6 +68,78 @@ export default function AuditResults({ strategyId }: AuditResultsProps) {
       console.error('Failed to fetch audit results:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveToPipeline = async () => {
+    if (!audit) return;
+
+    setSavingToPipeline(true);
+    try {
+      // Extract domain from URL
+      const url = new URL(audit.site_url);
+      const domain = url.hostname.replace('www.', '');
+
+      // Calculate scores for the lead
+      const avgAeo = pages.length > 0
+        ? Math.round(pages.reduce((sum, p) => sum + p.aeo_score, 0) / pages.length)
+        : 0;
+      const avgSeo = pages.length > 0
+        ? Math.round(pages.reduce((sum, p) => sum + p.seo_score, 0) / pages.length)
+        : 0;
+      const avgReadability = pages.length > 0
+        ? Math.round(pages.reduce((sum, p) => sum + p.readability_score, 0) / pages.length)
+        : 0;
+      const avgEngagement = pages.length > 0
+        ? Math.round(pages.reduce((sum, p) => sum + p.engagement_score, 0) / pages.length)
+        : 0;
+
+      // Collect issues from all pages
+      const allIssues: string[] = [];
+      pages.forEach(page => {
+        if (page.aeo_score < 50) allIssues.push(`Poor AEO on ${page.title || page.url}`);
+        if (page.seo_score < 50) allIssues.push(`SEO issues on ${page.title || page.url}`);
+        if (page.word_count < 300) allIssues.push(`Thin content on ${page.title || page.url}`);
+      });
+
+      // Determine opportunity type based on score
+      const overallScore = audit.avg_aiso_score;
+      let opportunityType = 'content_optimization';
+      if (overallScore < 30) opportunityType = 'full_rebuild';
+      else if (overallScore < 50) opportunityType = 'major_improvements';
+      else if (overallScore < 70) opportunityType = 'content_optimization';
+      else opportunityType = 'maintenance';
+
+      const response = await fetch('/api/leads/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain,
+          business_name: clientName || domain,
+          overall_score: audit.avg_aiso_score,
+          content_score: avgAeo,
+          seo_score: avgSeo,
+          design_score: avgReadability,
+          speed_score: avgEngagement,
+          seoIssues: allIssues.slice(0, 10), // Limit to 10 issues
+          opportunityType,
+          technicalSEO: avgSeo,
+          onPageSEO: avgSeo,
+          contentMarketing: avgAeo,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to save to pipeline');
+      }
+
+      setSavedToPipeline(true);
+    } catch (error) {
+      console.error('Failed to save to pipeline:', error);
+      alert('Failed to save to pipeline. Please try again.');
+    } finally {
+      setSavingToPipeline(false);
     }
   };
 
@@ -107,6 +182,43 @@ export default function AuditResults({ strategyId }: AuditResultsProps) {
             </p>
           </div>
         </div>
+
+        {/* Save to Pipeline Button */}
+        {audit.status === 'completed' && (
+          <div>
+            {savedToPipeline ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg font-semibold">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Added to Pipeline
+              </div>
+            ) : (
+              <button
+                onClick={handleSaveToPipeline}
+                disabled={savingToPipeline}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sunset-orange to-deep-indigo text-white rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {savingToPipeline ? (
+                  <>
+                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Save to Pipeline
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Summary Stats */}
@@ -174,36 +286,156 @@ export default function AuditResults({ strategyId }: AuditResultsProps) {
 
         {showPages && (
           <div className="mt-3 space-y-3">
-            {pages.map((page) => (
-              <div key={page.id} className="p-4 rounded-xl bg-white border-2 border-slate-200">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <h4 className="font-bold text-slate-900 mb-1">{page.title}</h4>
+            {pages.map((page) => {
+              // Identify issues for this page
+              const issues: string[] = [];
+              if (page.aiso_score < 50) issues.push('Low overall AISO score');
+              if (page.word_count < 300) issues.push('Content too short (< 300 words)');
+              if (page.word_count > 3000) issues.push('Content may be too long (> 3000 words)');
+              if (page.aeo_score < 50) issues.push('Poor AEO - not optimized for AI search');
+              if (page.seo_score < 50) issues.push('Low SEO score - may need better header structure');
+              if (page.readability_score < 50) issues.push('Hard to read - complex sentences');
+              if (page.engagement_score < 50) issues.push('Low engagement - needs hooks/CTAs');
+              if (page.flesch_score < 30) issues.push('Very difficult to read (Flesch < 30)');
+              // Only flag missing meta description if it's truly empty/null
+              const hasMeta = page.meta_description && page.meta_description.trim().length > 0;
+              if (!hasMeta) {
+                issues.push('Missing meta description');
+              } else if (page.meta_description.length < 120) {
+                issues.push('Meta description too short (< 120 chars)');
+              } else if (page.meta_description.length > 180) {
+                issues.push('Meta description too long (> 180 chars)');
+              }
+              if (!page.title || page.title.trim() === '') {
+                issues.push('Missing page title');
+              }
+
+              // Recommendations based on scores
+              const recommendations: string[] = [];
+              if (page.aeo_score < 60) recommendations.push('Add FAQ section for AI engines');
+              if (page.seo_score < 60) recommendations.push('Add H2/H3 headers to structure content');
+              if (page.readability_score < 60) recommendations.push('Shorten sentences, simplify language');
+              if (page.engagement_score < 60) recommendations.push('Add bullet points, CTAs, and hooks');
+              if (page.word_count < 500) recommendations.push('Expand content to 800+ words');
+
+              return (
+                <div key={page.id} className="p-4 rounded-xl bg-white border-2 border-slate-200">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-slate-900 mb-1">{page.title || '(No title)'}</h4>
+                      <a
+                        href={page.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline break-all"
+                      >
+                        {page.url}
+                      </a>
+                      {page.meta_description && (
+                        <p className="text-sm text-slate-600 mt-2 italic">"{page.meta_description}"</p>
+                      )}
+                    </div>
+                    <div className={`ml-4 px-4 py-2 rounded-lg font-bold text-lg ${getScoreBg(page.aiso_score)}`}>
+                      <span className={getScoreColor(page.aiso_score)}>{page.aiso_score}</span>
+                      <span className="text-xs text-slate-500">/100</span>
+                    </div>
+                  </div>
+
+                  {/* Score breakdown with visual bars */}
+                  <div className="grid grid-cols-5 gap-2 mt-4 mb-3">
+                    <div className="text-center">
+                      <div className="text-xs font-bold text-slate-500 mb-1">AEO</div>
+                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className={`h-full ${page.aeo_score >= 70 ? 'bg-green-500' : page.aeo_score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${page.aeo_score}%` }}></div>
+                      </div>
+                      <div className={`text-sm font-bold ${getScoreColor(page.aeo_score)}`}>{page.aeo_score}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs font-bold text-slate-500 mb-1">SEO</div>
+                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className={`h-full ${page.seo_score >= 70 ? 'bg-green-500' : page.seo_score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${page.seo_score}%` }}></div>
+                      </div>
+                      <div className={`text-sm font-bold ${getScoreColor(page.seo_score)}`}>{page.seo_score}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs font-bold text-slate-500 mb-1">Read</div>
+                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className={`h-full ${page.readability_score >= 70 ? 'bg-green-500' : page.readability_score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${page.readability_score}%` }}></div>
+                      </div>
+                      <div className={`text-sm font-bold ${getScoreColor(page.readability_score)}`}>{page.readability_score}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs font-bold text-slate-500 mb-1">Engage</div>
+                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className={`h-full ${page.engagement_score >= 70 ? 'bg-green-500' : page.engagement_score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${page.engagement_score}%` }}></div>
+                      </div>
+                      <div className={`text-sm font-bold ${getScoreColor(page.engagement_score)}`}>{page.engagement_score}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs font-bold text-slate-500 mb-1">Words</div>
+                      <div className="text-sm font-bold text-slate-700">{page.word_count}</div>
+                      <div className="text-xs text-slate-500">Flesch: {page.flesch_score}</div>
+                    </div>
+                  </div>
+
+                  {/* Issues identified */}
+                  {issues.length > 0 && (
+                    <div className="mt-3 p-3 rounded-lg bg-red-50 border border-red-200">
+                      <p className="text-xs font-bold text-red-800 mb-2 flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Issues Found ({issues.length})
+                      </p>
+                      <ul className="text-xs text-red-700 space-y-1">
+                        {issues.map((issue, idx) => (
+                          <li key={idx} className="flex items-start gap-1">
+                            <span className="text-red-500">•</span> {issue}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Recommendations */}
+                  {recommendations.length > 0 && (
+                    <div className="mt-2 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                      <p className="text-xs font-bold text-blue-800 mb-2 flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        Quick Fixes
+                      </p>
+                      <ul className="text-xs text-blue-700 space-y-1">
+                        {recommendations.slice(0, 3).map((rec, idx) => (
+                          <li key={idx} className="flex items-start gap-1">
+                            <span className="text-blue-500">→</span> {rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="mt-3 flex gap-2">
+                    <a
+                      href={`/dashboard/audit?url=${encodeURIComponent(page.url)}`}
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+                    >
+                      Deep Audit
+                    </a>
                     <a
                       href={page.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline break-all"
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
                     >
-                      {page.url}
+                      View Page ↗
                     </a>
-                    {page.meta_description && (
-                      <p className="text-sm text-slate-600 mt-2">{page.meta_description}</p>
-                    )}
-                  </div>
-                  <div className={`ml-4 px-3 py-1 rounded-lg font-bold text-sm ${getScoreBg(page.aiso_score)}`}>
-                    <span className={getScoreColor(page.aiso_score)}>{page.aiso_score}</span>
                   </div>
                 </div>
-                <div className="flex gap-4 text-xs text-slate-600 mt-3">
-                  <span>Words: {page.word_count}</span>
-                  <span>AEO: {page.aeo_score}</span>
-                  <span>SEO: {page.seo_score}</span>
-                  <span>Readability: {page.readability_score}</span>
-                  <span>Flesch: {page.flesch_score}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -112,28 +112,36 @@ export async function POST(
       totalAisoScore += pageAisoScore;
 
       // Store page in database
-      await query(
-        `INSERT INTO site_pages (
-          audit_id, strategy_id, url, title, meta_description,
-          content_preview, word_count, aiso_score, aeo_score,
-          seo_score, readability_score, engagement_score, flesch_score
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-        [
-          audit.id,
-          strategyId,
-          page.url,
-          page.title,
-          page.metaDescription,
-          page.contentPreview,
-          page.wordCount,
-          pageAisoScore,
-          aisoScores.aeoScore,
-          aisoScores.seoScore,
-          aisoScores.readabilityScore,
-          aisoScores.engagementScore,
-          aisoScores.readabilityDetails.fleschScore,
-        ]
-      );
+      try {
+        await query(
+          `INSERT INTO site_pages (
+            audit_id, strategy_id, url, title, meta_description,
+            content_preview, word_count, aiso_score, aeo_score,
+            seo_score, readability_score, engagement_score, flesch_score
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+          [
+            audit.id,
+            strategyId,
+            page.url,
+            page.title,
+            page.metaDescription,
+            page.contentPreview,
+            page.wordCount,
+            pageAisoScore,
+            aisoScores.aeoScore,
+            aisoScores.seoScore,
+            aisoScores.readabilityScore,
+            aisoScores.engagementScore,
+            aisoScores.readabilityDetails.fleschScore,
+          ]
+        );
+      } catch (insertError: any) {
+        // Skip duplicates (same URL in same audit)
+        if (!insertError.message?.includes('duplicate')) {
+          throw insertError;
+        }
+        console.log(`   ⚠️ Skipping duplicate URL: ${page.url}`);
+      }
 
       pagesStored++;
 
@@ -263,36 +271,57 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Get most recent audit
-    const audits = await query(
-      `SELECT * FROM site_audits
-       WHERE strategy_id = $1
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      [strategyId]
-    );
+    // Get most recent audit - handle case where table doesn't exist
+    let audits: any[] = [];
+    try {
+      audits = await query(
+        `SELECT * FROM site_audits
+         WHERE strategy_id = $1
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [strategyId]
+      );
+    } catch (e: any) {
+      // Table might not exist yet
+      if (e.message?.includes('does not exist') || e.code === '42P01') {
+        return NextResponse.json({ audit: null, pages: [], images: [] });
+      }
+      throw e;
+    }
 
     if (audits.length === 0) {
-      return NextResponse.json({ audit: null });
+      return NextResponse.json({ audit: null, pages: [], images: [] });
     }
 
     const audit = audits[0];
 
     // Get pages
-    const pages = await query(
-      `SELECT * FROM site_pages
-       WHERE audit_id = $1
-       ORDER BY aiso_score DESC`,
-      [audit.id]
-    );
+    let pages: any[] = [];
+    try {
+      pages = await query(
+        `SELECT * FROM site_pages
+         WHERE audit_id = $1
+         ORDER BY aiso_score DESC`,
+        [audit.id]
+      );
+    } catch (e: any) {
+      // Table might not exist
+      console.error('Error fetching site pages:', e);
+    }
 
     // Get images
-    const images = await query(
-      `SELECT * FROM site_images
-       WHERE audit_id = $1
-       ORDER BY created_at DESC`,
-      [audit.id]
-    );
+    let images: any[] = [];
+    try {
+      images = await query(
+        `SELECT * FROM site_images
+         WHERE audit_id = $1
+         ORDER BY created_at DESC`,
+        [audit.id]
+      );
+    } catch (e: any) {
+      // Table might not exist
+      console.error('Error fetching site images:', e);
+    }
 
     return NextResponse.json({
       audit,

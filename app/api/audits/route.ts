@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/audits
- * Get user's audit history
+ * Get user's audit history (both content audits and site audits)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -81,10 +81,68 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
+    const type = searchParams.get('type'); // 'content', 'site', or null for all
 
-    const audits = await db.getContentAuditsByUserId(user.id, limit);
+    // Get content audits (single URL audits)
+    let contentAudits: any[] = [];
+    if (type !== 'site') {
+      try {
+        contentAudits = await db.getContentAuditsByUserId(user.id, limit);
+      } catch (e) {
+        console.error('Error fetching content audits:', e);
+        // Continue with empty array if table doesn't exist
+      }
+    }
 
-    return NextResponse.json({ audits }, { status: 200 });
+    // Get site audits (strategy-based website audits)
+    let siteAudits: any[] = [];
+    if (type !== 'content') {
+      try {
+        siteAudits = await db.getSiteAuditsByUserId(user.id, limit);
+      } catch (e) {
+        console.error('Error fetching site audits:', e);
+        // Continue with empty array if table doesn't exist
+      }
+    }
+
+    // Normalize and combine both types
+    const normalizedContentAudits = contentAudits.map((audit: any) => ({
+      id: audit.id,
+      type: 'content' as const,
+      url: audit.url,
+      title: audit.title,
+      score: audit.improved_score || audit.original_score,
+      originalScore: audit.original_score,
+      improvedScore: audit.improved_score,
+      iterations: audit.iterations,
+      status: 'completed',
+      createdAt: audit.created_at,
+    }));
+
+    const normalizedSiteAudits = siteAudits.map((audit: any) => ({
+      id: audit.id,
+      type: 'site' as const,
+      url: audit.site_url,
+      title: audit.client_name || 'Site Audit',
+      score: audit.avg_aiso_score,
+      pagesFound: audit.pages_found,
+      imagesFound: audit.images_found,
+      status: audit.status,
+      strategyId: audit.strategy_id,
+      createdAt: audit.created_at,
+      completedAt: audit.completed_at,
+    }));
+
+    // Combine and sort by date
+    const allAudits = [...normalizedContentAudits, ...normalizedSiteAudits]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+
+    return NextResponse.json({
+      audits: allAudits,
+      contentAudits: normalizedContentAudits,
+      siteAudits: normalizedSiteAudits,
+    }, { status: 200 });
   } catch (error) {
     console.error('Error fetching audits:', error);
     return NextResponse.json(

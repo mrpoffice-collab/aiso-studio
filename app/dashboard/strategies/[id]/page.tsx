@@ -226,7 +226,7 @@ export default async function StrategyDetailPage({ params }: { params: Promise<{
 
         {/* Audit Results Section */}
         {strategy.website_url && (
-          <AuditResults strategyId={id} />
+          <AuditResults strategyId={id} clientName={strategy.client_name} />
         )}
 
         {/* Strategic Linking Section (Money Pages + Clusters) */}
