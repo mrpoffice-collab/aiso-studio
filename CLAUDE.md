@@ -72,3 +72,33 @@ AISO Studio - AI Search Optimization platform for marketing agencies. Built with
 Several features support mock mode for testing without external dependencies:
 - WordPress publishing (`mockMode: true` parameter)
 - Use mock mode when real integrations aren't available
+
+## Feature Updates & Historical Data
+
+When adding new features that depend on user data:
+
+1. **Check if required data exists** before showing the feature UI
+2. **Show clear, user-friendly message** if data is missing - NOT errors
+   - Example: "Re-run audit to enable Adapt to Vertical"
+   - NOT: "Error: content is undefined"
+3. **Provide a path forward** - Tell user how to get the feature working
+4. **Never break existing functionality** - Old data must still work for old features
+5. **Consider backfill migrations** for critical features where re-running isn't practical
+
+### Implementation Pattern
+```typescript
+// Good - graceful handling
+if (!auditResult?.content) {
+  return <Message>Re-run this audit to enable content adaptation.</Message>;
+}
+
+// Bad - cryptic error
+if (!auditResult?.content) {
+  throw new Error('Content required');
+}
+```
+
+### When to Backfill
+- Feature is critical to user workflow
+- Re-running/re-creating data is impractical (e.g., months of posts)
+- Data exists in another form that can be transformed
