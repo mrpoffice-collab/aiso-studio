@@ -40,6 +40,206 @@ interface Image {
   context: string;
 }
 
+// Score breakdown modal component
+function ScoreBreakdownModal({
+  isOpen,
+  onClose,
+  pages,
+  avgScore
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  pages: Page[];
+  avgScore: number;
+}) {
+  if (!isOpen) return null;
+
+  // Calculate averages for each category
+  const avgAeo = pages.length > 0 ? Math.round(pages.reduce((sum, p) => sum + p.aeo_score, 0) / pages.length) : 0;
+  const avgSeo = pages.length > 0 ? Math.round(pages.reduce((sum, p) => sum + p.seo_score, 0) / pages.length) : 0;
+  const avgReadability = pages.length > 0 ? Math.round(pages.reduce((sum, p) => sum + p.readability_score, 0) / pages.length) : 0;
+  const avgEngagement = pages.length > 0 ? Math.round(pages.reduce((sum, p) => sum + p.engagement_score, 0) / pages.length) : 0;
+  const avgFlesch = pages.length > 0 ? Math.round(pages.reduce((sum, p) => sum + p.flesch_score, 0) / pages.length) : 0;
+
+  const getScoreColor = (score: number) => {
+    if (score >= 70) return 'text-green-600';
+    if (score >= 50) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getScoreBg = (score: number) => {
+    if (score >= 70) return 'bg-green-100';
+    if (score >= 50) return 'bg-yellow-100';
+    return 'bg-red-100';
+  };
+
+  const getScoreLabel = (score: number) => {
+    if (score >= 80) return 'Excellent';
+    if (score >= 70) return 'Good';
+    if (score >= 50) return 'Fair';
+    if (score >= 30) return 'Needs Work';
+    return 'Poor';
+  };
+
+  const categories = [
+    {
+      name: 'AEO (AI Engine Optimization)',
+      score: avgAeo,
+      weight: '30%',
+      description: 'How well content is optimized for AI search engines like ChatGPT, Perplexity, and Google AI Overviews.',
+      tips: avgAeo < 50 ? ['Add FAQ sections', 'Include statistics and data', 'Use clear definitions', 'Add how-to steps'] : []
+    },
+    {
+      name: 'SEO (Search Engine Optimization)',
+      score: avgSeo,
+      weight: '20%',
+      description: 'Traditional search engine factors like headers, meta tags, links, and images.',
+      tips: avgSeo < 50 ? ['Add H2/H3 headers', 'Improve meta descriptions', 'Add internal links', 'Optimize images with alt text'] : []
+    },
+    {
+      name: 'Readability',
+      score: avgReadability,
+      weight: '25%',
+      description: `Content reading level and clarity. Average Flesch score: ${avgFlesch} (higher = easier to read).`,
+      tips: avgReadability < 50 ? ['Shorten sentences', 'Use simpler words', 'Break up long paragraphs', 'Add bullet points'] : []
+    },
+    {
+      name: 'Engagement',
+      score: avgEngagement,
+      weight: '25%',
+      description: 'Elements that keep readers engaged: hooks, CTAs, questions, formatting variety.',
+      tips: avgEngagement < 50 ? ['Add a compelling hook', 'Include call-to-actions', 'Use questions', 'Add bullet/numbered lists'] : []
+    },
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-t-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">AISO Score Breakdown</h2>
+              <p className="text-blue-100 mt-1">Understanding your site's performance</p>
+            </div>
+            <div className="text-center">
+              <div className="text-5xl font-bold">{avgScore}</div>
+              <div className="text-sm text-blue-100">Overall Score</div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-white/80 hover:text-white"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Formula explanation */}
+          <div className="bg-slate-50 rounded-xl p-4">
+            <h3 className="font-bold text-slate-700 mb-2">How AISO Score is Calculated</h3>
+            <p className="text-sm text-slate-600">
+              AISO Score = AEO (30%) + SEO (20%) + Readability (25%) + Engagement (25%)
+            </p>
+            <p className="text-xs text-slate-500 mt-2">
+              Based on average scores across {pages.length} pages analyzed.
+            </p>
+          </div>
+
+          {/* Category breakdown */}
+          {categories.map((cat) => (
+            <div key={cat.name} className="border rounded-xl overflow-hidden">
+              <div className="p-4 bg-slate-50 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-800">{cat.name}</h3>
+                  <p className="text-xs text-slate-500">Weight: {cat.weight}</p>
+                </div>
+                <div className={`px-4 py-2 rounded-lg font-bold text-2xl ${getScoreBg(cat.score)} ${getScoreColor(cat.score)}`}>
+                  {cat.score}
+                </div>
+              </div>
+              <div className="p-4">
+                <p className="text-sm text-slate-600 mb-2">{cat.description}</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex-1 h-3 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all ${cat.score >= 70 ? 'bg-green-500' : cat.score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                      style={{ width: `${cat.score}%` }}
+                    />
+                  </div>
+                  <span className={`text-sm font-medium ${getScoreColor(cat.score)}`}>
+                    {getScoreLabel(cat.score)}
+                  </span>
+                </div>
+                {cat.tips.length > 0 && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs font-bold text-blue-800 mb-1">Quick Improvements:</p>
+                    <ul className="text-xs text-blue-700 space-y-1">
+                      {cat.tips.map((tip, i) => (
+                        <li key={i}>• {tip}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Top/Bottom pages */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="border rounded-xl p-4">
+              <h3 className="font-bold text-green-700 mb-3 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+                Top Performing Pages
+              </h3>
+              <ul className="space-y-2">
+                {pages.slice(0, 3).map((page) => (
+                  <li key={page.id} className="text-sm">
+                    <span className={`font-bold ${getScoreColor(page.aiso_score)}`}>{page.aiso_score}</span>
+                    <span className="text-slate-600 ml-2 truncate">{page.title || page.url}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="border rounded-xl p-4">
+              <h3 className="font-bold text-red-700 mb-3 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+                Needs Improvement
+              </h3>
+              <ul className="space-y-2">
+                {[...pages].sort((a, b) => a.aiso_score - b.aiso_score).slice(0, 3).map((page) => (
+                  <li key={page.id} className="text-sm">
+                    <span className={`font-bold ${getScoreColor(page.aiso_score)}`}>{page.aiso_score}</span>
+                    <span className="text-slate-600 ml-2 truncate">{page.title || page.url}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-slate-100 p-4 rounded-b-2xl border-t">
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-700 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AuditResults({ strategyId, clientName }: AuditResultsProps) {
   const [audit, setAudit] = useState<Audit | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
@@ -49,6 +249,7 @@ export default function AuditResults({ strategyId, clientName }: AuditResultsPro
   const [showImages, setShowImages] = useState(false);
   const [savingToPipeline, setSavingToPipeline] = useState(false);
   const [savedToPipeline, setSavedToPipeline] = useState(false);
+  const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
 
   useEffect(() => {
     fetchAuditResults();
@@ -247,7 +448,10 @@ export default function AuditResults({ strategyId, clientName }: AuditResultsPro
           </div>
         </div>
 
-        <div className={`rounded-xl border-2 p-4 ${getScoreBg(audit.avg_aiso_score)}`}>
+        <button
+          onClick={() => setShowScoreBreakdown(true)}
+          className={`rounded-xl border-2 p-4 ${getScoreBg(audit.avg_aiso_score)} hover:shadow-lg transition-all cursor-pointer text-left w-full`}
+        >
           <div className="flex items-center gap-3">
             <svg className="w-8 h-8 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -257,9 +461,10 @@ export default function AuditResults({ strategyId, clientName }: AuditResultsPro
               <p className={`text-3xl font-bold ${getScoreColor(audit.avg_aiso_score)}`}>
                 {audit.avg_aiso_score}/100
               </p>
+              <p className="text-xs text-slate-500 mt-1">Click for breakdown</p>
             </div>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Pages Section */}
@@ -491,6 +696,14 @@ export default function AuditResults({ strategyId, clientName }: AuditResultsPro
           )}
         </div>
       )}
+
+      {/* Score Breakdown Modal */}
+      <ScoreBreakdownModal
+        isOpen={showScoreBreakdown}
+        onClose={() => setShowScoreBreakdown(false)}
+        pages={pages}
+        avgScore={audit.avg_aiso_score}
+      />
     </div>
   );
 }
