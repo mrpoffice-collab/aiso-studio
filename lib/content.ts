@@ -189,7 +189,7 @@ If you must choose between sophisticated vocabulary and simplicity → CHOOSE SI
 **Title:** ${input.title}
 **Target Keyword:** ${input.keyword}
 **SEO Intent:** ${input.seoIntent}
-**Target Word Count:** ${input.wordCount} words
+**Target Word Count:** ${input.wordCount} words (STRICT - stay within 10% of this target)
 **Target Audience:** ${input.targetAudience}
 **Brand Voice:** ${input.brandVoice}
 
@@ -349,14 +349,14 @@ If this content is for a local business (plumber, lawyer, dentist, contractor, e
 6. Include SPECIFIC examples and ACTIONABLE insights (but avoid unverifiable statistics)
 7. Write varied paragraph lengths (2-6 sentences) for rhythm
 8. End with a thought-provoking call-to-action or conclusion
-9. Aim for approximately ${input.wordCount} words (500+ words minimum for SEO)
+9. **WORD COUNT IS CRITICAL:** Write EXACTLY ${input.wordCount} words (±10%). If target is 750, write 675-825 words. Do NOT exceed this range
 10. **PRIORITIZE FACT-CHECK SCORE: Only include claims you can verify or that are general knowledge**
 
 **ON-PAGE SEO REQUIREMENTS (CRITICAL - These will be audited):**
 1. **H1 Tag**: The title should be 20-70 characters and include the primary keyword
 2. **Header Hierarchy**: Use proper H2 and H3 tags (minimum 2 H2 tags) with related keywords
 3. **Internal Linking**: Include 3-5 opportunities for internal links (mention "related topics" or "learn more about X")
-4. **Content Length**: Minimum 500 words for SEO value, target ${input.wordCount} for depth
+4. **Content Length**: STRICT ${input.wordCount} words (±10%). Do NOT write more than ${Math.round(input.wordCount * 1.1)} words
 5. **Keyword Integration**: Include target keyword in:
    - Title (H1)
    - First paragraph (opening 100 words)
@@ -405,6 +405,12 @@ Return the content in this exact JSON structure:
 - Readability Score: 70+ (Clear, concise, scannable)
 - Engagement Score: 70+ (Hooks, CTAs, varied formatting)
 - Overall AISO Score: 75+
+
+**⚠️ FINAL WORD COUNT CHECK:**
+Before submitting, count your words. The target is ${input.wordCount} words.
+- Minimum allowed: ${Math.round(input.wordCount * 0.9)} words
+- Maximum allowed: ${Math.round(input.wordCount * 1.1)} words
+If your content exceeds ${Math.round(input.wordCount * 1.1)} words, TRIM IT. Remove filler, combine sections, or shorten the FAQ.
 
 Now create content that is AI-quotable, informative, engaging, authoritative, VERIFIABLE, and optimized for modern answer engines.`;
 
