@@ -63,12 +63,7 @@ export async function POST(
 
     console.log(`   ✅ Audit record created: ${audit.id}\n`);
 
-    // Delete old pages and images for this strategy - always get fresh data
-    await query(`DELETE FROM site_pages WHERE strategy_id = $1`, [strategyId]);
-    await query(`DELETE FROM site_images WHERE strategy_id = $1`, [strategyId]);
-    console.log(`   🗑️  Cleared old audit data for fresh crawl\n`);
-
-    // Crawl the website
+    // Crawl the website (old audit data is preserved for history)
     let crawledPages;
     try {
       crawledPages = await crawlWebsite(strategy.website_url, 50); // Max 50 pages
@@ -325,30 +320,31 @@ export async function GET(
 
     const audit = audits[0];
 
-    // Get pages - fetch by strategy_id since pages persist across audits
+    // Get pages for THIS audit (not all audits for strategy)
+    // This ensures we show fresh scores, not stale historical data
     let pages: any[] = [];
     try {
-      console.log(`Fetching pages for strategy_id: ${strategyId}`);
+      console.log(`Fetching pages for audit_id: ${audit.id}`);
       pages = await query(
         `SELECT * FROM site_pages
-         WHERE strategy_id = $1
+         WHERE audit_id = $1
          ORDER BY aiso_score DESC`,
-        [strategyId]
+        [audit.id]
       );
-      console.log(`Found ${pages.length} pages for strategy ${strategyId}`);
+      console.log(`Found ${pages.length} pages for audit ${audit.id}`);
     } catch (e: any) {
       // Table might not exist
       console.error('Error fetching site pages:', e);
     }
 
-    // Get images - fetch by strategy_id since images persist across audits
+    // Get images for THIS audit
     let images: any[] = [];
     try {
       images = await query(
         `SELECT * FROM site_images
-         WHERE strategy_id = $1
+         WHERE audit_id = $1
          ORDER BY created_at DESC`,
-        [strategyId]
+        [audit.id]
       );
     } catch (e: any) {
       // Table might not exist
