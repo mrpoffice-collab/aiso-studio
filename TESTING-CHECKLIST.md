@@ -3,7 +3,7 @@
 **Tester:** _______________
 **Date:** _______________
 **Environment:** https://aiso.studio (Production)
-**Last Updated:** 2025-12-09
+**Last Updated:** 2025-12-10
 
 ---
 
@@ -427,6 +427,55 @@ Create these accounts by signing up at https://aiso.studio:
 
 ---
 
+## 15. AI VISIBILITY TRACKER (Admin Only - Internal)
+
+**Note:** This feature is only visible to admin emails (mrpoffice@gmail.com, kim@aliidesign.com). Other users see "Page not found" at /dashboard/admin/ai-visibility.
+
+### 15.1 AI Discovery Check
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Navigate to /dashboard/admin/ai-visibility | Page loads (admin only) | [ ] | |
+| Non-admin visits page | "Page not found" shown | [ ] | |
+| Enter URL + Industry | Fields accept input | [ ] | |
+| Click "Run Discovery" | Loading "Asking AI questions..." | [ ] | |
+| Results display | Citation rate %, questions cited | [ ] | |
+| Shows "AI Knows You" percentage | 0-100% based on citations | [ ] | |
+| Green list: Questions cited for | Shows which questions you're found for | [ ] | |
+| Red list: Questions NOT cited for | Shows gaps in AI visibility | [ ] | |
+| Strongest/Weakest category | Informational/Commercial/Transactional | [ ] | |
+| Top competitors shown | Other domains AI recommends | [ ] | |
+| Auto-generated sales pitch | Based on citation rate | [ ] | |
+
+### 15.2 Who Does AI Trust?
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Switch to "Who Does AI Trust?" tab | Tab loads | [ ] | |
+| Enter Industry only | Field accepts input | [ ] | |
+| Click "Find Trusted Sources" | Loading "Asking AI..." | [ ] | |
+| Ranked list of domains | Shows top cited sources | [ ] | |
+| Citation count per domain | Xn times cited | [ ] | |
+| Avg position shown | Position in AI responses | [ ] | |
+| Question categories per domain | Tags for info/commercial/etc | [ ] | |
+| Dominant player callout | Yellow banner if one dominates | [ ] | |
+| Sales pitch generated | "When people ask AI about X, here's who gets recommended..." | [ ] | |
+
+### 15.3 Question Categories Displayed
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Informational questions | "What is X?", "How does X work?" | [ ] | |
+| Commercial questions | "Best X companies", "How much does X cost?" | [ ] | |
+| Transactional questions | "How do I hire X?", "Best X for small business" | [ ] | |
+| Location-specific (if provided) | "Best X in [location]" | [ ] | |
+
+### 15.4 UI/UX
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Light mode only | No dark mode regardless of system setting | [ ] | |
+| "Internal Only" badge visible | Amber warning badge at top | [ ] | |
+| Cost info in footer | Shows ~$0.005 per question | [ ] | |
+
+---
+
 ## TESTING SUMMARY
 
 | Category | Tests | Passed | Failed | Blocked |
@@ -445,6 +494,7 @@ Create these accounts by signing up at https://aiso.studio:
 | Admin | | | | |
 | Error Handling | | | | |
 | Performance | | | | |
+| AI Visibility (Internal) | | | | |
 | **TOTAL** | | | | |
 
 ---
