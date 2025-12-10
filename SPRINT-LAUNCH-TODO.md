@@ -127,7 +127,7 @@ Use Kim Kelley's account (kim@aliidesign.com) for Agency testing:
 | Internal linking that works | Critical for SEO agencies | Medium | [ ] |
 | WordPress one-click publish | Save 15 min/post | High | [x] Added |
 | Content calendar view | Client visibility | Medium | [ ] |
-| Bulk content generation | Time savings | Medium | [ ] |
+| Bulk content generation | Time savings | Medium | [x] Complete - Generate All, Approve All, Download All |
 | White-label PDF reports | Agency branding | Low | [x] Complete - logo, contact, Agency-only |
 
 ### UX Improvements
