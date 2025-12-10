@@ -276,6 +276,7 @@ export async function GET(
     // Get most recent audit - handle case where table doesn't exist
     let audits: any[] = [];
     try {
+      console.log(`Looking for audits for strategy_id: ${strategyId}`);
       audits = await query(
         `SELECT * FROM site_audits
          WHERE strategy_id = $1
@@ -283,6 +284,7 @@ export async function GET(
          LIMIT 1`,
         [strategyId]
       );
+      console.log(`Found ${audits.length} audits, most recent:`, audits[0]?.id, audits[0]?.status, audits[0]?.pages_found);
     } catch (e: any) {
       // Table might not exist yet
       if (e.message?.includes('does not exist') || e.code === '42P01') {
@@ -300,12 +302,14 @@ export async function GET(
     // Get pages
     let pages: any[] = [];
     try {
+      console.log(`Fetching pages for audit_id: ${audit.id}`);
       pages = await query(
         `SELECT * FROM site_pages
          WHERE audit_id = $1
          ORDER BY aiso_score DESC`,
         [audit.id]
       );
+      console.log(`Found ${pages.length} pages for audit ${audit.id}`);
     } catch (e: any) {
       // Table might not exist
       console.error('Error fetching site pages:', e);
