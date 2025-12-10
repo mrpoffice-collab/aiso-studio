@@ -118,6 +118,9 @@ export default function PostEditorPage({ params }: { params: Promise<{ id: strin
   const [socialPosts, setSocialPosts] = useState<any[]>([]);
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [justUpdated, setJustUpdated] = useState(false);
+  const [strategy, setStrategy] = useState<any>(null);
+  const [isPublishingToWp, setIsPublishingToWp] = useState(false);
+  const [wpPublishResult, setWpPublishResult] = useState<{ success: boolean; message: string; url?: string; editUrl?: string } | null>(null);
 
   useEffect(() => {
     fetchPost();
@@ -140,6 +143,20 @@ export default function PostEditorPage({ params }: { params: Promise<{ id: strin
       setEditableContent(data.post.content);
       setEditableTitle(data.post.title);
       setEditableMetaDesc(data.post.meta_description || '');
+
+      // Fetch strategy for WordPress settings
+      if (data.post.topic_id) {
+        try {
+          const stratResponse = await fetch(`/api/strategies/by-topic/${data.post.topic_id}`);
+          if (stratResponse.ok) {
+            const stratData = await stratResponse.json();
+            setStrategy(stratData.strategy);
+          }
+        } catch (e) {
+          console.log('Could not fetch strategy:', e);
+        }
+      }
+
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message);
@@ -297,6 +314,63 @@ export default function PostEditorPage({ params }: { params: Promise<{ id: strin
       alert(`Failed to repurpose content: ${err.message}`);
     } finally {
       setIsRepurposing(false);
+    }
+  };
+
+  const handlePublishToWordPress = async (useMockMode = false) => {
+    if (!useMockMode && !strategy?.wordpress_enabled) {
+      alert('WordPress publishing is not enabled for this strategy.\n\nGo to Strategy Settings > Edit to configure WordPress integration.');
+      return;
+    }
+
+    const statusText = strategy?.wordpress_default_status === 'publish' ? 'published immediately' : 'saved as a draft';
+
+    if (!confirm(`Publish to WordPress?\n\nThis post will be ${statusText} to:\n${strategy?.wordpress_url || '(Mock WordPress Site)'}\n\nCategory: ${strategy?.wordpress_category_name || 'Default'}\nAuthor: ${strategy?.wordpress_author_name || 'Default'}\n\nContinue?`)) {
+      return;
+    }
+
+    setIsPublishingToWp(true);
+    setWpPublishResult(null);
+
+    try {
+      const response = await fetch('/api/wordpress/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: id,
+          mockMode: useMockMode,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setWpPublishResult({
+          success: true,
+          message: `Published successfully${data.mockMode ? ' (Mock Mode)' : ''}! Status: ${data.status}`,
+          url: data.postUrl,
+          editUrl: data.editUrl,
+        });
+        // Update local post state
+        setPost((prev: any) => ({
+          ...prev,
+          wordpress_post_id: data.postId,
+          wordpress_post_url: data.postUrl,
+          status: 'published',
+        }));
+      } else {
+        setWpPublishResult({
+          success: false,
+          message: data.error || 'Failed to publish',
+        });
+      }
+    } catch (err: any) {
+      setWpPublishResult({
+        success: false,
+        message: err.message || 'Network error',
+      });
+    } finally {
+      setIsPublishingToWp(false);
     }
   };
 
@@ -602,7 +676,7 @@ export default function PostEditorPage({ params }: { params: Promise<{ id: strin
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 mb-1">✅ Post Approved - Ready to Export</h3>
-                <p className="text-xs text-slate-600">Export your content in different formats for publishing</p>
+                <p className="text-xs text-slate-600">Export your content or publish directly to WordPress</p>
               </div>
               <div className="flex gap-2">
                 <button
@@ -632,7 +706,102 @@ export default function PostEditorPage({ params }: { params: Promise<{ id: strin
                   </svg>
                   Repurpose
                 </button>
+                {/* WordPress Publish Button */}
+                <button
+                  onClick={() => handlePublishToWordPress(false)}
+                  disabled={isPublishingToWp}
+                  className={`px-4 py-2 rounded-lg text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50 ${
+                    strategy?.wordpress_enabled
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600'
+                      : 'bg-gradient-to-r from-slate-400 to-slate-500'
+                  }`}
+                  title={strategy?.wordpress_enabled ? 'Publish to WordPress' : 'WordPress not configured'}
+                >
+                  {isPublishingToWp ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      </svg>
+                      Publishing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                      </svg>
+                      WordPress
+                    </>
+                  )}
+                </button>
+                {/* Mock Mode Button (for testing) */}
+                <button
+                  onClick={() => handlePublishToWordPress(true)}
+                  disabled={isPublishingToWp}
+                  className="px-3 py-2 rounded-lg border-2 border-slate-300 text-slate-600 font-bold hover:bg-slate-50 transition-all flex items-center gap-1 disabled:opacity-50 text-xs"
+                  title="Test publish with mock mode"
+                >
+                  Mock WP
+                </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* WordPress Publish Result */}
+        {wpPublishResult && (
+          <div className={`mb-6 p-4 rounded-xl border-2 ${wpPublishResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+            <div className="flex items-start gap-3">
+              {wpPublishResult.success ? (
+                <svg className="w-5 h-5 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+              <div className="flex-1">
+                <p className={`text-sm font-bold ${wpPublishResult.success ? 'text-green-800' : 'text-red-800'}`}>
+                  {wpPublishResult.message}
+                </p>
+                {wpPublishResult.success && wpPublishResult.url && (
+                  <div className="mt-2 flex gap-3">
+                    <a
+                      href={wpPublishResult.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      View Post
+                    </a>
+                    {wpPublishResult.editUrl && (
+                      <a
+                        href={wpPublishResult.editUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit in WordPress
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setWpPublishResult(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
         )}

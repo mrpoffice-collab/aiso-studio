@@ -2728,4 +2728,136 @@ export const db = {
       [userId]
     );
   },
+
+  // WordPress Integration
+  async getStrategyByTopicId(topicId: string) {
+    const result = await query(
+      `SELECT s.* FROM strategies s
+       JOIN topics t ON t.strategy_id = s.id
+       WHERE t.id = $1`,
+      [topicId]
+    );
+    return result[0] || null;
+  },
+
+  async updateStrategyWordPress(strategyId: string, data: {
+    wordpress_enabled?: boolean;
+    wordpress_url?: string;
+    wordpress_username?: string;
+    wordpress_app_password?: string;
+    wordpress_category_id?: number;
+    wordpress_category_name?: string;
+    wordpress_author_id?: number;
+    wordpress_author_name?: string;
+    wordpress_default_status?: string;
+    wordpress_connection_verified?: boolean;
+    wordpress_last_test_at?: Date;
+  }) {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+
+    if (data.wordpress_enabled !== undefined) {
+      updates.push(`wordpress_enabled = $${paramCount++}`);
+      values.push(data.wordpress_enabled);
+    }
+    if (data.wordpress_url !== undefined) {
+      updates.push(`wordpress_url = $${paramCount++}`);
+      values.push(data.wordpress_url);
+    }
+    if (data.wordpress_username !== undefined) {
+      updates.push(`wordpress_username = $${paramCount++}`);
+      values.push(data.wordpress_username);
+    }
+    if (data.wordpress_app_password !== undefined) {
+      updates.push(`wordpress_app_password = $${paramCount++}`);
+      values.push(data.wordpress_app_password);
+    }
+    if (data.wordpress_category_id !== undefined) {
+      updates.push(`wordpress_category_id = $${paramCount++}`);
+      values.push(data.wordpress_category_id);
+    }
+    if (data.wordpress_category_name !== undefined) {
+      updates.push(`wordpress_category_name = $${paramCount++}`);
+      values.push(data.wordpress_category_name);
+    }
+    if (data.wordpress_author_id !== undefined) {
+      updates.push(`wordpress_author_id = $${paramCount++}`);
+      values.push(data.wordpress_author_id);
+    }
+    if (data.wordpress_author_name !== undefined) {
+      updates.push(`wordpress_author_name = $${paramCount++}`);
+      values.push(data.wordpress_author_name);
+    }
+    if (data.wordpress_default_status !== undefined) {
+      updates.push(`wordpress_default_status = $${paramCount++}`);
+      values.push(data.wordpress_default_status);
+    }
+    if (data.wordpress_connection_verified !== undefined) {
+      updates.push(`wordpress_connection_verified = $${paramCount++}`);
+      values.push(data.wordpress_connection_verified);
+    }
+    if (data.wordpress_last_test_at !== undefined) {
+      updates.push(`wordpress_last_test_at = $${paramCount++}`);
+      values.push(data.wordpress_last_test_at);
+    }
+
+    updates.push(`updated_at = NOW()`);
+
+    if (updates.length === 1) {
+      // Only updated_at, nothing to update
+      return await this.getStrategyById(strategyId);
+    }
+
+    values.push(strategyId);
+
+    const result = await query(
+      `UPDATE strategies SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+    return result[0] || null;
+  },
+
+  async updatePostWordPress(postId: string, data: {
+    wordpress_post_id?: number;
+    wordpress_post_url?: string;
+    wordpress_published_at?: Date;
+    wordpress_last_sync_at?: Date;
+    status?: string;
+  }) {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+
+    if (data.wordpress_post_id !== undefined) {
+      updates.push(`wordpress_post_id = $${paramCount++}`);
+      values.push(data.wordpress_post_id);
+    }
+    if (data.wordpress_post_url !== undefined) {
+      updates.push(`wordpress_post_url = $${paramCount++}`);
+      values.push(data.wordpress_post_url);
+    }
+    if (data.wordpress_published_at !== undefined) {
+      updates.push(`wordpress_published_at = $${paramCount++}`);
+      values.push(data.wordpress_published_at);
+    }
+    if (data.wordpress_last_sync_at !== undefined) {
+      updates.push(`wordpress_last_sync_at = $${paramCount++}`);
+      values.push(data.wordpress_last_sync_at);
+    }
+    if (data.status !== undefined) {
+      updates.push(`status = $${paramCount++}`);
+      values.push(data.status);
+    }
+
+    updates.push(`updated_at = NOW()`);
+
+    values.push(postId);
+
+    const result = await query(
+      `UPDATE posts SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+    return result[0] || null;
+  },
 };

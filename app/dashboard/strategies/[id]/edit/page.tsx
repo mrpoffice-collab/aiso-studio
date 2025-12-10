@@ -29,6 +29,25 @@ export default function EditStrategyPage({ params }: { params: Promise<{ id: str
     serviceArea: '',
   });
 
+  // WordPress settings
+  const [wpSettings, setWpSettings] = useState({
+    enabled: false,
+    url: '',
+    username: '',
+    appPassword: '',
+    categoryId: '',
+    categoryName: '',
+    authorId: '',
+    authorName: '',
+    defaultStatus: 'draft',
+    connectionVerified: false,
+  });
+  const [wpCategories, setWpCategories] = useState<any[]>([]);
+  const [wpAuthors, setWpAuthors] = useState<any[]>([]);
+  const [isTestingWp, setIsTestingWp] = useState(false);
+  const [wpTestResult, setWpTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isSavingWp, setIsSavingWp] = useState(false);
+
   useEffect(() => {
     fetchStrategy();
   }, [id]);
@@ -59,6 +78,20 @@ export default function EditStrategyPage({ params }: { params: Promise<{ id: str
         city: strat.city || '',
         state: strat.state || '',
         serviceArea: strat.service_area || '',
+      });
+
+      // Load WordPress settings
+      setWpSettings({
+        enabled: strat.wordpress_enabled || false,
+        url: strat.wordpress_url || '',
+        username: strat.wordpress_username || '',
+        appPassword: '', // Never pre-fill password
+        categoryId: strat.wordpress_category_id?.toString() || '',
+        categoryName: strat.wordpress_category_name || '',
+        authorId: strat.wordpress_author_id?.toString() || '',
+        authorName: strat.wordpress_author_name || '',
+        defaultStatus: strat.wordpress_default_status || 'draft',
+        connectionVerified: strat.wordpress_connection_verified || false,
       });
     } catch (err: any) {
       setError(err.message);
@@ -106,6 +139,96 @@ export default function EditStrategyPage({ params }: { params: Promise<{ id: str
       ...prev,
       [e.target.name]: e.target.value,
     }));
+  };
+
+  const handleWpChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setWpSettings(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+    }));
+    // Reset verification when credentials change
+    if (['url', 'username', 'appPassword'].includes(name)) {
+      setWpSettings(prev => ({ ...prev, connectionVerified: false }));
+      setWpTestResult(null);
+    }
+  };
+
+  const handleTestWordPress = async (useMockMode = false) => {
+    if (!wpSettings.url || !wpSettings.username || !wpSettings.appPassword) {
+      setWpTestResult({ success: false, message: 'Please fill in all WordPress credentials' });
+      return;
+    }
+
+    setIsTestingWp(true);
+    setWpTestResult(null);
+
+    try {
+      const response = await fetch('/api/wordpress/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: wpSettings.url,
+          username: wpSettings.username,
+          appPassword: wpSettings.appPassword,
+          mockMode: useMockMode,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setWpCategories(data.categories || []);
+        setWpAuthors(data.authors || []);
+        setWpSettings(prev => ({ ...prev, connectionVerified: true }));
+        setWpTestResult({
+          success: true,
+          message: `Connected to "${data.siteTitle}"${data.mockMode ? ' (Mock Mode)' : ''}! Found ${data.categories?.length || 0} categories and ${data.authors?.length || 0} authors.`,
+        });
+      } else {
+        setWpTestResult({ success: false, message: data.error || 'Connection failed' });
+      }
+    } catch (err: any) {
+      setWpTestResult({ success: false, message: err.message || 'Connection test failed' });
+    } finally {
+      setIsTestingWp(false);
+    }
+  };
+
+  const handleSaveWordPress = async () => {
+    setIsSavingWp(true);
+
+    try {
+      const response = await fetch('/api/wordpress/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          strategyId: id,
+          wordpress_enabled: wpSettings.enabled,
+          wordpress_url: wpSettings.url,
+          wordpress_username: wpSettings.username,
+          wordpress_app_password: wpSettings.appPassword || undefined,
+          wordpress_category_id: wpSettings.categoryId ? parseInt(wpSettings.categoryId) : null,
+          wordpress_category_name: wpSettings.categoryName,
+          wordpress_author_id: wpSettings.authorId ? parseInt(wpSettings.authorId) : null,
+          wordpress_author_name: wpSettings.authorName,
+          wordpress_default_status: wpSettings.defaultStatus,
+          wordpress_connection_verified: wpSettings.connectionVerified,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setWpTestResult({ success: true, message: 'WordPress settings saved successfully!' });
+      } else {
+        setWpTestResult({ success: false, message: data.error || 'Failed to save settings' });
+      }
+    } catch (err: any) {
+      setWpTestResult({ success: false, message: err.message || 'Failed to save settings' });
+    } finally {
+      setIsSavingWp(false);
+    }
   };
 
   const isLocalOrHybrid = formData.contentType === 'local' || formData.contentType === 'hybrid';
@@ -405,7 +528,237 @@ export default function EditStrategyPage({ params }: { params: Promise<{ id: str
                 placeholder="content marketing, SEO, digital strategy"
               />
             </div>
+          </form>
 
+          {/* WordPress Integration Section */}
+          <div className="mt-10 pt-8 border-t-2 border-slate-200">
+            <div className="flex items-start gap-3 mb-6">
+              <svg className="w-6 h-6 text-blue-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+              </svg>
+              <div>
+                <h2 className="text-xl font-black text-slate-900">WordPress Integration</h2>
+                <p className="text-sm text-slate-600 mt-1">
+                  Connect your WordPress site to publish content directly with one click.
+                </p>
+              </div>
+            </div>
+
+            {/* Enable WordPress Toggle */}
+            <div className="mb-6">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="enabled"
+                  checked={wpSettings.enabled}
+                  onChange={handleWpChange}
+                  className="w-5 h-5 rounded border-2 border-slate-300 text-sunset-orange focus:ring-sunset-orange"
+                />
+                <span className="text-sm font-bold text-slate-700">Enable WordPress Publishing</span>
+              </label>
+            </div>
+
+            {wpSettings.enabled && (
+              <div className="space-y-6 rounded-xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
+                {/* WordPress URL */}
+                <div>
+                  <label htmlFor="wp-url" className="block text-sm font-bold text-slate-700 mb-2">
+                    WordPress Site URL *
+                  </label>
+                  <input
+                    type="text"
+                    id="wp-url"
+                    name="url"
+                    value={wpSettings.url}
+                    onChange={handleWpChange}
+                    className="w-full rounded-lg border-2 border-slate-200 px-4 py-2.5 text-slate-900 font-medium focus:border-sunset-orange focus:outline-none focus:ring-2 focus:ring-sunset-orange/10 transition-all bg-white"
+                    placeholder="https://yoursite.com"
+                  />
+                </div>
+
+                {/* Username */}
+                <div>
+                  <label htmlFor="wp-username" className="block text-sm font-bold text-slate-700 mb-2">
+                    WordPress Username *
+                  </label>
+                  <input
+                    type="text"
+                    id="wp-username"
+                    name="username"
+                    value={wpSettings.username}
+                    onChange={handleWpChange}
+                    className="w-full rounded-lg border-2 border-slate-200 px-4 py-2.5 text-slate-900 font-medium focus:border-sunset-orange focus:outline-none focus:ring-2 focus:ring-sunset-orange/10 transition-all bg-white"
+                    placeholder="admin"
+                  />
+                </div>
+
+                {/* Application Password */}
+                <div>
+                  <label htmlFor="wp-password" className="block text-sm font-bold text-slate-700 mb-2">
+                    Application Password *
+                    {strategy?.wordpress_app_password && (
+                      <span className="ml-2 text-xs text-green-600 font-normal">(Already saved - enter new to change)</span>
+                    )}
+                  </label>
+                  <input
+                    type="password"
+                    id="wp-password"
+                    name="appPassword"
+                    value={wpSettings.appPassword}
+                    onChange={handleWpChange}
+                    className="w-full rounded-lg border-2 border-slate-200 px-4 py-2.5 text-slate-900 font-medium focus:border-sunset-orange focus:outline-none focus:ring-2 focus:ring-sunset-orange/10 transition-all bg-white"
+                    placeholder={strategy?.wordpress_app_password ? '********' : 'xxxx xxxx xxxx xxxx xxxx xxxx'}
+                  />
+                  <p className="mt-2 text-xs text-slate-600">
+                    Generate an Application Password in WordPress: Users {'>'} Profile {'>'} Application Passwords
+                  </p>
+                </div>
+
+                {/* Test Connection Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleTestWordPress(false)}
+                    disabled={isTestingWp}
+                    className="px-4 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isTestingWp ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Testing...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Test Connection
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTestWordPress(true)}
+                    disabled={isTestingWp}
+                    className="px-4 py-2.5 rounded-lg border-2 border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-all disabled:opacity-50"
+                  >
+                    Test with Mock Mode
+                  </button>
+                </div>
+
+                {/* Test Result */}
+                {wpTestResult && (
+                  <div className={`p-4 rounded-lg ${wpTestResult.success ? 'bg-green-100 border border-green-300 text-green-800' : 'bg-red-100 border border-red-300 text-red-800'}`}>
+                    <p className="text-sm font-medium">{wpTestResult.message}</p>
+                  </div>
+                )}
+
+                {/* Category and Author Selection (after successful test) */}
+                {wpSettings.connectionVerified && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="wp-category" className="block text-sm font-bold text-slate-700 mb-2">
+                          Default Category
+                        </label>
+                        <select
+                          id="wp-category"
+                          name="categoryId"
+                          value={wpSettings.categoryId}
+                          onChange={(e) => {
+                            const cat = wpCategories.find(c => c.id.toString() === e.target.value);
+                            setWpSettings(prev => ({
+                              ...prev,
+                              categoryId: e.target.value,
+                              categoryName: cat?.name || '',
+                            }));
+                          }}
+                          className="w-full rounded-lg border-2 border-slate-200 px-4 py-2.5 text-slate-900 font-medium focus:border-sunset-orange focus:outline-none focus:ring-2 focus:ring-sunset-orange/10 transition-all bg-white"
+                        >
+                          <option value="">Select category...</option>
+                          {wpCategories.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.name} ({cat.count} posts)</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label htmlFor="wp-author" className="block text-sm font-bold text-slate-700 mb-2">
+                          Default Author
+                        </label>
+                        <select
+                          id="wp-author"
+                          name="authorId"
+                          value={wpSettings.authorId}
+                          onChange={(e) => {
+                            const author = wpAuthors.find(a => a.id.toString() === e.target.value);
+                            setWpSettings(prev => ({
+                              ...prev,
+                              authorId: e.target.value,
+                              authorName: author?.name || '',
+                            }));
+                          }}
+                          className="w-full rounded-lg border-2 border-slate-200 px-4 py-2.5 text-slate-900 font-medium focus:border-sunset-orange focus:outline-none focus:ring-2 focus:ring-sunset-orange/10 transition-all bg-white"
+                        >
+                          <option value="">Select author...</option>
+                          {wpAuthors.map(author => (
+                            <option key={author.id} value={author.id}>{author.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="wp-status" className="block text-sm font-bold text-slate-700 mb-2">
+                        Default Publish Status
+                      </label>
+                      <select
+                        id="wp-status"
+                        name="defaultStatus"
+                        value={wpSettings.defaultStatus}
+                        onChange={handleWpChange}
+                        className="w-full rounded-lg border-2 border-slate-200 px-4 py-2.5 text-slate-900 font-medium focus:border-sunset-orange focus:outline-none focus:ring-2 focus:ring-sunset-orange/10 transition-all bg-white"
+                      >
+                        <option value="draft">Draft (Review before publishing)</option>
+                        <option value="publish">Publish Immediately</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* Save WordPress Settings */}
+                <button
+                  type="button"
+                  onClick={handleSaveWordPress}
+                  disabled={isSavingWp}
+                  className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSavingWp ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      </svg>
+                      Saving WordPress Settings...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                      </svg>
+                      Save WordPress Settings
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Strategy Submit Button */}
+          <form onSubmit={handleSubmit}>
             {/* Submit Button */}
             <div className="flex gap-4 pt-4">
               <button
