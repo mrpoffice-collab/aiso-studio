@@ -63,6 +63,11 @@ export async function POST(
 
     console.log(`   ✅ Audit record created: ${audit.id}\n`);
 
+    // Delete old pages and images for this strategy - always get fresh data
+    await query(`DELETE FROM site_pages WHERE strategy_id = $1`, [strategyId]);
+    await query(`DELETE FROM site_images WHERE strategy_id = $1`, [strategyId]);
+    console.log(`   🗑️  Cleared old audit data for fresh crawl\n`);
+
     // Crawl the website
     let crawledPages;
     try {
