@@ -516,11 +516,11 @@ function formatAuditResult(dbAudit: any, isExisting: boolean = false): AuditResu
     engagementScore: dbAudit.engagement_score || 0,
     factCheckScore: dbAudit.fact_check_score || 0,
 
-    seoDetails: dbAudit.seo_details || {},
-    readabilityDetails: dbAudit.readability_details || {},
-    engagementDetails: dbAudit.engagement_details || {},
-    aeoDetails: dbAudit.aeo_details || {},
-    factChecks: dbAudit.fact_checks || [],
+    seoDetails: typeof dbAudit.seo_details === 'string' ? JSON.parse(dbAudit.seo_details) : (dbAudit.seo_details || {}),
+    readabilityDetails: typeof dbAudit.readability_details === 'string' ? JSON.parse(dbAudit.readability_details) : (dbAudit.readability_details || {}),
+    engagementDetails: typeof dbAudit.engagement_details === 'string' ? JSON.parse(dbAudit.engagement_details) : (dbAudit.engagement_details || {}),
+    aeoDetails: typeof dbAudit.aeo_details === 'string' ? JSON.parse(dbAudit.aeo_details) : (dbAudit.aeo_details || {}),
+    factChecks: typeof dbAudit.fact_checks === 'string' ? JSON.parse(dbAudit.fact_checks) : (dbAudit.fact_checks || []),
 
     createdAt: new Date(dbAudit.created_at),
     isExisting,
@@ -827,12 +827,26 @@ export async function runAISOAudit(
 
       if (scrapedContent.content && scrapedContent.content.length >= 100) {
         const factCheckResult = await performFactCheck(scrapedContent.content);
+
+        // Debug: log what we're passing to scoring
+        console.log('=== SCORING INPUT ===');
+        console.log(`Title: "${scrapedContent.title}" (${scrapedContent.title?.length || 0} chars)`);
+        console.log(`Meta: "${scrapedContent.metaDescription}" (${scrapedContent.metaDescription?.length || 0} chars)`);
+        console.log(`Content: ${scrapedContent.content.length} chars`);
+
         contentScores = calculateAISOScore(
           scrapedContent.content,
           scrapedContent.title,
           scrapedContent.metaDescription,
           factCheckResult.overallScore
         );
+
+        // Debug: log what scoring returned
+        console.log('=== SCORING OUTPUT ===');
+        console.log(`seoDetails.metaLength: ${contentScores.seoDetails?.metaLength}`);
+        console.log(`seoDetails.titleLength: ${contentScores.seoDetails?.titleLength}`);
+        console.log('Full seoDetails:', JSON.stringify(contentScores.seoDetails));
+
         contentScores.factChecks = factCheckResult.factChecks;
         contentScores.factCheckScore = factCheckResult.overallScore;
       }
