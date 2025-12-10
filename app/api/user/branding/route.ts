@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
         agency_website: null,
         agency_address: null,
         agency_tagline: null,
+        signature_name: null,
+        signature_title: null,
+        signature_phone: null,
       }
     });
 
@@ -122,6 +125,9 @@ export async function POST(request: NextRequest) {
       agency_website: body.agency_website,
       agency_address: body.agency_address,
       agency_tagline: body.agency_tagline,
+      signature_name: body.signature_name,
+      signature_title: body.signature_title,
+      signature_phone: body.signature_phone,
     });
 
     return NextResponse.json({
