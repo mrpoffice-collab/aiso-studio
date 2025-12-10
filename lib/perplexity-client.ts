@@ -452,3 +452,344 @@ function extractDomainFromUrl(url: string): string {
     return url.toLowerCase().replace(/^www\./, '');
   }
 }
+
+// ============================================================================
+// QUESTION-BASED AI VISIBILITY (New Approach)
+// Instead of keyword-based, we ask: "What questions does AI cite you for?"
+// ============================================================================
+
+export interface IndustryQuestion {
+  question: string;
+  category: 'informational' | 'commercial' | 'navigational' | 'transactional';
+  intent: string; // e.g., "research", "hiring", "comparison", "how-to"
+}
+
+/**
+ * Generate natural questions people ask AI about an industry/service
+ * These are the actual questions that lead to AI citations
+ */
+export function generateIndustryQuestions(
+  industry: string,
+  serviceType?: string,
+  location?: string
+): IndustryQuestion[] {
+  const questions: IndustryQuestion[] = [];
+
+  // Service should be industry + service type if provided
+  const service = serviceType ? `${industry} ${serviceType}` : industry;
+
+  // Informational - research phase
+  questions.push(
+    { question: `What is ${service}?`, category: 'informational', intent: 'research' },
+    { question: `How does ${service} work?`, category: 'informational', intent: 'research' },
+    { question: `What are the benefits of ${service}?`, category: 'informational', intent: 'research' },
+    { question: `Is ${service} worth it?`, category: 'informational', intent: 'research' },
+  );
+
+  // Commercial - comparison/evaluation phase
+  questions.push(
+    { question: `What should I look for in a ${service} provider?`, category: 'commercial', intent: 'comparison' },
+    { question: `How much does ${service} cost?`, category: 'commercial', intent: 'comparison' },
+    { question: `What are the best ${service} companies?`, category: 'commercial', intent: 'comparison' },
+    { question: `${service} vs doing it myself`, category: 'commercial', intent: 'comparison' },
+  );
+
+  // Transactional - ready to hire/buy
+  questions.push(
+    { question: `How do I hire a ${service} agency?`, category: 'transactional', intent: 'hiring' },
+    { question: `What questions should I ask a ${service} provider?`, category: 'transactional', intent: 'hiring' },
+    { question: `Best ${service} for small business`, category: 'transactional', intent: 'hiring' },
+  );
+
+  // Location-specific if provided
+  if (location) {
+    questions.push(
+      { question: `Best ${service} in ${location}`, category: 'transactional', intent: 'hiring' },
+      { question: `${service} companies near ${location}`, category: 'transactional', intent: 'hiring' },
+      { question: `Who offers ${service} in ${location}?`, category: 'navigational', intent: 'hiring' },
+    );
+  }
+
+  return questions;
+}
+
+export interface AIDiscoveryResult {
+  url: string;
+  domain: string;
+  businessName?: string;
+  industry: string;
+  questionsChecked: IndustryQuestion[];
+  citedFor: {
+    question: IndustryQuestion;
+    citationType: CitationCheckResult['citationType'];
+    position: number | null;
+    competitors: string[]; // Other domains cited for same question
+  }[];
+  notCitedFor: IndustryQuestion[];
+  summary: {
+    totalQuestions: number;
+    citedCount: number;
+    citationRate: number;
+    strongestCategory: string | null;
+    weakestCategory: string | null;
+    topCompetitors: { domain: string; count: number }[];
+  };
+  checkedAt: Date;
+}
+
+/**
+ * AI Discovery Check - The new question-based approach
+ * "Does AI know you exist for questions in your industry?"
+ */
+export async function runAIDiscoveryCheck(
+  url: string,
+  industry: string,
+  serviceType?: string,
+  businessName?: string,
+  location?: string,
+  maxQuestions: number = 8
+): Promise<AIDiscoveryResult> {
+  const apiKey = process.env.PERPLEXITY_API_KEY;
+  if (!apiKey) {
+    throw new Error('PERPLEXITY_API_KEY not configured');
+  }
+
+  const domain = extractDomainFromUrl(url);
+  const questions = generateIndustryQuestions(industry, serviceType, location);
+
+  // Limit questions to control cost
+  const questionsToCheck = questions.slice(0, maxQuestions);
+
+  const citedFor: AIDiscoveryResult['citedFor'] = [];
+  const notCitedFor: IndustryQuestion[] = [];
+
+  // Track competitors across all questions
+  const competitorCounts: Map<string, number> = new Map();
+
+  // Track category performance
+  const categoryResults: Map<string, { cited: number; total: number }> = new Map();
+
+  for (const q of questionsToCheck) {
+    try {
+      const result = await checkPerplexityCitation(q.question, url, domain, businessName);
+
+      // Track category
+      if (!categoryResults.has(q.category)) {
+        categoryResults.set(q.category, { cited: 0, total: 0 });
+      }
+      categoryResults.get(q.category)!.total++;
+
+      if (result.wasCited) {
+        categoryResults.get(q.category)!.cited++;
+
+        // Get competitors (other domains cited)
+        const competitors = result.allCitations
+          .map(c => extractDomainFromUrl(c))
+          .filter(d => d !== domain);
+
+        citedFor.push({
+          question: q,
+          citationType: result.citationType,
+          position: result.citationPosition,
+          competitors,
+        });
+
+        // Count competitors
+        competitors.forEach(comp => {
+          competitorCounts.set(comp, (competitorCounts.get(comp) || 0) + 1);
+        });
+      } else {
+        notCitedFor.push(q);
+
+        // Still track competitors for questions we're NOT cited for
+        result.allCitations.forEach(c => {
+          const d = extractDomainFromUrl(c);
+          competitorCounts.set(d, (competitorCounts.get(d) || 0) + 1);
+        });
+      }
+
+      await sleep(1100);
+    } catch (error) {
+      console.error(`Failed to check question "${q.question}":`, error);
+      notCitedFor.push(q);
+    }
+  }
+
+  // Calculate category performance
+  let strongestCategory: string | null = null;
+  let weakestCategory: string | null = null;
+  let highestRate = -1;
+  let lowestRate = 101;
+
+  categoryResults.forEach((stats, category) => {
+    const rate = stats.total > 0 ? (stats.cited / stats.total) * 100 : 0;
+    if (rate > highestRate) {
+      highestRate = rate;
+      strongestCategory = category;
+    }
+    if (rate < lowestRate) {
+      lowestRate = rate;
+      weakestCategory = category;
+    }
+  });
+
+  // Top competitors
+  const topCompetitors = Array.from(competitorCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([domain, count]) => ({ domain, count }));
+
+  return {
+    url,
+    domain,
+    businessName,
+    industry,
+    questionsChecked: questionsToCheck,
+    citedFor,
+    notCitedFor,
+    summary: {
+      totalQuestions: questionsToCheck.length,
+      citedCount: citedFor.length,
+      citationRate: Math.round((citedFor.length / questionsToCheck.length) * 100),
+      strongestCategory,
+      weakestCategory: weakestCategory !== strongestCategory ? weakestCategory : null,
+      topCompetitors,
+    },
+    checkedAt: new Date(),
+  };
+}
+
+export interface IndustryTrustResult {
+  industry: string;
+  location?: string;
+  questionsAsked: IndustryQuestion[];
+  trustedSources: {
+    domain: string;
+    url: string;
+    citationCount: number;
+    avgPosition: number;
+    questionsAnswered: string[];
+    categories: string[];
+  }[];
+  summary: {
+    totalQuestions: number;
+    uniqueSourcesCited: number;
+    dominantPlayer: string | null;
+    dominantPlayerShare: number; // % of citations
+  };
+  checkedAt: Date;
+}
+
+/**
+ * Who Does AI Trust? - Find who AI cites for an industry's questions
+ * This replaces the keyword-leaders approach with question-based discovery
+ */
+export async function findIndustryTrustedSources(
+  industry: string,
+  serviceType?: string,
+  location?: string,
+  maxQuestions: number = 6
+): Promise<IndustryTrustResult> {
+  const apiKey = process.env.PERPLEXITY_API_KEY;
+  if (!apiKey) {
+    throw new Error('PERPLEXITY_API_KEY not configured');
+  }
+
+  const questions = generateIndustryQuestions(industry, serviceType, location);
+  const questionsToRun = questions.slice(0, maxQuestions);
+
+  // Track all sources across questions
+  const sourceData: Map<string, {
+    urls: Set<string>;
+    positions: number[];
+    questions: string[];
+    categories: Set<string>;
+  }> = new Map();
+
+  let totalCitations = 0;
+
+  for (const q of questionsToRun) {
+    try {
+      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'sonar',
+          messages: [{ role: 'user', content: q.question }],
+          return_related_questions: false,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`Perplexity API error for "${q.question}": ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const citations = data.citations || [];
+
+      citations.forEach((url: string, index: number) => {
+        const domain = extractDomainFromUrl(url);
+        totalCitations++;
+
+        if (!sourceData.has(domain)) {
+          sourceData.set(domain, {
+            urls: new Set(),
+            positions: [],
+            questions: [],
+            categories: new Set(),
+          });
+        }
+
+        const entry = sourceData.get(domain)!;
+        entry.urls.add(url);
+        entry.positions.push(index + 1);
+        entry.questions.push(q.question);
+        entry.categories.add(q.category);
+      });
+
+      await sleep(1100);
+    } catch (error) {
+      console.error(`Failed to check question "${q.question}":`, error);
+    }
+  }
+
+  // Convert to sorted array
+  const trustedSources = Array.from(sourceData.entries())
+    .map(([domain, data]) => ({
+      domain,
+      url: Array.from(data.urls)[0],
+      citationCount: data.questions.length,
+      avgPosition: data.positions.reduce((a, b) => a + b, 0) / data.positions.length,
+      questionsAnswered: [...new Set(data.questions)],
+      categories: Array.from(data.categories),
+    }))
+    .sort((a, b) => {
+      if (b.citationCount !== a.citationCount) return b.citationCount - a.citationCount;
+      return a.avgPosition - b.avgPosition;
+    })
+    .slice(0, 15);
+
+  // Find dominant player
+  const dominantPlayer = trustedSources[0]?.domain || null;
+  const dominantPlayerShare = dominantPlayer && totalCitations > 0
+    ? Math.round((trustedSources[0].citationCount / totalCitations) * 100)
+    : 0;
+
+  return {
+    industry,
+    location,
+    questionsAsked: questionsToRun,
+    trustedSources,
+    summary: {
+      totalQuestions: questionsToRun.length,
+      uniqueSourcesCited: trustedSources.length,
+      dominantPlayer,
+      dominantPlayerShare,
+    },
+    checkedAt: new Date(),
+  };
+}

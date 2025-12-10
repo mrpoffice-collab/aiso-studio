@@ -18,14 +18,7 @@
   --color-border: #e5e5e5;
 }
 
-@media (prefers-color-scheme: dark) {
-  @theme {
-    --color-background: #1a1a1a;
-    --color-foreground: #ededed;
-    --color-muted: #2a2a2a;
-    --color-border: #3a3a3a;
-  }
-}
+/* Light mode only - no dark mode support */
 
 body {
   background-color: theme(colors.background);

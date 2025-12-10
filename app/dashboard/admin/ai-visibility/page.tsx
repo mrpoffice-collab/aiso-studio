@@ -2,272 +2,180 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { Search, Plus, Play, Trash2, ExternalLink, CheckCircle, XCircle, AlertTriangle, Users, Trophy } from 'lucide-react';
+import { Search, HelpCircle, Users, ExternalLink, CheckCircle, XCircle, AlertTriangle, Trophy, MessageCircle, Target } from 'lucide-react';
 
 // Admin emails - must match server-side check
 const ADMIN_EMAILS = ['mrpoffice@gmail.com', 'kim@aliidesign.com'];
 
-interface Monitor {
-  id: string;
-  url: string;
-  domain: string;
-  business_name: string | null;
-  industry: string | null;
-  target_keywords: string[];
-  is_active: boolean;
-  check_frequency: string;
-  last_checked_at: string | null;
-  created_at: string;
-  stats?: {
-    total_checks: number;
-    total_citations: number;
-    avg_position: number | null;
-  };
+interface IndustryQuestion {
+  question: string;
+  category: 'informational' | 'commercial' | 'navigational' | 'transactional';
+  intent: string;
 }
 
-interface CheckResult {
-  query: string;
-  wasCited: boolean;
-  citationType: string;
-  citationPosition: number | null;
-  allCitations: string[];
-  responseSnippet: string;
-}
-
-interface QuickCheckResult {
+interface AIDiscoveryResult {
   url: string;
   domain: string;
   businessName?: string;
-  keywords: string[];
-  results: CheckResult[];
-  score: {
-    score: number;
-    totalChecks: number;
-    totalCitations: number;
+  industry: string;
+  questionsChecked: IndustryQuestion[];
+  citedFor: {
+    question: IndustryQuestion;
+    citationType: string;
+    position: number | null;
+    competitors: string[];
+  }[];
+  notCitedFor: IndustryQuestion[];
+  summary: {
+    totalQuestions: number;
+    citedCount: number;
     citationRate: number;
-    avgPosition: number | null;
-    breakdown: {
-      directLinks: number;
-      domainMatches: number;
-      brandMentions: number;
-    };
+    strongestCategory: string | null;
+    weakestCategory: string | null;
+    topCompetitors: { domain: string; count: number }[];
   };
-}
-
-interface KeywordLeader {
-  domain: string;
-  url: string;
-  citationCount: number;
-  queries: string[];
-  positions: number[];
-  avgPosition: number;
-}
-
-interface KeywordLeadersResult {
-  keyword: string;
-  queries: string[];
-  leaders: KeywordLeader[];
-  totalQueriesRun: number;
   checkedAt: string;
 }
 
-type ActiveTab = 'visibility-check' | 'keyword-leaders' | 'monitors';
+interface IndustryTrustResult {
+  industry: string;
+  location?: string;
+  questionsAsked: IndustryQuestion[];
+  trustedSources: {
+    domain: string;
+    url: string;
+    citationCount: number;
+    avgPosition: number;
+    questionsAnswered: string[];
+    categories: string[];
+  }[];
+  summary: {
+    totalQuestions: number;
+    uniqueSourcesCited: number;
+    dominantPlayer: string | null;
+    dominantPlayerShare: number;
+  };
+  checkedAt: string;
+}
+
+type ActiveTab = 'ai-discovery' | 'industry-trust';
 
 export default function AIVisibilityPage() {
   const { user, isLoaded } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('visibility-check');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('ai-discovery');
 
-  // Quick check state
-  const [quickCheckResult, setQuickCheckResult] = useState<QuickCheckResult | null>(null);
-  const [checking, setChecking] = useState(false);
-  const [quickUrl, setQuickUrl] = useState('');
-  const [quickKeywords, setQuickKeywords] = useState('');
-  const [quickBusinessName, setQuickBusinessName] = useState('');
-  const [quickIndustry, setQuickIndustry] = useState('');
-  const [quickLocation, setQuickLocation] = useState('');
+  // AI Discovery state
+  const [discoveryResult, setDiscoveryResult] = useState<AIDiscoveryResult | null>(null);
+  const [discovering, setDiscovering] = useState(false);
+  const [discoveryUrl, setDiscoveryUrl] = useState('');
+  const [discoveryIndustry, setDiscoveryIndustry] = useState('');
+  const [discoveryServiceType, setDiscoveryServiceType] = useState('');
+  const [discoveryBusinessName, setDiscoveryBusinessName] = useState('');
+  const [discoveryLocation, setDiscoveryLocation] = useState('');
 
-  // Keyword leaders state
-  const [leadersResult, setLeadersResult] = useState<KeywordLeadersResult | null>(null);
-  const [findingLeaders, setFindingLeaders] = useState(false);
-  const [leaderKeyword, setLeaderKeyword] = useState('');
-  const [leaderLocation, setLeaderLocation] = useState('');
-
-  // New monitor form
-  const [showNewMonitor, setShowNewMonitor] = useState(false);
-  const [newMonitorUrl, setNewMonitorUrl] = useState('');
-  const [newMonitorKeywords, setNewMonitorKeywords] = useState('');
-  const [newMonitorBusinessName, setNewMonitorBusinessName] = useState('');
-  const [newMonitorIndustry, setNewMonitorIndustry] = useState('');
+  // Industry Trust state
+  const [trustResult, setTrustResult] = useState<IndustryTrustResult | null>(null);
+  const [findingTrust, setFindingTrust] = useState(false);
+  const [trustIndustry, setTrustIndustry] = useState('');
+  const [trustServiceType, setTrustServiceType] = useState('');
+  const [trustLocation, setTrustLocation] = useState('');
 
   useEffect(() => {
     if (isLoaded && user) {
       const email = user.primaryEmailAddress?.emailAddress;
       if (email && ADMIN_EMAILS.includes(email)) {
         setIsAdmin(true);
-        fetchData();
-      } else {
-        setLoading(false);
       }
+      setLoading(false);
+    } else if (isLoaded) {
+      setLoading(false);
     }
   }, [isLoaded, user]);
 
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/admin/ai-visibility');
-      if (res.ok) {
-        const data = await res.json();
-        setMonitors(data.monitors || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const runAIDiscovery = async () => {
+    if (!discoveryUrl || !discoveryIndustry) return;
 
-  const runQuickCheck = async () => {
-    if (!quickUrl || !quickKeywords) return;
-
-    setChecking(true);
-    setQuickCheckResult(null);
+    setDiscovering(true);
+    setDiscoveryResult(null);
 
     try {
-      const keywords = quickKeywords.split(',').map((k) => k.trim()).filter(Boolean);
-
       const res = await fetch('/api/admin/ai-visibility', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'quick-check',
-          url: quickUrl,
-          keywords,
-          businessName: quickBusinessName || undefined,
-          industry: quickIndustry || undefined,
-          location: quickLocation || undefined,
+          action: 'ai-discovery',
+          url: discoveryUrl,
+          industry: discoveryIndustry,
+          serviceType: discoveryServiceType || undefined,
+          businessName: discoveryBusinessName || undefined,
+          location: discoveryLocation || undefined,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setQuickCheckResult(data);
+        setDiscoveryResult(data);
       } else {
         const error = await res.json();
-        alert(error.error || 'Check failed');
+        alert(error.error || 'Discovery failed');
       }
     } catch (error) {
-      console.error('Quick check failed:', error);
-      alert('Failed to run check');
+      console.error('AI Discovery failed:', error);
+      alert('Failed to run discovery');
     } finally {
-      setChecking(false);
+      setDiscovering(false);
     }
   };
 
-  const findKeywordLeaders = async () => {
-    if (!leaderKeyword) return;
+  const runIndustryTrust = async () => {
+    if (!trustIndustry) return;
 
-    setFindingLeaders(true);
-    setLeadersResult(null);
+    setFindingTrust(true);
+    setTrustResult(null);
 
     try {
       const res = await fetch('/api/admin/ai-visibility', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'keyword-leaders',
-          keyword: leaderKeyword,
-          location: leaderLocation || undefined,
+          action: 'industry-trust',
+          industry: trustIndustry,
+          serviceType: trustServiceType || undefined,
+          location: trustLocation || undefined,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setLeadersResult(data);
+        setTrustResult(data);
       } else {
         const error = await res.json();
         alert(error.error || 'Search failed');
       }
     } catch (error) {
-      console.error('Keyword leaders search failed:', error);
-      alert('Failed to find leaders');
+      console.error('Industry trust search failed:', error);
+      alert('Failed to find trusted sources');
     } finally {
-      setFindingLeaders(false);
+      setFindingTrust(false);
     }
   };
 
-  const createMonitor = async () => {
-    if (!newMonitorUrl) return;
-
-    try {
-      const keywords = newMonitorKeywords.split(',').map((k) => k.trim()).filter(Boolean);
-
-      const res = await fetch('/api/admin/ai-visibility', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create-monitor',
-          url: newMonitorUrl,
-          keywords,
-          businessName: newMonitorBusinessName || undefined,
-          industry: newMonitorIndustry || undefined,
-        }),
-      });
-
-      if (res.ok) {
-        setShowNewMonitor(false);
-        setNewMonitorUrl('');
-        setNewMonitorKeywords('');
-        setNewMonitorBusinessName('');
-        setNewMonitorIndustry('');
-        fetchData();
-      }
-    } catch (error) {
-      console.error('Failed to create monitor:', error);
-    }
-  };
-
-  const runMonitorCheck = async (monitorId: string) => {
-    try {
-      const res = await fetch('/api/admin/ai-visibility', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'run-check',
-          monitorId,
-        }),
-      });
-
-      if (res.ok) {
-        fetchData();
-        alert('Check completed!');
-      }
-    } catch (error) {
-      console.error('Failed to run check:', error);
-    }
-  };
-
-  const deleteMonitor = async (monitorId: string) => {
-    if (!confirm('Delete this monitor?')) return;
-
-    try {
-      const res = await fetch(`/api/admin/ai-visibility?id=${monitorId}`, {
-        method: 'DELETE',
-      });
-
-      if (res.ok) {
-        fetchData();
-      }
-    } catch (error) {
-      console.error('Failed to delete:', error);
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'informational': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'commercial': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'transactional': return 'bg-green-100 text-green-700 border-green-200';
+      case 'navigational': return 'bg-orange-100 text-orange-700 border-orange-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
   // Not admin - show nothing (secret page)
   if (isLoaded && !isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-warm-white">
         <p className="text-slate-500">Page not found</p>
       </div>
     );
@@ -275,94 +183,96 @@ export default function AIVisibilityPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-warm-white">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto bg-warm-white min-h-screen">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-1 rounded-full text-sm w-fit mb-2">
+        <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full text-sm w-fit mb-2">
           <AlertTriangle className="w-4 h-4" />
           Internal Only - Not Visible to Users
         </div>
         <h1 className="text-3xl font-black text-slate-900">AI Visibility Tracker</h1>
         <p className="text-slate-600 mt-1">
-          Check AI search visibility and find who dominates keywords
+          Does AI know your clients exist? Check what questions they get cited for.
         </p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-slate-200">
         <button
-          onClick={() => setActiveTab('visibility-check')}
+          onClick={() => setActiveTab('ai-discovery')}
           className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-            activeTab === 'visibility-check'
+            activeTab === 'ai-discovery'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
-          <Search className="w-4 h-4 inline mr-1.5" />
-          Visibility Check
+          <Target className="w-4 h-4 inline mr-1.5" />
+          AI Discovery
         </button>
         <button
-          onClick={() => setActiveTab('keyword-leaders')}
+          onClick={() => setActiveTab('industry-trust')}
           className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-            activeTab === 'keyword-leaders'
+            activeTab === 'industry-trust'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-slate-600 hover:text-slate-900'
           }`}
         >
           <Trophy className="w-4 h-4 inline mr-1.5" />
-          Keyword Leaders
-        </button>
-        <button
-          onClick={() => setActiveTab('monitors')}
-          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-            activeTab === 'monitors'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <Users className="w-4 h-4 inline mr-1.5" />
-          Tracked URLs
+          Who Does AI Trust?
         </button>
       </div>
 
-      {/* Tab Content */}
-      {activeTab === 'visibility-check' && (
+      {/* AI Discovery Tab */}
+      {activeTab === 'ai-discovery' && (
         <div className="bg-white rounded-xl border-2 border-slate-200 p-6">
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Check URL Visibility</h2>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">AI Discovery Check</h2>
           <p className="text-slate-600 text-sm mb-4">
-            See if a specific URL appears in AI search results for given keywords.
+            We ask AI the questions people actually ask about your industry, then check if your site gets cited.
+            No keywords - just real questions like "How much does SEO cost?" or "What should I look for in an SEO agency?"
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                URL to Check *
+                Website URL *
               </label>
               <input
                 type="text"
-                value={quickUrl}
-                onChange={(e) => setQuickUrl(e.target.value)}
+                value={discoveryUrl}
+                onChange={(e) => setDiscoveryUrl(e.target.value)}
                 placeholder="https://example.com"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Keywords (comma-separated) *
+                Industry *
               </label>
               <input
                 type="text"
-                value={quickKeywords}
-                onChange={(e) => setQuickKeywords(e.target.value)}
-                placeholder="seo agency, digital marketing"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                value={discoveryIndustry}
+                onChange={(e) => setDiscoveryIndustry(e.target.value)}
+                placeholder="SEO, web design, radiology marketing..."
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Service Type (optional)
+              </label>
+              <input
+                type="text"
+                value={discoveryServiceType}
+                onChange={(e) => setDiscoveryServiceType(e.target.value)}
+                placeholder="agency, consulting, software..."
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
               />
             </div>
             <div>
@@ -371,152 +281,225 @@ export default function AIVisibilityPage() {
               </label>
               <input
                 type="text"
-                value={quickBusinessName}
-                onChange={(e) => setQuickBusinessName(e.target.value)}
+                value={discoveryBusinessName}
+                onChange={(e) => setDiscoveryBusinessName(e.target.value)}
                 placeholder="Acme Marketing"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
               />
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Location (optional)
               </label>
               <input
                 type="text"
-                value={quickLocation}
-                onChange={(e) => setQuickLocation(e.target.value)}
-                placeholder="Houston, TX"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                value={discoveryLocation}
+                onChange={(e) => setDiscoveryLocation(e.target.value)}
+                placeholder="San Diego, CA"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
               />
             </div>
           </div>
 
           <button
-            onClick={runQuickCheck}
-            disabled={checking || !quickUrl || !quickKeywords}
+            onClick={runAIDiscovery}
+            disabled={discovering || !discoveryUrl || !discoveryIndustry}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {checking ? (
+            {discovering ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                Checking...
+                Asking AI questions...
               </>
             ) : (
               <>
-                <Search className="w-4 h-4" />
-                Run Check
+                <MessageCircle className="w-4 h-4" />
+                Run Discovery
               </>
             )}
           </button>
 
-          {/* Quick Check Results */}
-          {quickCheckResult && (
+          {/* Discovery Results */}
+          {discoveryResult && (
             <div className="mt-6 border-t border-slate-200 pt-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-4">Results for {quickCheckResult.domain}</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-4">
+                Results for {discoveryResult.domain}
+              </h3>
 
-              {/* Score Card */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                <div className="bg-slate-50 rounded-lg p-4 text-center">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-slate-50 rounded-lg p-4 text-center border border-slate-200">
                   <div className="text-3xl font-black text-indigo-600">
-                    {quickCheckResult.score.score}
+                    {discoveryResult.summary.citationRate}%
                   </div>
-                  <div className="text-sm text-slate-600">Visibility Score</div>
+                  <div className="text-sm text-slate-600">AI Knows You</div>
                 </div>
-                <div className="bg-slate-50 rounded-lg p-4 text-center">
+                <div className="bg-slate-50 rounded-lg p-4 text-center border border-slate-200">
                   <div className="text-3xl font-black text-slate-900">
-                    {quickCheckResult.score.totalCitations}/{quickCheckResult.score.totalChecks}
+                    {discoveryResult.summary.citedCount}/{discoveryResult.summary.totalQuestions}
                   </div>
-                  <div className="text-sm text-slate-600">Citations</div>
+                  <div className="text-sm text-slate-600">Questions Cited</div>
                 </div>
-                <div className="bg-slate-50 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-black text-slate-900">
-                    {quickCheckResult.score.citationRate}%
+                <div className="bg-slate-50 rounded-lg p-4 text-center border border-slate-200">
+                  <div className="text-lg font-bold text-green-600 capitalize">
+                    {discoveryResult.summary.strongestCategory || 'N/A'}
                   </div>
-                  <div className="text-sm text-slate-600">Citation Rate</div>
+                  <div className="text-sm text-slate-600">Strongest Area</div>
                 </div>
-                <div className="bg-slate-50 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-black text-slate-900">
-                    {quickCheckResult.score.avgPosition || '-'}
+                <div className="bg-slate-50 rounded-lg p-4 text-center border border-slate-200">
+                  <div className="text-lg font-bold text-red-600 capitalize">
+                    {discoveryResult.summary.weakestCategory || 'N/A'}
                   </div>
-                  <div className="text-sm text-slate-600">Avg Position</div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-4 text-center">
-                  <div className="text-sm font-medium text-slate-900">
-                    {quickCheckResult.score.breakdown.directLinks} direct
-                  </div>
-                  <div className="text-sm font-medium text-slate-900">
-                    {quickCheckResult.score.breakdown.domainMatches} domain
-                  </div>
-                  <div className="text-sm font-medium text-slate-900">
-                    {quickCheckResult.score.breakdown.brandMentions} brand
-                  </div>
+                  <div className="text-sm text-slate-600">Weakest Area</div>
                 </div>
               </div>
 
-              {/* Individual Results */}
-              <div className="space-y-3">
-                {quickCheckResult.results.map((result, i) => (
-                  <div
-                    key={i}
-                    className={`p-4 rounded-lg border-2 ${
-                      result.wasCited
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-red-50 border-red-200'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          {result.wasCited ? (
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                          ) : (
-                            <XCircle className="w-5 h-5 text-red-600" />
-                          )}
-                          <span className="font-medium text-slate-900">
-                            "{result.query}"
-                          </span>
-                        </div>
-                        {result.wasCited && (
-                          <div className="text-sm text-slate-600 ml-7">
-                            {result.citationType === 'direct_link' && 'Direct link citation'}
-                            {result.citationType === 'domain_match' && 'Domain match'}
-                            {result.citationType === 'brand_mention' && 'Brand mentioned'}
-                            {result.citationPosition && ` (Position #${result.citationPosition})`}
+              {/* The Pitch */}
+              <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <h4 className="font-bold text-orange-900 mb-2">The Sales Pitch</h4>
+                {discoveryResult.summary.citationRate === 0 ? (
+                  <p className="text-sm text-orange-800">
+                    "When people ask AI about {discoveryResult.industry}, your business doesn't exist.
+                    We asked {discoveryResult.summary.totalQuestions} real questions - like 'What is {discoveryResult.industry}?'
+                    and 'How do I hire a {discoveryResult.industry} provider?' - and AI never mentioned you once.
+                    {discoveryResult.summary.topCompetitors.length > 0 && (
+                      <> Instead, it recommended {discoveryResult.summary.topCompetitors.slice(0, 3).map(c => c.domain).join(', ')}.</>
+                    )} We can fix that."
+                  </p>
+                ) : discoveryResult.summary.citationRate < 50 ? (
+                  <p className="text-sm text-orange-800">
+                    "AI knows you exist, but barely. Out of {discoveryResult.summary.totalQuestions} real questions
+                    people ask about {discoveryResult.industry}, you only got cited {discoveryResult.summary.citedCount} times.
+                    {discoveryResult.summary.weakestCategory && (
+                      <> You're especially weak on {discoveryResult.summary.weakestCategory} questions -
+                      the ones where people are ready to buy.</>
+                    )} We can make AI recommend you more."
+                  </p>
+                ) : (
+                  <p className="text-sm text-orange-800">
+                    "Good news - AI already knows you for {discoveryResult.industry}. You got cited
+                    {discoveryResult.summary.citedCount} out of {discoveryResult.summary.totalQuestions} times.
+                    {discoveryResult.summary.topCompetitors.length > 0 && (
+                      <> But you're competing with {discoveryResult.summary.topCompetitors[0].domain} who appeared even more.</>
+                    )} Let's make sure you stay ahead."
+                  </p>
+                )}
+              </div>
+
+              {/* Questions Where You Got Cited */}
+              {discoveryResult.citedFor.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    AI Cites You For ({discoveryResult.citedFor.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {discoveryResult.citedFor.map((item, i) => (
+                      <div key={i} className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-medium text-slate-900">"{item.question.question}"</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`px-2 py-0.5 rounded text-xs border ${getCategoryColor(item.question.category)}`}>
+                                {item.question.category}
+                              </span>
+                              {item.position && (
+                                <span className="text-xs text-slate-500">Position #{item.position}</span>
+                              )}
+                            </div>
                           </div>
+                        </div>
+                        {item.competitors.length > 0 && (
+                          <p className="text-xs text-slate-500 mt-2">
+                            Also cited: {item.competitors.slice(0, 3).join(', ')}
+                            {item.competitors.length > 3 && ` +${item.competitors.length - 3} more`}
+                          </p>
                         )}
                       </div>
-                      {result.allCitations.length > 0 && (
-                        <div className="text-xs text-slate-500">
-                          {result.allCitations.length} sources cited
-                        </div>
-                      )}
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {/* Questions Where You're NOT Cited */}
+              {discoveryResult.notCitedFor.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                    AI Doesn't Know You For ({discoveryResult.notCitedFor.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {discoveryResult.notCitedFor.map((q, i) => (
+                      <div key={i} className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="font-medium text-slate-900">"{q.question}"</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`px-2 py-0.5 rounded text-xs border ${getCategoryColor(q.category)}`}>
+                            {q.category}
+                          </span>
+                          <span className="text-xs text-slate-500">{q.intent}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Top Competitors */}
+              {discoveryResult.summary.topCompetitors.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-slate-600" />
+                    Who AI Recommends Instead
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {discoveryResult.summary.topCompetitors.map((comp, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 bg-slate-100 border border-slate-200 rounded-full text-sm text-slate-700"
+                      >
+                        {comp.domain} ({comp.count}x)
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
 
-      {activeTab === 'keyword-leaders' && (
+      {/* Industry Trust Tab */}
+      {activeTab === 'industry-trust' && (
         <div className="bg-white rounded-xl border-2 border-slate-200 p-6">
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Find Keyword Leaders</h2>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Who Does AI Trust?</h2>
           <p className="text-slate-600 text-sm mb-4">
-            Discover who AI is recommending for a given keyword. Great for competitive intel and sales pitches.
+            Find out who AI recommends when people ask questions about an industry.
+            Great for competitive intel and understanding who you're up against.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Keyword *
+                Industry *
               </label>
               <input
                 type="text"
-                value={leaderKeyword}
-                onChange={(e) => setLeaderKeyword(e.target.value)}
-                placeholder="radiology seo agency"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                value={trustIndustry}
+                onChange={(e) => setTrustIndustry(e.target.value)}
+                placeholder="SEO, web design, accounting..."
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Service Type (optional)
+              </label>
+              <input
+                type="text"
+                value={trustServiceType}
+                onChange={(e) => setTrustServiceType(e.target.value)}
+                placeholder="agency, consulting, software..."
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
               />
             </div>
             <div>
@@ -525,66 +508,77 @@ export default function AIVisibilityPage() {
               </label>
               <input
                 type="text"
-                value={leaderLocation}
-                onChange={(e) => setLeaderLocation(e.target.value)}
-                placeholder="Houston, TX"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                value={trustLocation}
+                onChange={(e) => setTrustLocation(e.target.value)}
+                placeholder="San Diego, CA"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
               />
             </div>
           </div>
 
           <button
-            onClick={findKeywordLeaders}
-            disabled={findingLeaders || !leaderKeyword}
+            onClick={runIndustryTrust}
+            disabled={findingTrust || !trustIndustry}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {findingLeaders ? (
+            {findingTrust ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                Searching...
+                Asking AI...
               </>
             ) : (
               <>
                 <Trophy className="w-4 h-4" />
-                Find Leaders
+                Find Trusted Sources
               </>
             )}
           </button>
 
-          {/* Leaders Results */}
-          {leadersResult && (
+          {/* Trust Results */}
+          {trustResult && (
             <div className="mt-6 border-t border-slate-200 pt-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-slate-900">
-                  Leaders for "{leadersResult.keyword}"
+                  Who AI Trusts for "{trustResult.industry}"
                 </h3>
                 <span className="text-sm text-slate-500">
-                  {leadersResult.totalQueriesRun} queries run
+                  {trustResult.summary.uniqueSourcesCited} sources found
                 </span>
               </div>
 
-              {/* Queries used */}
-              <div className="mb-4 p-3 bg-slate-50 rounded-lg">
-                <p className="text-sm text-slate-600 mb-1">Queries searched:</p>
+              {/* Questions Asked */}
+              <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <p className="text-sm text-slate-600 mb-2">Questions we asked AI:</p>
                 <div className="flex flex-wrap gap-1">
-                  {leadersResult.queries.map((q, i) => (
+                  {trustResult.questionsAsked.map((q, i) => (
                     <span key={i} className="px-2 py-0.5 bg-white border border-slate-200 rounded text-xs text-slate-700">
-                      {q}
+                      {q.question}
                     </span>
                   ))}
                 </div>
               </div>
 
-              {leadersResult.leaders.length === 0 ? (
+              {/* Dominant Player */}
+              {trustResult.summary.dominantPlayer && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    <strong>{trustResult.summary.dominantPlayer}</strong> dominates this space
+                    with {trustResult.summary.dominantPlayerShare}% of all citations.
+                  </p>
+                </div>
+              )}
+
+              {/* Leaders List */}
+              {trustResult.trustedSources.length === 0 ? (
                 <p className="text-slate-500 text-center py-8">
-                  No sites found being cited for this keyword. The AI space for this term may be wide open!
+                  No sources found being cited for this industry. The AI space may be wide open!
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {leadersResult.leaders.map((leader, i) => (
+                  {trustResult.trustedSources.map((source, i) => (
                     <div
                       key={i}
-                      className="p-4 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors"
+                      className="p-4 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors bg-white"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
@@ -598,32 +592,36 @@ export default function AIVisibilityPage() {
                           </div>
                           <div>
                             <a
-                              href={leader.url}
+                              href={source.url}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="font-semibold text-indigo-600 hover:underline flex items-center gap-1"
                             >
-                              {leader.domain}
+                              {source.domain}
                               <ExternalLink className="w-3 h-3" />
                             </a>
-                            <p className="text-sm text-slate-500 mt-0.5 truncate max-w-md">
-                              {leader.url}
-                            </p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {source.categories.map((cat, j) => (
+                                <span key={j} className={`px-2 py-0.5 rounded text-xs border ${getCategoryColor(cat)}`}>
+                                  {cat}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-bold text-slate-900">
-                            {leader.citationCount}x
+                            {source.citationCount}x
                           </div>
                           <div className="text-xs text-slate-500">
-                            Avg pos: {leader.avgPosition.toFixed(1)}
+                            Avg pos: {source.avgPosition.toFixed(1)}
                           </div>
                         </div>
                       </div>
                       <div className="mt-2 ml-11">
                         <p className="text-xs text-slate-500">
-                          Found in: {leader.queries.slice(0, 3).map(q => `"${q}"`).join(', ')}
-                          {leader.queries.length > 3 && ` +${leader.queries.length - 3} more`}
+                          Answers: {source.questionsAnswered.slice(0, 2).map(q => `"${q.substring(0, 40)}..."`).join(', ')}
+                          {source.questionsAnswered.length > 2 && ` +${source.questionsAnswered.length - 2} more`}
                         </p>
                       </div>
                     </div>
@@ -631,14 +629,14 @@ export default function AIVisibilityPage() {
                 </div>
               )}
 
-              {/* Sales pitch helper */}
-              {leadersResult.leaders.length > 0 && (
+              {/* Sales Pitch */}
+              {trustResult.trustedSources.length > 0 && (
                 <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
                   <h4 className="font-bold text-orange-900 mb-2">Sales Pitch</h4>
                   <p className="text-sm text-orange-800">
-                    "When people ask AI about {leadersResult.keyword}, here's who gets recommended: {' '}
-                    {leadersResult.leaders.slice(0, 3).map(l => l.domain).join(', ')}.
-                    {' '}Your site isn't on that list. We can change that."
+                    "When people ask AI about {trustResult.industry}, here's who gets recommended: {' '}
+                    {trustResult.trustedSources.slice(0, 3).map(s => s.domain).join(', ')}.
+                    {' '}You're not on that list. We can change that."
                   </p>
                 </div>
               )}
@@ -647,140 +645,14 @@ export default function AIVisibilityPage() {
         </div>
       )}
 
-      {activeTab === 'monitors' && (
-        <div className="bg-white rounded-xl border-2 border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">Tracked URLs</h2>
-              <p className="text-slate-600 text-sm">Monitor visibility over time</p>
-            </div>
-            <button
-              onClick={() => setShowNewMonitor(!showNewMonitor)}
-              className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 flex items-center gap-1"
-            >
-              <Plus className="w-4 h-4" />
-              Add Monitor
-            </button>
-          </div>
-
-          {/* New Monitor Form */}
-          {showNewMonitor && (
-            <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <input
-                  type="text"
-                  value={newMonitorUrl}
-                  onChange={(e) => setNewMonitorUrl(e.target.value)}
-                  placeholder="URL to monitor"
-                  className="px-3 py-2 border border-slate-300 rounded-lg"
-                />
-                <input
-                  type="text"
-                  value={newMonitorKeywords}
-                  onChange={(e) => setNewMonitorKeywords(e.target.value)}
-                  placeholder="Keywords (comma-separated)"
-                  className="px-3 py-2 border border-slate-300 rounded-lg"
-                />
-                <input
-                  type="text"
-                  value={newMonitorBusinessName}
-                  onChange={(e) => setNewMonitorBusinessName(e.target.value)}
-                  placeholder="Business name"
-                  className="px-3 py-2 border border-slate-300 rounded-lg"
-                />
-                <input
-                  type="text"
-                  value={newMonitorIndustry}
-                  onChange={(e) => setNewMonitorIndustry(e.target.value)}
-                  placeholder="Industry"
-                  className="px-3 py-2 border border-slate-300 rounded-lg"
-                />
-              </div>
-              <button
-                onClick={createMonitor}
-                disabled={!newMonitorUrl}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
-              >
-                Create Monitor
-              </button>
-            </div>
-          )}
-
-          {/* Monitors List */}
-          {monitors.length === 0 ? (
-            <p className="text-slate-500 text-center py-8">
-              No monitors yet. Add one to start tracking AI visibility over time.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {monitors.map((monitor) => (
-                <div
-                  key={monitor.id}
-                  className="p-4 border border-slate-200 rounded-lg hover:border-slate-300"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={monitor.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium text-indigo-600 hover:underline flex items-center gap-1"
-                        >
-                          {monitor.domain}
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                        {monitor.business_name && (
-                          <span className="text-slate-500">({monitor.business_name})</span>
-                        )}
-                      </div>
-                      <div className="text-sm text-slate-600 mt-1">
-                        Keywords: {monitor.target_keywords?.join(', ') || 'None'}
-                      </div>
-                      {monitor.stats && (
-                        <div className="text-sm text-slate-500 mt-1">
-                          {monitor.stats.total_citations}/{monitor.stats.total_checks} citations
-                          {monitor.stats.avg_position && ` (avg pos: ${monitor.stats.avg_position})`}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => runMonitorCheck(monitor.id)}
-                        className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
-                        title="Run check now"
-                      >
-                        <Play className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => deleteMonitor(monitor.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  {monitor.last_checked_at && (
-                    <div className="text-xs text-slate-400 mt-2">
-                      Last checked: {new Date(monitor.last_checked_at).toLocaleString()}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Instructions */}
+      {/* How it Works */}
       <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h3 className="font-bold text-blue-900 mb-2">How to Use</h3>
+        <h3 className="font-bold text-blue-900 mb-2">How This Works</h3>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li><strong>Visibility Check:</strong> See if a specific URL appears in AI results. Use for prospects.</li>
-          <li><strong>Keyword Leaders:</strong> Find who dominates a keyword. "Here's who AI recommends instead of you."</li>
-          <li><strong>Tracked URLs:</strong> Monitor visibility over time (internal use).</li>
-          <li><strong>Cost:</strong> ~$0.005 per query. Leaders check uses ~5 queries.</li>
+          <li><strong>AI Discovery:</strong> We ask AI real questions about your industry and check if your site gets cited.</li>
+          <li><strong>Who Does AI Trust:</strong> Find who AI recommends for industry questions - your competitive landscape.</li>
+          <li><strong>No keywords:</strong> This isn't about ranking for keywords. It's about being the source AI trusts.</li>
+          <li><strong>Cost:</strong> ~$0.005 per question. Discovery runs ~8 questions, Trust runs ~6 questions.</li>
         </ul>
       </div>
     </div>

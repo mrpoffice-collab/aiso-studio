@@ -7,6 +7,8 @@ import {
   checkVisibilityForKeywords,
   calculateVisibilityScore,
   findKeywordLeaders,
+  runAIDiscoveryCheck,
+  findIndustryTrustedSources,
 } from '@/lib/perplexity-client';
 
 /**
@@ -184,7 +186,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Find keyword leaders - who's being cited for this keyword
+    // Find keyword leaders - who's being cited for this keyword (legacy)
     if (action === 'keyword-leaders') {
       const { keyword, location } = body;
 
@@ -196,6 +198,49 @@ export async function POST(request: NextRequest) {
       }
 
       const result = await findKeywordLeaders(keyword, location);
+
+      return NextResponse.json(result);
+    }
+
+    // NEW: AI Discovery Check - question-based approach
+    // "Does AI know you exist for questions in your industry?"
+    if (action === 'ai-discovery') {
+      const { url, industry, serviceType, businessName, location } = body;
+
+      if (!url || !industry) {
+        return NextResponse.json(
+          { error: 'URL and industry are required' },
+          { status: 400 }
+        );
+      }
+
+      const result = await runAIDiscoveryCheck(
+        url,
+        industry,
+        serviceType,
+        businessName,
+        location
+      );
+
+      return NextResponse.json(result);
+    }
+
+    // NEW: Who Does AI Trust? - find trusted sources for an industry
+    if (action === 'industry-trust') {
+      const { industry, serviceType, location } = body;
+
+      if (!industry) {
+        return NextResponse.json(
+          { error: 'Industry is required' },
+          { status: 400 }
+        );
+      }
+
+      const result = await findIndustryTrustedSources(
+        industry,
+        serviceType,
+        location
+      );
 
       return NextResponse.json(result);
     }
