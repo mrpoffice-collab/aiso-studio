@@ -97,6 +97,21 @@ export default function BulkActionsBar({ strategyId, topics, isAgencyTier }: Bul
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle "job already running" case - show existing job progress
+        if (response.status === 409 && data.existingJob) {
+          setCurrentJob({
+            id: data.existingJob.id,
+            status: data.existingJob.status,
+            totalItems: data.existingJob.totalItems,
+            completedItems: data.existingJob.completedItems,
+            failedItems: 0,
+            progress: data.existingJob.progress,
+          });
+          setIsGenerating(true);
+          pollJobStatus(data.existingJob.id);
+          setError('A bulk job is already running. Showing its progress.');
+          return;
+        }
         throw new Error(data.message || data.error || 'Failed to start bulk generation');
       }
 

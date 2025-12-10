@@ -2912,6 +2912,15 @@ export const db = {
     );
   },
 
+  async getRunningBulkJobsForUser(userId: string) {
+    return await query(
+      `SELECT * FROM bulk_jobs
+       WHERE user_id = $1 AND status IN ('pending', 'processing')
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+  },
+
   async updateBulkJob(jobId: string, data: {
     status?: string;
     completed_items?: number;

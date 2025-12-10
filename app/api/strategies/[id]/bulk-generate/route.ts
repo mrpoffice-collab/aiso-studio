@@ -69,6 +69,27 @@ export async function POST(
       );
     }
 
+    // Check if user already has a running bulk job
+    const runningJobs = await db.getRunningBulkJobsForUser(user.id);
+    if (runningJobs.length > 0) {
+      const runningJob = runningJobs[0];
+      return NextResponse.json(
+        {
+          error: 'Job already running',
+          message: `You already have a bulk job in progress. Please wait for it to complete or cancel it first.`,
+          existingJob: {
+            id: runningJob.id,
+            strategyId: runningJob.strategy_id,
+            status: runningJob.status,
+            progress: Math.round((runningJob.completed_items / runningJob.total_items) * 100),
+            completedItems: runningJob.completed_items,
+            totalItems: runningJob.total_items,
+          }
+        },
+        { status: 409 }
+      );
+    }
+
     // Get all pending topics for this strategy
     const topics = await db.getTopicsByStrategyId(strategyId);
     const pendingTopics = topics.filter((t: any) => t.status === 'pending' || t.status === 'failed');
