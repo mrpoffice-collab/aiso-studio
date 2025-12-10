@@ -24,8 +24,12 @@ export async function GET(request: NextRequest) {
     // Get branding info
     const branding = await db.getUserBranding(user.id);
 
+    // Check if user is on Agency tier (for white-label PDF access)
+    const isAgencyTier = user.subscription_tier === 'agency';
+
     return NextResponse.json({
       success: true,
+      isAgencyTier,
       branding: branding || {
         agency_name: null,
         agency_logo_url: null,

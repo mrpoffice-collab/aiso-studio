@@ -32,6 +32,7 @@ export default function BrandingSettingsPage() {
 
   const [showPrimaryPicker, setShowPrimaryPicker] = useState(false);
   const [showSecondaryPicker, setShowSecondaryPicker] = useState(false);
+  const [isAgencyTier, setIsAgencyTier] = useState(true); // Assume yes until we know
 
   // Fetch current branding on mount
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function BrandingSettingsPage() {
       const data = await response.json();
 
       if (data.success) {
+        setIsAgencyTier(data.isAgencyTier !== false); // Default to true if not specified
         setFormData({
           agency_name: data.branding.agency_name || '',
           agency_logo_url: data.branding.agency_logo_url || '',
@@ -137,6 +139,35 @@ export default function BrandingSettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Agency Tier Required Banner */}
+        {!isAgencyTier && (
+          <div className="mb-6 rounded-xl border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
+                <svg className="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-slate-900">White-Label Reports - Agency Feature</h3>
+                <p className="mt-1 text-slate-700">
+                  White-label PDF reports with your agency branding are available on the Agency plan.
+                  You can still set up your branding info here for emails, but PDF reports will show AISO Studio branding.
+                </p>
+                <a
+                  href="/pricing"
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-600 transition-colors"
+                >
+                  Upgrade to Agency
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {message && (
           <div

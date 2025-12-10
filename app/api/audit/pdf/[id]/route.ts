@@ -42,23 +42,28 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Get agency branding if available
+    // Get agency branding if available (Agency tier only)
     let branding: any = {};
-    try {
-      const userBranding = await db.getUserBranding(user.id);
-      if (userBranding) {
-        branding = {
-          name: userBranding.agency_name,
-          logo: userBranding.agency_logo_url,
-          primaryColor: userBranding.agency_primary_color,
-          email: userBranding.agency_email,
-          phone: userBranding.agency_phone,
-          website: userBranding.agency_website,
-        };
+    const isAgencyTier = user.subscription_tier === 'agency';
+
+    if (isAgencyTier) {
+      try {
+        const userBranding = await db.getUserBranding(user.id);
+        if (userBranding) {
+          branding = {
+            name: userBranding.agency_name,
+            logo: userBranding.agency_logo_url,
+            primaryColor: userBranding.agency_primary_color,
+            email: userBranding.agency_email,
+            phone: userBranding.agency_phone,
+            website: userBranding.agency_website,
+          };
+        }
+      } catch (e) {
+        // No branding, use defaults
       }
-    } catch (e) {
-      // No branding, use defaults
     }
+    // Non-agency tiers get default AISO Studio branding
 
     // Helper to safely parse JSON fields
     const parseJsonField = (field: any, fallback: any = []) => {
