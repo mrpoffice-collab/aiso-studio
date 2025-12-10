@@ -118,16 +118,61 @@ Use Kim Kelley's account (kim@aliidesign.com) for Agency testing:
 
 ---
 
-## POST-LAUNCH (Future Sprint)
+## NICE-TO-HAVE (Post-Launch Sprint 1)
 
-These items can wait until after initial launch:
+### Agency-Focused Quick Wins
 
-- [ ] Team management / multi-seat
-- [ ] Batch publishing to WordPress
-- [ ] Internal linking system
-- [ ] AI image generation
-- [ ] Analytics integration
-- [ ] Content calendar view
+| Feature | Impact | Effort | Status |
+|---------|--------|--------|--------|
+| Internal linking that works | Critical for SEO agencies | Medium | [ ] |
+| WordPress one-click publish | Save 15 min/post | High | [x] Added |
+| Content calendar view | Client visibility | Medium | [ ] |
+| Bulk content generation | Time savings | Medium | [ ] |
+| White-label PDF reports | Agency branding | Low | [ ] Verify |
+
+### UX Improvements
+
+- [ ] Loading animations/skeletons
+- [ ] Better empty states
+- [ ] Mobile responsiveness audit
+- [ ] Keyboard shortcuts
+
+---
+
+## FUTURE DEVELOPMENT (Post-Launch)
+
+### Phase 1: Agency Excellence
+- [ ] Multi-client management UI
+- [ ] Client presentation mode
+- [ ] Competitor comparison reports
+- [ ] Performance tracking (GA/GSC integration)
+
+### Phase 2: Integrations
+- [ ] WordPress plugin (full, not just API)
+- [ ] Webflow/Shopify/Squarespace
+- [ ] Zapier integration
+- [ ] Slack notifications
+
+### Phase 3: Scale
+- [ ] AI Search ranking tracker
+- [ ] Bulk operations with queuing
+- [ ] API for custom integrations
+- [ ] Team collaboration features
+
+### Phase 4: Advanced
+- [ ] Content refresh suggestions
+- [ ] Competitor gap analysis
+- [ ] Multi-language support
+
+---
+
+## RECOMMENDED LAUNCH PATH
+
+| Timeline | Milestone |
+|----------|-----------|
+| This Week | Complete Pro/Agency tier testing |
+| Next Week | Soft launch to beta users |
+| January 2025 | Public launch |
 
 ---
 
