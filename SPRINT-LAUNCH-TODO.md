@@ -21,6 +21,8 @@
 - [ ] Pro tier: Verify Win-Client wizard access
 - [ ] Agency tier: Verify unlimited features work
 - [ ] Agency tier: Verify white-label PDF works
+- [ ] Agency tier: Verify Adapt to Vertical works
+- [ ] Agency tier: Verify Bulk Operations work
 
 ---
 
@@ -53,14 +55,14 @@
 ## MEDIUM PRIORITY (Nice to Have)
 
 ### 6. UI/UX Polish
-- [ ] Check all gray fonts are fixed (text-slate-900)
+- [x] Check all gray fonts are fixed (text-slate-900)
 - [ ] Verify mobile responsiveness on key pages
 - [ ] Test loading states appear correctly
-- [ ] Verify error messages are user-friendly
+- [x] Verify error messages are user-friendly (historical data rule added)
 
 ### 7. PDF Reports
 - [ ] Audit PDF downloads correctly
-- [ ] PDF has proper branding/formatting
+- [x] PDF has proper branding/formatting (Agency tier)
 - [ ] Comparison PDF works after rewrite
 
 ### 8. Asset Vault
@@ -76,7 +78,8 @@
 |-------|--------|-------|
 | Pricing features light gray text | ✅ Fixed | Changed to text-slate-900 |
 | WordPress integration missing | ✅ Added | Needs testing |
-| | | |
+| White-label PDF not using branding | ✅ Fixed | Uses logo, contact info, brand colors |
+| Concurrent bulk jobs could conflict | ✅ Fixed | One job per user at a time |
 
 ---
 
@@ -110,6 +113,16 @@ Use Kim Kelley's account (kim@aliidesign.com) for Agency testing:
 - [ ] Win-Client wizard accessible
 - [ ] White-label PDF reports (check branding)
 - [ ] WordPress publish works (mock or real)
+- [ ] Bulk Generate All - generates all pending topics
+- [ ] Bulk Approve All - approves all drafts
+- [ ] Bulk Download All - exports ZIP of all posts
+- [ ] Adapt to Vertical - rewrites content for different industry
+
+### Bulk Operations
+- [ ] Progress bar shows during generation
+- [ ] Can navigate away and return (job continues)
+- [ ] Cannot start second bulk job while one is running
+- [ ] Job completion shows success/failure count
 
 ### Limits NOT Applied
 - [ ] No "upgrade" prompts when using features
@@ -129,6 +142,7 @@ Use Kim Kelley's account (kim@aliidesign.com) for Agency testing:
 | Content calendar view | Client visibility | Medium | [ ] |
 | Bulk content generation | Time savings | Medium | [x] Complete - Generate All, Approve All, Download All |
 | White-label PDF reports | Agency branding | Low | [x] Complete - logo, contact, Agency-only |
+| Adapt to Vertical | Repurpose content across industries | Medium | [x] Complete - Agency only |
 
 ### UX Improvements
 
@@ -155,7 +169,7 @@ Use Kim Kelley's account (kim@aliidesign.com) for Agency testing:
 
 ### Phase 3: Scale
 - [ ] AI Search ranking tracker
-- [ ] Bulk operations with queuing
+- [x] Bulk operations with queuing (basic version complete)
 - [ ] API for custom integrations
 - [ ] Team collaboration features
 
