@@ -299,30 +299,30 @@ export async function GET(
 
     const audit = audits[0];
 
-    // Get pages
+    // Get pages - fetch by strategy_id since pages persist across audits
     let pages: any[] = [];
     try {
-      console.log(`Fetching pages for audit_id: ${audit.id}`);
+      console.log(`Fetching pages for strategy_id: ${strategyId}`);
       pages = await query(
         `SELECT * FROM site_pages
-         WHERE audit_id = $1
+         WHERE strategy_id = $1
          ORDER BY aiso_score DESC`,
-        [audit.id]
+        [strategyId]
       );
-      console.log(`Found ${pages.length} pages for audit ${audit.id}`);
+      console.log(`Found ${pages.length} pages for strategy ${strategyId}`);
     } catch (e: any) {
       // Table might not exist
       console.error('Error fetching site pages:', e);
     }
 
-    // Get images
+    // Get images - fetch by strategy_id since images persist across audits
     let images: any[] = [];
     try {
       images = await query(
         `SELECT * FROM site_images
-         WHERE audit_id = $1
+         WHERE strategy_id = $1
          ORDER BY created_at DESC`,
-        [audit.id]
+        [strategyId]
       );
     } catch (e: any) {
       // Table might not exist
