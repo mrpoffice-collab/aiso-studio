@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import AIVisibilityButton from '@/components/AIVisibilityButton';
 
 interface LeadResult {
   domain: string;
@@ -415,6 +416,15 @@ export default function LeadDiscovery({ onLeadSaved }: LeadDiscoveryProps) {
                         Added
                       </div>
                     )}
+                    {/* AI Visibility - Admin Only */}
+                    <AIVisibilityButton
+                      url={`https://${lead.domain}`}
+                      keywords={[industry, `${industry} ${city}`]}
+                      businessName={lead.businessName}
+                      industry={industry}
+                      location={`${city}${state ? `, ${state}` : ''}`}
+                      variant="icon"
+                    />
                     <button
                       onClick={() => handleGenerateReport(lead)}
                       disabled={generatingReportFor === lead.domain}

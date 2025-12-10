@@ -12,6 +12,7 @@ import NextStepsPanel from '@/components/NextStepsPanel';
 import { generateComparisonPDF } from '@/lib/comparison-pdf-generator';
 import RepurposeModal from '@/components/RepurposeModal';
 import AdaptToVerticalModal from '@/components/AdaptToVerticalModal';
+import AIVisibilityButton from '@/components/AIVisibilityButton';
 
 function AuditPageContent() {
   const searchParams = useSearchParams();
@@ -566,6 +567,14 @@ function AuditPageContent() {
                 <div className="flex items-center gap-3">
                   {(auditResult?.content || contentInput) && (
                     <>
+                      {/* AI Visibility - Admin Only */}
+                      {auditResult?.url && (
+                        <AIVisibilityButton
+                          url={auditResult.url}
+                          keywords={auditResult.targetKeywords || []}
+                          industry={auditResult.industry}
+                        />
+                      )}
                       <button
                         onClick={() => setShowAdaptModal(true)}
                         className="px-4 py-2 rounded-lg bg-gradient-to-r from-deep-indigo to-purple-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 text-sm"
@@ -1002,6 +1011,14 @@ function AuditPageContent() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  {/* AI Visibility - Admin Only */}
+                  {auditResult?.url && (
+                    <AIVisibilityButton
+                      url={auditResult.url}
+                      keywords={auditResult.targetKeywords || []}
+                      industry={auditResult.industry}
+                    />
+                  )}
                   <button
                     onClick={() => setShowAdaptModal(true)}
                     className="px-4 py-2 rounded-lg bg-gradient-to-r from-deep-indigo to-purple-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 text-sm"

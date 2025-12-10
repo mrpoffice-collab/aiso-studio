@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, DragEvent } from 'react';
+import AIVisibilityButton from '@/components/AIVisibilityButton';
 
 interface Lead {
   id: number;
@@ -337,6 +338,15 @@ export default function KanbanBoard({ leads, onStatusChange, onLeadClick, onSend
                       >
                         View Details
                       </button>
+                      {/* AI Visibility - Admin Only */}
+                      <AIVisibilityButton
+                        url={`https://${lead.domain}`}
+                        keywords={lead.industry ? [lead.industry] : []}
+                        businessName={lead.business_name}
+                        industry={lead.industry || undefined}
+                        location={lead.city && lead.state ? `${lead.city}, ${lead.state}` : undefined}
+                        variant="icon"
+                      />
                       {lead.email && (
                         <>
                           <span className="text-slate-300">|</span>
