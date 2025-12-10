@@ -11,6 +11,7 @@ import AccessibilitySummary from '@/components/AccessibilitySummary';
 import NextStepsPanel from '@/components/NextStepsPanel';
 import { generateComparisonPDF } from '@/lib/comparison-pdf-generator';
 import RepurposeModal from '@/components/RepurposeModal';
+import AdaptToVerticalModal from '@/components/AdaptToVerticalModal';
 
 function AuditPageContent() {
   const searchParams = useSearchParams();
@@ -30,6 +31,7 @@ function AuditPageContent() {
   const [isAccessibilityAuditing, setIsAccessibilityAuditing] = useState(false);
   const [isGeneratingFixes, setIsGeneratingFixes] = useState(false);
   const [showRepurposeModal, setShowRepurposeModal] = useState(false);
+  const [showAdaptModal, setShowAdaptModal] = useState(false);
 
   // Check for parameters from batch audit or direct post audit
   useEffect(() => {
@@ -563,15 +565,27 @@ function AuditPageContent() {
                 <h2 className="text-2xl font-black text-slate-900">Audit Results</h2>
                 <div className="flex items-center gap-3">
                   {(auditResult?.content || contentInput) && (
-                    <button
-                      onClick={() => setShowRepurposeModal(true)}
-                      className="px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 text-sm"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Repurpose
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setShowAdaptModal(true)}
+                        className="px-4 py-2 rounded-lg bg-gradient-to-r from-deep-indigo to-purple-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 text-sm"
+                        title="Agency Feature - Adapt content for a different industry"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        Adapt to Vertical
+                      </button>
+                      <button
+                        onClick={() => setShowRepurposeModal(true)}
+                        className="px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 text-sm"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Repurpose
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => {
@@ -1361,6 +1375,15 @@ function AuditPageContent() {
         onClose={() => setShowRepurposeModal(false)}
         content={auditResult?.content || contentInput || ''}
         title={auditResult?.title || titleInput}
+      />
+
+      {/* Adapt to Vertical Modal (Agency Only) */}
+      <AdaptToVerticalModal
+        isOpen={showAdaptModal}
+        onClose={() => setShowAdaptModal(false)}
+        content={auditResult?.content || contentInput || ''}
+        title={auditResult?.title || titleInput}
+        originalUrl={auditResult?.url || urlInput}
       />
     </div>
   );
