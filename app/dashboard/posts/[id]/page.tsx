@@ -121,6 +121,10 @@ export default function PostEditorPage({ params }: { params: Promise<{ id: strin
   const [strategy, setStrategy] = useState<any>(null);
   const [isPublishingToWp, setIsPublishingToWp] = useState(false);
   const [wpPublishResult, setWpPublishResult] = useState<{ success: boolean; message: string; url?: string; editUrl?: string } | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [isFeedbackRewriting, setIsFeedbackRewriting] = useState(false);
+  const [preserveLength, setPreserveLength] = useState(true);
+  const [feedbackResult, setFeedbackResult] = useState<{ changesApplied: string[] } | null>(null);
 
   useEffect(() => {
     fetchPost();
@@ -371,6 +375,62 @@ export default function PostEditorPage({ params }: { params: Promise<{ id: strin
       });
     } finally {
       setIsPublishingToWp(false);
+    }
+  };
+
+  const handleFeedbackRewrite = async () => {
+    if (!feedbackText.trim()) {
+      alert('Please enter your feedback first.');
+      return;
+    }
+
+    if (!confirm(`Rewrite article based on your feedback?\n\nFeedback:\n"${feedbackText.substring(0, 200)}${feedbackText.length > 200 ? '...' : ''}"\n\n${preserveLength ? 'Word count will be preserved.' : 'Word count may change.'}\n\nCost: ~$0.15\nTime: ~30 seconds\n\nContinue?`)) {
+      return;
+    }
+
+    setIsFeedbackRewriting(true);
+    setFeedbackResult(null);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/posts/${id}/feedback-rewrite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedback: feedbackText,
+          preserveLength,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to rewrite post');
+      }
+
+      // Update local state with new content
+      setEditableContent(data.content);
+      setEditableTitle(data.title);
+      setEditableMetaDesc(data.metaDescription);
+      setFeedbackResult({ changesApplied: data.changesApplied });
+
+      // Show success indicator
+      setJustUpdated(true);
+      setTimeout(() => setJustUpdated(false), 5000);
+
+      // Clear feedback after successful rewrite
+      setFeedbackText('');
+
+      // Refresh post data
+      await fetchPost();
+
+      alert(`✅ Article rewritten based on your feedback!\n\nChanges applied:\n${data.changesApplied?.map((c: string) => `• ${c}`).join('\n') || 'See updated content'}\n\nNew word count: ${data.wordCount}`);
+
+    } catch (err: any) {
+      setError(err.message);
+      alert(`Rewrite failed: ${err.message}`);
+    } finally {
+      setIsFeedbackRewriting(false);
     }
   };
 
@@ -1175,6 +1235,89 @@ export default function PostEditorPage({ params }: { params: Promise<{ id: strin
                   time="15s"
                   onSuccess={fetchPost}
                 />
+              </div>
+            </div>
+
+            {/* Human Feedback Rewrite */}
+            <div className="rounded-2xl border border-slate-200/60 bg-gradient-to-br from-amber-50 to-orange-50 p-6 shadow-xl">
+              <h3 className="text-lg font-black text-slate-900 mb-2">Human Feedback Rewrite</h3>
+              <p className="text-xs text-slate-600 mb-4">
+                Tell AI what to fix: "too choppy", "needs more story", "remove unverifiable facts", etc.
+              </p>
+
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Examples:
+• Too choppy, needs better flow between paragraphs
+• Add more storytelling and real-world examples
+• Remove statistics that can't be verified
+• Simplify the language for a general audience
+• Make it shorter and more concise"
+                rows={5}
+                className="w-full px-3 py-2 border-2 border-amber-200 rounded-lg text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-200 focus:outline-none resize-none bg-white"
+              />
+
+              <div className="flex items-center gap-2 mt-3 mb-3">
+                <input
+                  type="checkbox"
+                  id="preserveLength"
+                  checked={preserveLength}
+                  onChange={(e) => setPreserveLength(e.target.checked)}
+                  className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                />
+                <label htmlFor="preserveLength" className="text-xs text-slate-700">
+                  Preserve approximate word count
+                </label>
+              </div>
+
+              <button
+                onClick={handleFeedbackRewrite}
+                disabled={isFeedbackRewriting || !feedbackText.trim()}
+                className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+              >
+                {isFeedbackRewriting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Rewriting with feedback...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                    Rewrite with Feedback
+                  </>
+                )}
+              </button>
+
+              {feedbackResult && feedbackResult.changesApplied.length > 0 && (
+                <div className="mt-3 p-3 rounded-lg bg-green-50 border border-green-200">
+                  <p className="text-xs font-bold text-green-800 mb-1">Changes Applied:</p>
+                  <ul className="text-xs text-green-700 space-y-1">
+                    {feedbackResult.changesApplied.map((change, idx) => (
+                      <li key={idx}>• {change}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="mt-3 p-3 rounded-lg bg-white/60 border border-amber-200">
+                <p className="text-xs font-bold text-slate-700 mb-1">Common feedback examples:</p>
+                <div className="flex flex-wrap gap-1">
+                  {['Too choppy', 'More story', 'Remove unverifiable facts', 'Simpler language', 'More detail', 'Shorter'].map((example) => (
+                    <button
+                      key={example}
+                      onClick={() => setFeedbackText(prev => prev ? `${prev}\n• ${example}` : example)}
+                      className="px-2 py-1 rounded-md bg-amber-100 text-amber-800 text-xs font-medium hover:bg-amber-200 transition-colors"
+                    >
+                      + {example}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
