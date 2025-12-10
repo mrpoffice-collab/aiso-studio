@@ -281,19 +281,19 @@ export default function LandingPage() {
                   <ul className="space-y-2 mb-6 text-sm">
                     <li className="flex items-center gap-2">
                       <span className="text-green-600">✓</span>
-                      <span>Unlimited audits</span>
+                      <span className="text-slate-900">Unlimited audits</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-green-600">✓</span>
-                      <span>25 article rewrites/mo</span>
+                      <span className="text-slate-900">25 article rewrites/mo</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-green-600">✓</span>
-                      <span>Content strategies</span>
+                      <span className="text-slate-900">Content strategies</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-green-600">✓</span>
-                      <span>5GB asset storage</span>
+                      <span className="text-slate-900">5GB asset storage</span>
                     </li>
                   </ul>
                   <Link
@@ -318,23 +318,23 @@ export default function LandingPage() {
                   <ul className="space-y-2 mb-6 text-sm">
                     <li className="flex items-center gap-2">
                       <span className="text-blue-600">✓</span>
-                      <span>Everything in Starter</span>
+                      <span className="text-slate-900">Everything in Starter</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-blue-600">✓</span>
-                      <span>100 article rewrites/mo</span>
+                      <span className="text-slate-900">100 article rewrites/mo</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-blue-600">✓</span>
-                      <span>Lead discovery & pipeline</span>
+                      <span className="text-slate-900">Lead discovery & pipeline</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-blue-600">✓</span>
-                      <span>Win a Client wizard</span>
+                      <span className="text-slate-900">Win a Client wizard</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-blue-600">✓</span>
-                      <span>25GB storage, 3 seats</span>
+                      <span className="text-slate-900">25GB storage, 3 seats</span>
                     </li>
                   </ul>
                   <Link
@@ -356,23 +356,23 @@ export default function LandingPage() {
                   <ul className="space-y-2 mb-6 text-sm">
                     <li className="flex items-center gap-2">
                       <span className="text-sunset-orange">✓</span>
-                      <span>Everything in Pro</span>
+                      <span className="text-slate-900">Everything in Pro</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-sunset-orange">✓</span>
-                      <span>500 article rewrites/mo</span>
+                      <span className="text-slate-900">500 article rewrites/mo</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-sunset-orange">✓</span>
-                      <span>White-label PDF reports</span>
+                      <span className="text-slate-900">White-label PDF reports</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-sunset-orange">✓</span>
-                      <span>100GB storage, 10 seats</span>
+                      <span className="text-slate-900">100GB storage, 10 seats</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-sunset-orange">✓</span>
-                      <span>Priority support</span>
+                      <span className="text-slate-900">Priority support</span>
                     </li>
                   </ul>
                   <Link

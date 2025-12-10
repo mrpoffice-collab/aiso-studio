@@ -34,6 +34,15 @@ AISO Studio - AI Search Optimization platform for marketing agencies. Built with
 - **Hosting**: Vercel
 - **AI**: Anthropic Claude API
 
+## UI/Design Rules
+
+### NO GRAY FONTS
+- **Never use light gray text colors** for readable content
+- Use `text-slate-900` for body text and feature lists
+- Use `text-slate-700` minimum for secondary text
+- Avoid: `text-slate-400`, `text-slate-500`, `text-gray-400`, `text-gray-500` for readable text
+- Exception: Placeholder text in inputs can use lighter colors
+
 ## Database
 - Connection: Neon PostgreSQL with SSL required
 - Migrations stored in `/migrations` folder
