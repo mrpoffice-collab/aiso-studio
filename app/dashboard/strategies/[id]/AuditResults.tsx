@@ -30,6 +30,21 @@ interface Page {
   readability_score: number;
   engagement_score: number;
   flesch_score: number;
+  // Detailed metrics for drill-down
+  h1_count?: number;
+  h2_count?: number;
+  h3_count?: number;
+  h4_count?: number;
+  image_count?: number;
+  images_with_alt?: number;
+  internal_link_count?: number;
+  external_link_count?: number;
+  has_schema?: boolean;
+  has_faq_schema?: boolean;
+  has_canonical?: boolean;
+  has_open_graph?: boolean;
+  title_length?: number;
+  meta_length?: number;
 }
 
 interface Image {
@@ -492,36 +507,54 @@ export default function AuditResults({ strategyId, clientName }: AuditResultsPro
         {showPages && (
           <div className="mt-3 space-y-3">
             {pages.map((page) => {
-              // Identify issues for this page
+              // Identify issues using actual metrics for clarity
               const issues: string[] = [];
-              if (page.aiso_score < 50) issues.push('Low overall AISO score');
-              if (page.word_count < 300) issues.push('Content too short (< 300 words)');
-              if (page.word_count > 3000) issues.push('Content may be too long (> 3000 words)');
-              if (page.aeo_score < 50) issues.push('Poor AEO - not optimized for AI search');
-              if (page.seo_score < 50) issues.push('Low SEO score - may need better header structure');
-              if (page.readability_score < 50) issues.push('Hard to read - complex sentences');
-              if (page.engagement_score < 50) issues.push('Low engagement - needs hooks/CTAs');
-              if (page.flesch_score < 30) issues.push('Very difficult to read (Flesch < 30)');
-              // Only flag missing meta description if it's truly empty/null
-              const hasMeta = page.meta_description && page.meta_description.trim().length > 0;
-              if (!hasMeta) {
+
+              // Header issues - use actual counts
+              if ((page.h1_count || 0) === 0) issues.push('Missing H1 header');
+              if ((page.h1_count || 0) > 1) issues.push(`Multiple H1 headers (${page.h1_count}) - should have only 1`);
+              if ((page.h2_count || 0) < 2) issues.push(`Only ${page.h2_count || 0} H2 headers - need more structure`);
+
+              // Image alt text issues
+              const missingAlt = (page.image_count || 0) - (page.images_with_alt || 0);
+              if (missingAlt > 0) issues.push(`${missingAlt} images missing alt text`);
+
+              // Link issues
+              if ((page.internal_link_count || 0) === 0) issues.push('No internal links');
+
+              // Meta issues with actual lengths
+              if ((page.meta_length || 0) === 0) {
                 issues.push('Missing meta description');
-              } else if (page.meta_description.length < 120) {
-                issues.push('Meta description too short (< 120 chars)');
-              } else if (page.meta_description.length > 180) {
-                issues.push('Meta description too long (> 180 chars)');
-              }
-              if (!page.title || page.title.trim() === '') {
-                issues.push('Missing page title');
+              } else if ((page.meta_length || 0) < 120) {
+                issues.push(`Meta description too short (${page.meta_length} chars, need 140+)`);
+              } else if ((page.meta_length || 0) > 180) {
+                issues.push(`Meta description too long (${page.meta_length} chars, max 160)`);
               }
 
-              // Recommendations based on scores
+              // Title issues
+              if ((page.title_length || 0) === 0) {
+                issues.push('Missing page title');
+              } else if ((page.title_length || 0) < 30) {
+                issues.push(`Title too short (${page.title_length} chars)`);
+              } else if ((page.title_length || 0) > 70) {
+                issues.push(`Title too long (${page.title_length} chars, may truncate)`);
+              }
+
+              // Technical SEO issues
+              if (!page.has_canonical) issues.push('Missing canonical tag');
+
+              // Content issues
+              if (page.word_count < 300) issues.push(`Thin content (${page.word_count} words)`);
+              if (page.flesch_score < 30) issues.push(`Very difficult to read (Flesch ${page.flesch_score})`);
+
+              // Recommendations - specific based on actual metrics
               const recommendations: string[] = [];
-              if (page.aeo_score < 60) recommendations.push('Add FAQ section for AI engines');
-              if (page.seo_score < 60) recommendations.push('Add H2/H3 headers to structure content');
-              if (page.readability_score < 60) recommendations.push('Shorten sentences, simplify language');
-              if (page.engagement_score < 60) recommendations.push('Add bullet points, CTAs, and hooks');
-              if (page.word_count < 500) recommendations.push('Expand content to 800+ words');
+              if ((page.h2_count || 0) < 3) recommendations.push(`Add ${3 - (page.h2_count || 0)} more H2 headers`);
+              if (missingAlt > 0) recommendations.push(`Add alt text to ${missingAlt} images`);
+              if ((page.internal_link_count || 0) < 3) recommendations.push('Add internal links to related pages');
+              if (!page.has_schema) recommendations.push('Add structured data (JSON-LD schema)');
+              if (!page.has_faq_schema && page.aeo_score < 60) recommendations.push('Add FAQ section with schema for AI engines');
+              if (page.word_count < 800) recommendations.push(`Expand content (+${800 - page.word_count} words)`);
 
               return (
                 <div key={page.id} className="p-4 rounded-xl bg-white border-2 border-slate-200">
@@ -582,6 +615,73 @@ export default function AuditResults({ strategyId, clientName }: AuditResultsPro
                       <div className="text-xs text-slate-500">Flesch: {page.flesch_score}</div>
                     </div>
                   </div>
+
+                  {/* Detailed metrics - what was actually found */}
+                  {(page.h2_count !== undefined || page.image_count !== undefined) && (
+                    <div className="mt-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                      <p className="text-xs font-bold text-slate-700 mb-2">What We Found:</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                        {/* Headers */}
+                        <div>
+                          <span className="text-slate-500">Headers:</span>
+                          <span className="ml-1 font-medium">
+                            {page.h1_count || 0} H1, {page.h2_count || 0} H2, {page.h3_count || 0} H3
+                          </span>
+                          {(page.h2_count || 0) < 2 && (
+                            <span className="ml-1 text-red-500">⚠</span>
+                          )}
+                        </div>
+                        {/* Images */}
+                        <div>
+                          <span className="text-slate-500">Images:</span>
+                          <span className="ml-1 font-medium">
+                            {page.images_with_alt || 0}/{page.image_count || 0} with alt
+                          </span>
+                          {(page.image_count || 0) > 0 && (page.images_with_alt || 0) < (page.image_count || 0) && (
+                            <span className="ml-1 text-red-500">⚠</span>
+                          )}
+                        </div>
+                        {/* Links */}
+                        <div>
+                          <span className="text-slate-500">Links:</span>
+                          <span className="ml-1 font-medium">
+                            {page.internal_link_count || 0} int, {page.external_link_count || 0} ext
+                          </span>
+                          {(page.internal_link_count || 0) < 2 && (
+                            <span className="ml-1 text-yellow-500">⚠</span>
+                          )}
+                        </div>
+                        {/* Title/Meta */}
+                        <div>
+                          <span className="text-slate-500">Title:</span>
+                          <span className={`ml-1 font-medium ${(page.title_length || 0) >= 40 && (page.title_length || 0) <= 70 ? 'text-green-600' : 'text-yellow-600'}`}>
+                            {page.title_length || 0} chars
+                          </span>
+                          <span className="text-slate-500 ml-2">Meta:</span>
+                          <span className={`ml-1 font-medium ${(page.meta_length || 0) >= 140 && (page.meta_length || 0) <= 160 ? 'text-green-600' : (page.meta_length || 0) === 0 ? 'text-red-600' : 'text-yellow-600'}`}>
+                            {page.meta_length || 0}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Technical SEO markers */}
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className={`px-2 py-0.5 rounded text-xs ${page.has_canonical ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {page.has_canonical ? '✓' : '✗'} Canonical
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-xs ${page.has_open_graph ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                          {page.has_open_graph ? '✓' : '✗'} Open Graph
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-xs ${page.has_schema ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                          {page.has_schema ? '✓' : '✗'} Schema
+                        </span>
+                        {page.has_faq_schema && (
+                          <span className="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700">
+                            ✓ FAQ Schema
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Issues identified */}
                   {issues.length > 0 && (

@@ -113,14 +113,20 @@ export async function POST(
       const pageAisoScore = aisoScores.aisoScore ?? aisoScores.overallScore;
       totalAisoScore += pageAisoScore;
 
-      // Store page in database
+      // Store page in database with detailed metrics for drill-down
+      const hs = page.htmlStructure;
       try {
         await query(
           `INSERT INTO site_pages (
             audit_id, strategy_id, url, title, meta_description,
             content_preview, word_count, aiso_score, aeo_score,
-            seo_score, readability_score, engagement_score, flesch_score
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+            seo_score, readability_score, engagement_score, flesch_score,
+            h1_count, h2_count, h3_count, h4_count,
+            image_count, images_with_alt, internal_link_count, external_link_count,
+            has_schema, has_faq_schema, has_canonical, has_open_graph,
+            title_length, meta_length
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+                    $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`,
           [
             audit.id,
             strategyId,
@@ -135,6 +141,21 @@ export async function POST(
             aisoScores.readabilityScore,
             aisoScores.engagementScore,
             aisoScores.readabilityDetails.fleschScore,
+            // Detailed HTML structure metrics
+            hs.h1Count,
+            hs.h2Count,
+            hs.h3Count,
+            hs.h4Count,
+            hs.imageCount,
+            hs.imagesWithAlt,
+            hs.internalLinkCount,
+            hs.externalLinkCount,
+            hs.hasSchema,
+            hs.hasFaqSchema,
+            hs.hasCanonical,
+            hs.hasOpenGraph,
+            page.title?.length || 0,
+            page.metaDescription?.length || 0,
           ]
         );
       } catch (insertError: any) {
