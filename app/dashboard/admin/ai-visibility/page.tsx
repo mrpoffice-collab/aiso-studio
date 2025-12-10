@@ -655,6 +655,81 @@ export default function AIVisibilityPage() {
           <li><strong>Cost:</strong> ~$0.005 per question. Discovery runs ~8 questions, Trust runs ~6 questions.</li>
         </ul>
       </div>
+
+      {/* Internal Playbook */}
+      <div className="mt-6 p-6 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl text-white">
+        <h3 className="text-xl font-black mb-4">Internal Playbook: How We Use This</h3>
+
+        <div className="space-y-6">
+          <div>
+            <h4 className="font-bold text-orange-400 mb-2">The Pitch (30 seconds)</h4>
+            <p className="text-slate-300 text-sm">
+              "Google is becoming irrelevant. 40% of Gen Z uses TikTok and AI for search, not Google.
+              When someone asks ChatGPT or Perplexity 'Who's the best [industry] in [city]?' - are you the answer?
+              We can check right now. In 10 seconds, I'll show you if AI knows you exist."
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-orange-400 mb-2">Lead Gen Flow</h4>
+            <ol className="text-slate-300 text-sm space-y-2 list-decimal list-inside">
+              <li><strong>Find a prospect</strong> (from Lead Discovery, cold outreach, networking)</li>
+              <li><strong>Run AI Discovery</strong> on their URL + their industry</li>
+              <li><strong>Screenshot the results</strong> - especially the 0% or low citation rate</li>
+              <li><strong>Send the screenshot</strong> with: "I ran your site through our AI visibility tool. When people ask AI about [industry], you're invisible. Here's who AI recommends instead: [competitors]. We fix this."</li>
+              <li><strong>Book the call</strong> - they've never seen this data before</li>
+            </ol>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-orange-400 mb-2">Competitive Intel Flow</h4>
+            <ol className="text-slate-300 text-sm space-y-2 list-decimal list-inside">
+              <li><strong>Run "Who Does AI Trust?"</strong> for your client's industry</li>
+              <li><strong>Show them who's winning</strong> - "Here's who AI recommends when people ask about [industry]"</li>
+              <li><strong>Position AISO services</strong> - "Our content strategy is designed to make AI cite YOU, not them"</li>
+              <li><strong>Track progress</strong> - Re-run monthly to show improvement</li>
+            </ol>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-orange-400 mb-2">Why This Matters (Investor Language)</h4>
+            <p className="text-slate-300 text-sm mb-3">
+              SEO tools measure Google rankings. But AI search doesn't rank pages - it cites trusted sources.
+              There's no tool that tells businesses: "When AI answers questions about your industry, are you mentioned?"
+            </p>
+            <p className="text-slate-300 text-sm mb-3">
+              <strong className="text-white">We built it.</strong> This is the first AI visibility tracker that uses
+              real questions - not keywords - to measure if a business exists in AI's knowledge base.
+            </p>
+            <p className="text-slate-300 text-sm">
+              <strong className="text-white">The market:</strong> Every business optimizing for Google (billions in SEO spend)
+              will need to optimize for AI search. We're positioning AISO.studio as the platform that gets you there.
+            </p>
+          </div>
+
+          <div className="pt-4 border-t border-slate-700">
+            <h4 className="font-bold text-orange-400 mb-2">Quick Reference</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-slate-400">For prospects:</p>
+                <p className="text-white font-medium">AI Discovery + their URL</p>
+              </div>
+              <div>
+                <p className="text-slate-400">For market research:</p>
+                <p className="text-white font-medium">Who Does AI Trust? + industry</p>
+              </div>
+              <div>
+                <p className="text-slate-400">Best industries to target:</p>
+                <p className="text-white font-medium">Local services, B2B, agencies</p>
+              </div>
+              <div>
+                <p className="text-slate-400">Kill shot question:</p>
+                <p className="text-white font-medium">"Does AI know you exist?"</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
