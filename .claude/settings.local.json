@@ -98,7 +98,10 @@
       "Bash(ls:*)",
       "Bash(grep:*)",
       "Bash(npm info:*)",
-      "Bash(npm audit fix:*)"
+      "Bash(npm audit fix:*)",
+      "WebFetch(domain:highlevel.stoplight.io)",
+      "WebFetch(domain:marketplace.gohighlevel.com)",
+      "WebFetch(domain:help.gohighlevel.com)"
     ],
     "deny": [],
     "ask": []
