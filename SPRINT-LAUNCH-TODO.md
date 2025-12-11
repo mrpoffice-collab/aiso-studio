@@ -82,6 +82,9 @@
 - [ ] Verify mobile responsiveness on key pages
 - [ ] Test loading states appear correctly
 - [x] Verify error messages are user-friendly (historical data rule added)
+- [x] Navigation renamed: "Win a Client" → "New Business", "Sales" → "Prospecting"
+- [x] Colorful nav buttons (each section has unique color like pipeline stages)
+- [x] Footer added to dashboard with integrations section
 
 ### 9. PDF Reports
 - [ ] Audit PDF downloads correctly
@@ -185,6 +188,28 @@ Use Kim Kelley's account (kim@aliidesign.com) for Agency testing:
 - [ ] Performance tracking (GA/GSC integration)
 
 ### Phase 2: Integrations
+
+#### GoHighLevel Integration
+| Task | Status | Notes |
+|------|--------|-------|
+| API client library | ✅ Done | `lib/highlevel.ts` |
+| Settings UI | ✅ Done | `app/dashboard/settings/integrations/page.tsx` |
+| Export lead API | ✅ Done | `app/api/integrations/highlevel/export-lead/route.ts` |
+| Webhook receiver | ✅ Done | `app/api/webhooks/highlevel/route.ts` |
+| Pipelines API | ✅ Done | Fetch user's pipelines from GHL |
+| Custom fields API | ✅ Done | Create AISO fields in GHL |
+| Database migration | ❌ TODO | Run `migrations/add-highlevel-integration.sql` |
+| "Export to GHL" button | ❌ TODO | Add to pipeline lead cards |
+| Test with real API key | ❌ TODO | Need Kim's GHL credentials |
+| Documentation | ✅ Done | `docs/HIGHLEVEL-INTEGRATION.md` |
+| Footer affiliate link | ✅ Done | Links to GHL with `?fp_ref=aiso` |
+
+**User Setup Required:**
+1. Get API Key + Location ID from GHL Settings
+2. Enter credentials in AISO Settings → Integrations
+3. (Optional) Add webhook URL in GHL: `https://aiso.studio/api/webhooks/highlevel`
+
+#### Other Integrations
 - [ ] WordPress plugin (full, not just API)
 - [ ] Webflow/Shopify/Squarespace
 - [ ] Zapier integration
