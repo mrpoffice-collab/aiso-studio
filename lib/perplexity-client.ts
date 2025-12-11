@@ -478,37 +478,32 @@ export function generateIndustryQuestions(
   // Service should be industry + service type if provided
   const service = serviceType ? `${industry} ${serviceType}` : industry;
 
-  // Informational - research phase
-  questions.push(
-    { question: `What is ${service}?`, category: 'informational', intent: 'research' },
-    { question: `How does ${service} work?`, category: 'informational', intent: 'research' },
-    { question: `What are the benefits of ${service}?`, category: 'informational', intent: 'research' },
-    { question: `Is ${service} worth it?`, category: 'informational', intent: 'research' },
-  );
-
-  // Commercial - comparison/evaluation phase
-  questions.push(
-    { question: `What should I look for in a ${service} provider?`, category: 'commercial', intent: 'comparison' },
-    { question: `How much does ${service} cost?`, category: 'commercial', intent: 'comparison' },
-    { question: `What are the best ${service} companies?`, category: 'commercial', intent: 'comparison' },
-    { question: `${service} vs doing it myself`, category: 'commercial', intent: 'comparison' },
-  );
-
-  // Transactional - ready to hire/buy
-  questions.push(
-    { question: `How do I hire a ${service} agency?`, category: 'transactional', intent: 'hiring' },
-    { question: `What questions should I ask a ${service} provider?`, category: 'transactional', intent: 'hiring' },
-    { question: `Best ${service} for small business`, category: 'transactional', intent: 'hiring' },
-  );
-
-  // Location-specific if provided
+  // PRIORITY 1: Location-specific questions (most winnable - no Wikipedia competition)
+  // These go FIRST so they don't get cut off by maxQuestions limit
   if (location) {
     questions.push(
-      { question: `Best ${service} in ${location}`, category: 'transactional', intent: 'hiring' },
-      { question: `${service} companies near ${location}`, category: 'transactional', intent: 'hiring' },
-      { question: `Who offers ${service} in ${location}?`, category: 'navigational', intent: 'hiring' },
+      { question: `Best ${service} in ${location}`, category: 'transactional', intent: 'local' },
+      { question: `${service} companies near ${location}`, category: 'transactional', intent: 'local' },
+      { question: `Who is the best ${service} provider in ${location}?`, category: 'navigational', intent: 'local' },
+      { question: `Top rated ${service} in ${location}`, category: 'commercial', intent: 'local' },
     );
   }
+
+  // PRIORITY 2: Commercial/Transactional (winnable - Wikipedia doesn't answer these)
+  questions.push(
+    { question: `How much does ${service} cost?`, category: 'commercial', intent: 'comparison' },
+    { question: `What should I look for in a ${service} provider?`, category: 'commercial', intent: 'comparison' },
+    { question: `What are the best ${service} companies?`, category: 'commercial', intent: 'comparison' },
+    { question: `How do I choose a ${service} provider?`, category: 'transactional', intent: 'hiring' },
+    { question: `What questions should I ask a ${service} provider?`, category: 'transactional', intent: 'hiring' },
+  );
+
+  // PRIORITY 3: Informational (harder to win - Wikipedia territory, but still check)
+  questions.push(
+    { question: `What are the benefits of ${service}?`, category: 'informational', intent: 'research' },
+    { question: `Is ${service} worth it?`, category: 'informational', intent: 'research' },
+    { question: `How does ${service} work?`, category: 'informational', intent: 'research' },
+  );
 
   return questions;
 }
@@ -547,7 +542,7 @@ export async function runAIDiscoveryCheck(
   serviceType?: string,
   businessName?: string,
   location?: string,
-  maxQuestions: number = 8
+  maxQuestions: number = 12 // Increased to include location questions
 ): Promise<AIDiscoveryResult> {
   const apiKey = process.env.PERPLEXITY_API_KEY;
   if (!apiKey) {
