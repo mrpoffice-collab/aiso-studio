@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { calculateAISOScore } from '@/lib/content-scoring';
+import { calculateAISOScore, HtmlStructure } from '@/lib/content-scoring';
 import * as cheerio from 'cheerio';
 
 const FREE_AUDIT_LIMIT = 3; // Per IP per day
@@ -108,6 +108,42 @@ export async function POST(request: NextRequest) {
     const title = $('title').text() || $('h1').first().text() || '';
     const metaDescription = $('meta[name="description"]').attr('content') || '';
 
+    // Extract HTML structure BEFORE removing elements (for consistent scoring)
+    const htmlStructure: HtmlStructure = {
+      h1Count: $('h1').length,
+      h2Count: $('h2').length,
+      h3Count: $('h3').length,
+      h4Count: $('h4').length,
+      internalLinkCount: 0,
+      externalLinkCount: 0,
+      imageCount: $('img').length,
+      imagesWithAlt: $('img[alt]').filter((_, el) => ($(el).attr('alt')?.trim().length || 0) > 0).length,
+      hasSchema: $('script[type="application/ld+json"]').length > 0,
+      hasFaqSchema: html.includes('"@type":"FAQPage"') || html.includes('"@type": "FAQPage"'),
+      hasCanonical: $('link[rel="canonical"]').length > 0,
+      hasOpenGraph: $('meta[property^="og:"]').length > 0,
+    };
+
+    // Count internal vs external links
+    $('a[href]').each((_, el) => {
+      const href = $(el).attr('href') || '';
+      if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) return;
+      try {
+        if (href.startsWith('/') || href.startsWith('./') || href.startsWith('../')) {
+          htmlStructure.internalLinkCount++;
+        } else if (href.startsWith('http')) {
+          const linkDomain = new URL(href).hostname.replace(/^www\./, '');
+          if (linkDomain === domain || linkDomain.includes(domain)) {
+            htmlStructure.internalLinkCount++;
+          } else {
+            htmlStructure.externalLinkCount++;
+          }
+        }
+      } catch {
+        // Invalid URL
+      }
+    });
+
     // Remove scripts, styles, nav, footer
     $('script, style, nav, footer, header, .sidebar, aside, #sidebar, #comments, .comments, .comment-form').remove();
 
@@ -161,12 +197,15 @@ export async function POST(request: NextRequest) {
     console.log(`Scraped ${content.length} characters. Running AISO audit...`);
 
     // Run AISO audit (without fact-checking to save cost for free tier)
-    // Pass undefined for factCheckScore to skip fact-checking
+    // Pass htmlStructure for consistent scoring with paid audits
     const aisoResult = calculateAISOScore(
       content,
       title,
       metaDescription,
-      undefined // Skip expensive fact-checking for free audits
+      undefined, // Skip expensive fact-checking for free audits
+      undefined, // localContext
+      undefined, // targetFleschScore
+      htmlStructure // HTML structure for accurate element counting
     );
 
     // Capture user agent and referrer for analytics
