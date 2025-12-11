@@ -16,9 +16,9 @@
 - [ ] Confirm billing page shows correct info
 
 ### 2. Tier Feature Gating
-- [ ] Pro tier: Verify Sales Pipeline access
+- [ ] Pro tier: Verify Prospecting access
 - [ ] Pro tier: Verify Lead Discovery access
-- [ ] Pro tier: Verify Win-Client wizard access
+- [ ] Pro tier: Verify New Business wizard access
 - [ ] Agency tier: Verify unlimited features work
 - [ ] Agency tier: Verify white-label PDF works
 - [ ] Agency tier: Verify Adapt to Vertical works

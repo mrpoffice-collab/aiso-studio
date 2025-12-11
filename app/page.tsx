@@ -249,7 +249,7 @@ export default function LandingPage() {
                     <h3 className="font-bold text-slate-900 mb-1">For Agencies: Client Acquisition Tools</h3>
                     <p className="text-sm text-slate-600">
                       Pro and Agency tiers include lead discovery, pipeline management, proposal generation,
-                      and a guided "Win a Client" workflow. Turn audits into paying clients.
+                      and a guided "New Business" workflow. Turn audits into paying clients.
                     </p>
                   </div>
                 </div>
@@ -330,7 +330,7 @@ export default function LandingPage() {
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-blue-600">✓</span>
-                      <span className="text-slate-900">Win a Client wizard</span>
+                      <span className="text-slate-900">New Business wizard</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-blue-600">✓</span>

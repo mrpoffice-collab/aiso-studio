@@ -12,8 +12,8 @@ interface UpgradeCTAProps {
 
 const FEATURE_INFO = {
   sales: {
-    title: 'Sales Pipeline',
-    description: 'Track leads from discovery to close with a full CRM pipeline',
+    title: 'Prospecting Tools',
+    description: 'Find and track leads from discovery to close',
     benefits: [
       'Lead discovery by industry & location',
       'Pipeline stages (New, Contacted, Qualified, Won)',
@@ -32,7 +32,7 @@ const FEATURE_INFO = {
     ],
   },
   'win-client': {
-    title: 'Win a Client Wizard',
+    title: 'New Business Wizard',
     description: 'Guided workflow to turn audit prospects into paying clients',
     benefits: [
       'Step-by-step client acquisition',

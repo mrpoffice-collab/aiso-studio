@@ -32,8 +32,8 @@ export default function DashboardNav() {
   // All nav items with their feature requirements
   const allNavItems: NavItem[] = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/dashboard/win-client', label: 'Win a Client', highlight: true, requiresFeature: 'win-client' },
-    { href: '/dashboard/sales', label: 'Sales', requiresFeature: 'sales' },
+    { href: '/dashboard/win-client', label: 'New Business', highlight: true, requiresFeature: 'win-client' },
+    { href: '/dashboard/sales', label: 'Prospecting', requiresFeature: 'sales' },
     { href: '/dashboard/clients', label: 'Clients', requiresFeature: 'clients' },
     { href: '/dashboard/strategies', label: 'Strategies' },
     { href: '/dashboard/posts', label: 'Posts' },
@@ -83,8 +83,8 @@ export default function DashboardNav() {
                   className={`text-sm font-semibold transition-all duration-200 ${
                     item.highlight
                       ? isActive(item.href)
-                        ? 'bg-gradient-to-r from-sunset-orange to-orange-500 text-white px-4 py-2 rounded-full shadow-lg'
-                        : 'bg-gradient-to-r from-sunset-orange to-orange-500 text-white px-4 py-2 rounded-full hover:shadow-lg hover:scale-105'
+                        ? 'bg-gradient-to-r from-deep-indigo to-indigo-600 text-white px-4 py-2 rounded-full shadow-lg'
+                        : 'bg-gradient-to-r from-deep-indigo to-indigo-600 text-white px-4 py-2 rounded-full hover:shadow-lg hover:scale-105'
                       : isActive(item.href)
                         ? 'text-deep-indigo border-b-2 border-sunset-orange pb-1'
                         : 'text-slate-600 hover:text-deep-indigo hover:scale-105'

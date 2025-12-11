@@ -165,7 +165,7 @@ export default function WinClientWizard() {
           domain: domain,
           source: 'win-client-wizard',
           overall_score: state.auditResult?.aisoScore || state.auditResult?.overallScore || 0,
-          notes: `Added via Win a Client wizard. AISO Score: ${state.auditResult?.aisoScore || 'N/A'}`,
+          notes: `Added via New Business wizard. AISO Score: ${state.auditResult?.aisoScore || 'N/A'}`,
         }),
       });
 
@@ -260,8 +260,8 @@ export default function WinClientWizard() {
       <main className="container mx-auto px-6 py-8 max-w-5xl">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-black bg-gradient-to-r from-orange-500 to-pink-600 bg-clip-text text-transparent mb-2">
-            Win a Client
+          <h1 className="text-4xl font-black bg-gradient-to-r from-deep-indigo to-indigo-600 bg-clip-text text-transparent mb-2">
+            New Business
           </h1>
           <p className="text-slate-600">Step-by-step wizard to turn a prospect into a paying client</p>
         </div>
@@ -613,7 +613,7 @@ export default function WinClientWizard() {
                   </div>
                   <div>
                     <span className="text-slate-500">Source:</span>
-                    <span className="ml-2 font-medium text-slate-900">Win Client Wizard</span>
+                    <span className="ml-2 font-medium text-slate-900">New Business Wizard</span>
                   </div>
                 </div>
               </div>
