@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Footer from '@/components/Footer';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -467,23 +468,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* FOOTER - Minimal */}
-      <footer className="border-t border-slate-200 bg-white py-8">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-sm text-slate-600">
-              © 2025 AISO Studio
-            </div>
-            <div className="flex gap-6 text-sm text-slate-600">
-              <Link href="/audit" className="hover:text-sunset-orange">Free Audit</Link>
-              <Link href="/sign-up" className="hover:text-sunset-orange">Sign Up</Link>
-              <Link href="/sign-in" className="hover:text-sunset-orange">Sign In</Link>
-              <Link href="/terms" className="hover:text-sunset-orange">Terms</Link>
-              <Link href="/privacy" className="hover:text-sunset-orange">Privacy</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
