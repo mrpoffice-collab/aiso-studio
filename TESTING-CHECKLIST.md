@@ -3,7 +3,7 @@
 **Tester:** _______________
 **Date:** _______________
 **Environment:** https://aiso.studio (Production)
-**Last Updated:** 2025-12-10
+**Last Updated:** 2025-12-11
 
 ---
 
@@ -476,6 +476,82 @@ Create these accounts by signing up at https://aiso.studio:
 
 ---
 
+## 16. ADMIN TOOLS DROPDOWN (Updated 2025-12-11)
+
+**Note:** Admin tools are only visible to admin emails defined in `lib/admin-config.ts` (mrpoffice@gmail.com, kim@aliidesign.com).
+
+### 16.1 Admin Access
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Admin user clicks profile dropdown | "Admin Tools" section visible | [ ] | |
+| Non-admin user clicks dropdown | No "Admin Tools" section | [ ] | |
+| Kim sees Admin Tools | kim@aliidesign.com has access | [ ] | |
+
+### 16.2 Admin Tool Links
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Click "Free Audit Analytics" | Loads /dashboard/admin/free-audit-analytics | [ ] | |
+| Click "AI Visibility Tracker" | Loads /dashboard/admin/ai-visibility | [ ] | |
+| Click "Manage Users" | Loads /admin/subscriptions | [ ] | |
+
+### 16.3 Free Audit Analytics Dashboard
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Overview tab loads | Shows total audits, unique IPs, conversions | [ ] | |
+| Conversion rate displayed | Percentage calculated correctly | [ ] | |
+| Domain owner vs Agency breakdown | Both counts shown | [ ] | |
+| Daily stats table | Last 30 days data | [ ] | |
+| All Audits tab | List of recent 100 audits | [ ] | |
+| Top Domains tab | Most audited domains ranked | [ ] | |
+| Scoring Issues tab | Pages with sub-30 scores flagged | [ ] | |
+
+---
+
+## 17. STRATEGY SITE AUDIT (Updated 2025-12-11)
+
+### 17.1 Running Site Audit
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Strategy has website URL | "Run Audit" button visible | [ ] | |
+| Click "Run Audit" | Crawl starts, status shows | [ ] | |
+| Audit completes | Pages and images found | [ ] | |
+| Average AISO score shown | Calculated from all pages | [ ] | |
+
+### 17.2 Audit Results Display
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Pages listed by score | Highest AISO first | [ ] | |
+| Each page shows breakdown | AEO, SEO, Read, Engage bars | [ ] | |
+| "What We Found" section | H1/H2/H3 counts, images, links | [ ] | |
+| Technical SEO badges | Canonical, Open Graph, Schema shown | [ ] | |
+| Issues list | Specific problems cited (e.g., "5 images missing alt") | [ ] | |
+| Quick Fixes list | Actionable recommendations | [ ] | |
+
+### 17.3 Score Consistency
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Re-run audit | Old data cleared, fresh scores | [ ] | |
+| SEO score matches single URL audit | Same page = same SEO score | [ ] | |
+| Detailed metrics populated | h2_count, image_count not null | [ ] | |
+
+### 17.4 Audit History
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Multiple audits preserved | Old audits not deleted | [ ] | |
+| Each audit has own pages | Pages tied to audit_id | [ ] | |
+| Latest audit shown by default | Most recent displayed | [ ] | |
+
+### 17.5 Score Breakdown Modal (Kim's Request)
+| Test | Expected | Pass/Fail | Notes |
+|------|----------|-----------|-------|
+| Click on AISO score | Modal opens | [ ] | |
+| Formula explained | AEO 30%, SEO 20%, etc. | [ ] | |
+| Category breakdown | Each score with progress bar | [ ] | |
+| Top/bottom pages listed | Best and worst performers | [ ] | |
+| Improvement tips shown | Based on lowest scores | [ ] | |
+
+---
+
 ## TESTING SUMMARY
 
 | Category | Tests | Passed | Failed | Blocked |
@@ -495,6 +571,8 @@ Create these accounts by signing up at https://aiso.studio:
 | Error Handling | | | | |
 | Performance | | | | |
 | AI Visibility (Internal) | | | | |
+| Admin Tools Dropdown | | | | |
+| Strategy Site Audit | | | | |
 | **TOTAL** | | | | |
 
 ---
