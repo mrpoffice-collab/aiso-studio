@@ -11,6 +11,7 @@ type NavItem = {
   href: string;
   label: string;
   highlight?: boolean;
+  highlightColor?: 'indigo' | 'emerald';  // Different button colors
   requiresFeature?: 'sales' | 'clients' | 'win-client' | 'multi-domain';
 };
 
@@ -32,8 +33,8 @@ export default function DashboardNav() {
   // All nav items with their feature requirements
   const allNavItems: NavItem[] = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/dashboard/win-client', label: 'New Business', highlight: true, requiresFeature: 'win-client' },
-    { href: '/dashboard/sales', label: 'Prospecting', requiresFeature: 'sales' },
+    { href: '/dashboard/win-client', label: 'New Business', highlight: true, highlightColor: 'indigo', requiresFeature: 'win-client' },
+    { href: '/dashboard/sales', label: 'Prospecting', highlight: true, highlightColor: 'emerald', requiresFeature: 'sales' },
     { href: '/dashboard/clients', label: 'Clients', requiresFeature: 'clients' },
     { href: '/dashboard/strategies', label: 'Strategies' },
     { href: '/dashboard/posts', label: 'Posts' },
@@ -76,23 +77,42 @@ export default function DashboardNav() {
             </Link>
             <nav className="flex gap-6 items-center">
               {/* Visible nav items */}
-              {visibleNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`text-sm font-semibold transition-all duration-200 ${
-                    item.highlight
-                      ? isActive(item.href)
-                        ? 'bg-gradient-to-r from-deep-indigo to-indigo-600 text-white px-4 py-2 rounded-full shadow-lg'
-                        : 'bg-gradient-to-r from-deep-indigo to-indigo-600 text-white px-4 py-2 rounded-full hover:shadow-lg hover:scale-105'
-                      : isActive(item.href)
-                        ? 'text-deep-indigo border-b-2 border-sunset-orange pb-1'
-                        : 'text-slate-600 hover:text-deep-indigo hover:scale-105'
-                  }`}
-                >
-                  {item.highlight && '🎯 '}{item.label}
-                </Link>
-              ))}
+              {visibleNavItems.map((item) => {
+                // Determine button gradient based on color
+                const getButtonClasses = () => {
+                  if (!item.highlight) {
+                    return isActive(item.href)
+                      ? 'text-deep-indigo border-b-2 border-sunset-orange pb-1'
+                      : 'text-slate-600 hover:text-deep-indigo hover:scale-105';
+                  }
+
+                  const colorMap = {
+                    indigo: 'from-deep-indigo to-indigo-600',
+                    emerald: 'from-emerald-600 to-teal-600',
+                  };
+                  const gradient = colorMap[item.highlightColor || 'indigo'];
+
+                  return isActive(item.href)
+                    ? `bg-gradient-to-r ${gradient} text-white px-4 py-2 rounded-full shadow-lg`
+                    : `bg-gradient-to-r ${gradient} text-white px-4 py-2 rounded-full hover:shadow-lg hover:scale-105`;
+                };
+
+                const getIcon = () => {
+                  if (!item.highlight) return null;
+                  if (item.highlightColor === 'emerald') return '🔍 ';
+                  return '🎯 ';
+                };
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`text-sm font-semibold transition-all duration-200 ${getButtonClasses()}`}
+                  >
+                    {getIcon()}{item.label}
+                  </Link>
+                );
+              })}
 
               {/* Locked items shown with lock icon */}
               {lockedItems.length > 0 && showUpgradeHint && (
