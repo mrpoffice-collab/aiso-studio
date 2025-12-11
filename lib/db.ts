@@ -3190,4 +3190,129 @@ export const db = {
        ORDER BY m.last_checked_at ASC NULLS FIRST`
     );
   },
+
+  // ==========================================
+  // Captured Leads (from free audit email gate)
+  // ==========================================
+
+  async getCapturedLeadByEmail(email: string) {
+    const result = await query(
+      'SELECT * FROM captured_leads WHERE email = $1',
+      [email.toLowerCase()]
+    );
+    return result[0] || null;
+  },
+
+  async createCapturedLead(data: {
+    email: string;
+    persona: string;
+    source: string;
+    domain?: string;
+    url?: string;
+    aiso_score?: number;
+    ip_address?: string;
+    user_agent?: string;
+    referrer?: string;
+  }) {
+    const result = await query(
+      `INSERT INTO captured_leads (
+        email, persona, source, domain, url, aiso_score,
+        ip_address, user_agent, referrer, audit_count,
+        email_sequence_status, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 1, 'pending', NOW(), NOW())
+      RETURNING *`,
+      [
+        data.email.toLowerCase(),
+        data.persona,
+        data.source,
+        data.domain || null,
+        data.url || null,
+        data.aiso_score || null,
+        data.ip_address || null,
+        data.user_agent || null,
+        data.referrer || null,
+      ]
+    );
+    return result[0] || null;
+  },
+
+  async updateCapturedLead(id: string, data: {
+    last_domain?: string;
+    last_url?: string;
+    last_aiso_score?: number;
+    audit_count?: number;
+    email_sequence_status?: string;
+    converted_at?: Date;
+    converted_user_id?: string;
+    updated_at?: Date;
+  }) {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (data.last_domain !== undefined) {
+      updates.push(`last_domain = $${paramIndex++}`);
+      values.push(data.last_domain);
+    }
+    if (data.last_url !== undefined) {
+      updates.push(`last_url = $${paramIndex++}`);
+      values.push(data.last_url);
+    }
+    if (data.last_aiso_score !== undefined) {
+      updates.push(`last_aiso_score = $${paramIndex++}`);
+      values.push(data.last_aiso_score);
+    }
+    if (data.audit_count !== undefined) {
+      updates.push(`audit_count = $${paramIndex++}`);
+      values.push(data.audit_count);
+    }
+    if (data.email_sequence_status !== undefined) {
+      updates.push(`email_sequence_status = $${paramIndex++}`);
+      values.push(data.email_sequence_status);
+    }
+    if (data.converted_at !== undefined) {
+      updates.push(`converted_at = $${paramIndex++}`);
+      values.push(data.converted_at);
+    }
+    if (data.converted_user_id !== undefined) {
+      updates.push(`converted_user_id = $${paramIndex++}`);
+      values.push(data.converted_user_id);
+    }
+    updates.push(`updated_at = $${paramIndex++}`);
+    values.push(new Date());
+
+    values.push(id);
+
+    const result = await query(
+      `UPDATE captured_leads SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+    return result[0] || null;
+  },
+
+  async getCapturedLeadsForSequence(status: string = 'pending', limit: number = 50) {
+    return await query(
+      `SELECT * FROM captured_leads
+       WHERE email_sequence_status = $1
+       ORDER BY created_at ASC
+       LIMIT $2`,
+      [status, limit]
+    );
+  },
+
+  async getCapturedLeadStats() {
+    const result = await query(`
+      SELECT
+        COUNT(*) as total_leads,
+        COUNT(CASE WHEN persona = 'own_site' THEN 1 END) as own_site_count,
+        COUNT(CASE WHEN persona = 'client_site' THEN 1 END) as agency_count,
+        COUNT(CASE WHEN converted_at IS NOT NULL THEN 1 END) as converted_count,
+        ROUND(COUNT(CASE WHEN converted_at IS NOT NULL THEN 1 END)::numeric /
+              NULLIF(COUNT(*)::numeric, 0) * 100, 1) as conversion_rate,
+        COUNT(CASE WHEN created_at > NOW() - INTERVAL '24 hours' THEN 1 END) as last_24h,
+        COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END) as last_7d
+      FROM captured_leads
+    `);
+    return result[0] || null;
+  },
 };

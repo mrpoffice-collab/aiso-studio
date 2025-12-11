@@ -10,8 +10,10 @@
 2. [Workflow: Winning a Cold Lead](#workflow-winning-a-cold-lead)
 3. [Workflow: Serving an Existing Client](#workflow-serving-an-existing-client)
 4. [Workflow: Retaining At-Risk Clients](#workflow-retaining-at-risk-clients)
-5. [Tool Reference by Use Case](#tool-reference-by-use-case)
-6. [What's Next Recommendations by Context](#whats-next-recommendations-by-context)
+5. [Workflow: Agency-Tier Power Features](#workflow-agency-tier-power-features) *(NEW)*
+6. [Tool Reference by Use Case](#tool-reference-by-use-case)
+7. [What's Next Recommendations by Context](#whats-next-recommendations-by-context)
+8. [Subscription Tiers & Feature Access](#subscription-tiers--feature-access)
 
 ---
 
@@ -117,7 +119,7 @@ Inputs needed:
 - Location (for local SEO/GEO)
 
 Output:
-- 12+ topic ideas with titles
+- 15 topic ideas with titles
 - Keyword targets
 - Content calendar suggestions
 
@@ -193,27 +195,121 @@ Look for:
 
 ---
 
+## Workflow: Agency-Tier Power Features
+
+### The Situation
+You're an agency with multiple clients. You need to scale content production, deliver white-label reports, and automate repetitive tasks.
+
+### Bulk Content Operations
+
+#### Bulk Generate All Topics
+**Where:** Strategy page → "Generate All" button
+**What it does:** Generates articles for ALL pending topics in one click
+**Best for:** Kickstarting a new client's content library
+
+**How it works:**
+1. Open a strategy with multiple topics
+2. Click "Generate All" (Agency only)
+3. Progress bar shows completion status
+4. Navigate away safely - job continues in background
+5. Return to see all generated posts
+
+**Note:** Only one bulk job runs at a time per user
+
+#### Bulk Approve All Drafts
+**Where:** Strategy page → "Approve All" button
+**What it does:** Moves all drafts to "Approved" status
+**Best for:** Batch-approving client-reviewed content
+
+#### Bulk Download All Posts
+**Where:** Strategy page → "Download All" button
+**What it does:** Exports all approved posts as a ZIP file
+**Contains:** Markdown and/or HTML versions of each post
+
+### White-Label PDF Reports
+
+#### Setup Your Branding
+**Where:** `/dashboard/settings/branding`
+**Configure:**
+- Upload your agency logo (PNG, JPG)
+- Set primary brand color (hex code)
+- Add contact info (email, phone, website)
+
+#### Generate Branded PDFs
+**Where:** Any audit result → "Download PDF"
+**What's included:**
+- Your logo in header
+- Your brand colors
+- Your contact info in footer
+- Client-ready professional formatting
+
+**No AISO branding appears** - present as your own work
+
+### Adapt to Vertical
+
+#### Repurpose Content for Different Industries
+**Where:** Audit result → "Adapt to Vertical" button
+**What it does:** Rewrites existing content for a new industry/audience
+
+**Example use case:**
+- You wrote "10 SEO Tips for Dentists"
+- Client B is a law firm
+- Click "Adapt to Vertical" → Select "Legal Services"
+- Get "10 SEO Tips for Law Firms" instantly
+
+**Why it matters:** One piece of research, multiple client deliverables
+
+### WordPress Integration
+
+#### Setup (per strategy)
+**Where:** Strategy settings → WordPress tab
+**Configure:**
+- WordPress site URL
+- Application password (from WP dashboard)
+- Default post status (draft/publish)
+- Default author
+
+#### One-Click Publish
+**Where:** Approved post → "Publish to WordPress"
+**What happens:**
+1. Post created in WordPress
+2. Featured image uploaded (if set)
+3. Categories/tags applied
+4. Status updated in AISO
+
+**Mock Mode:** Test without real WP site using mock mode toggle
+
+---
+
 ## Tool Reference by Use Case
 
 ### I want to... → Use this tool
 
-| Goal | Tool | Path |
-|------|------|------|
-| Audit a website | AISO Audit | `/dashboard/audit` |
-| Audit multiple pages | Batch Audit | `/dashboard/audit/batch` |
-| Check accessibility only | WCAG Scan | Audit page → "WCAG Only" |
-| Compare against competitors | Competitor Compare | `/dashboard/audit/compare` |
-| Find new prospects | Lead Discovery | `/dashboard/leads` |
-| Manage sales pipeline | Pipeline | `/dashboard/pipeline` |
-| Generate a proposal | Proposal Generator | Pipeline → Lead → Proposal |
-| Create content strategy | Strategy Generator | `/dashboard/strategies/new` |
-| Write a blog post | Post Writer | Strategy → Topic → Write |
-| Improve existing content | Content Rewriter | Audit → "Rewrite" |
-| Track client health | Health Dashboard | `/dashboard/clients/health` |
-| View client progress | Client Profile | `/dashboard/clients` → Select client |
-| Manage tasks | Tasks | `/dashboard/tasks` |
-| Store assets | Vault | `/dashboard/assets` |
-| Check my usage | Settings | `/dashboard/settings` |
+| Goal | Tool | Path | Tier |
+|------|------|------|------|
+| Audit a website | AISO Audit | `/dashboard/audit` | All |
+| Audit multiple pages | Batch Audit | `/dashboard/audit/batch` | All |
+| Check accessibility only | WCAG Scan | Audit page → "WCAG Only" | All |
+| Compare against competitors | Competitor Compare | `/dashboard/audit/compare` | All |
+| Find new prospects | Lead Discovery | `/dashboard/leads` | Pro+ |
+| Manage sales pipeline | Pipeline | `/dashboard/pipeline` | Pro+ |
+| Generate a proposal | Proposal Generator | Pipeline → Lead → Proposal | Pro+ |
+| Win-Client wizard | Guided Sales | `/dashboard/win-client` | Pro+ |
+| Create content strategy | Strategy Generator | `/dashboard/strategies/new` | All |
+| Write a blog post | Post Writer | Strategy → Topic → Write | All |
+| Improve existing content | Content Rewriter | Audit → "Rewrite" | All |
+| Adapt content to new industry | Adapt to Vertical | Audit → "Adapt to Vertical" | Agency |
+| Generate all topics at once | Bulk Generate | Strategy → "Generate All" | Agency |
+| Approve all drafts at once | Bulk Approve | Strategy → "Approve All" | Agency |
+| Export all posts as ZIP | Bulk Download | Strategy → "Download All" | Agency |
+| Setup white-label branding | Branding Settings | `/dashboard/settings/branding` | Agency |
+| Download branded PDF | PDF Export | Audit → "Download PDF" | Agency |
+| Publish to WordPress | WP Integration | Post → "Publish to WordPress" | Agency |
+| Track client health | Health Dashboard | `/dashboard/clients/health` | Pro+ |
+| View client progress | Client Profile | `/dashboard/clients` → Select client | Pro+ |
+| Manage tasks | Tasks | `/dashboard/tasks` | All |
+| Store assets | Vault | `/dashboard/assets` | All |
+| Check my usage | Settings | `/dashboard/settings` | All |
 
 ---
 
@@ -289,33 +385,82 @@ This section defines what actions should appear in "What's Next" panels based on
 
 ## Subscription Tiers & Feature Access
 
-*Note: Define what features are available at each tier*
+*Updated: December 2025*
 
-### Starter Tier
-- Single user
-- 10 audits/month
-- 5 strategies/month
-- Basic reports
+### Trial Tier (Free, 7 days)
+| Limit | Value |
+|-------|-------|
+| Active Clients | 1 |
+| Strategies/month | 1 |
+| Posts/month | 10 |
+| Audits/month | 5 |
+| Rewrites/month | 5 |
+| Repurposes/month | 1 |
+| Vault Storage | 5 GB |
+| Data Retention | 90 days |
+
+**Features:** Basic audits, content generation, single domain only
+
+### Starter Tier ($39/month)
+| Limit | Value |
+|-------|-------|
+| Active Clients | 1 |
+| Strategies/month | 1 |
+| Posts/month | 10 |
+| Audits/month | 5 |
+| Rewrites/month | 5 |
+| Repurposes/month | 1 |
+| Vault Storage | 5 GB |
+| Data Retention | 90 days |
+
+**Features:** Same as Trial, single domain locked
 
 **What's Next should emphasize:** Upgrade prompts when hitting limits
 
-### Professional Tier
-- Team access (3 users)
-- Unlimited audits
-- Unlimited strategies
-- White-label reports
-- Client portal
+### Professional Tier ($249/month)
+| Limit | Value |
+|-------|-------|
+| Active Clients | 5 |
+| Strategies/month | 10 |
+| Posts/month | 100 |
+| Audits/month | 50 |
+| Rewrites/month | 50 |
+| Repurposes/month | 25 |
+| Vault Storage | 20 GB |
+| Data Retention | 90 days |
 
-**What's Next should emphasize:** Full feature set, team collaboration
+**Pro-Exclusive Features:**
+- Lead Discovery - Find prospects by industry/location
+- Sales Pipeline (Kanban) - Track leads through stages
+- Win-Client Wizard - Guided proposal creation
+- Clients Management - Multiple client profiles
+- Multi-domain support - Work with 5 different clients
 
-### Agency Tier
-- Unlimited users
-- API access
-- Custom branding
-- Priority support
-- Advanced analytics
+**What's Next should emphasize:** Full sales toolset, pipeline management
 
-**What's Next should emphasize:** Scale, automation, white-labeling
+### Agency Tier ($599/month)
+| Limit | Value |
+|-------|-------|
+| Active Clients | Unlimited |
+| Strategies/month | Unlimited |
+| Posts/month | Unlimited |
+| Audits/month | Unlimited |
+| Rewrites/month | Unlimited |
+| Repurposes/month | Unlimited |
+| Vault Storage | 1 TB |
+| Data Retention | Unlimited |
+
+**Agency-Exclusive Features:**
+- Everything in Professional, plus:
+- **White-Label PDF Reports** - Your logo, contact info, brand colors
+- **Bulk Generate All** - Generate all pending topics at once
+- **Bulk Approve All** - Approve all drafts with one click
+- **Bulk Download All** - Export all posts as ZIP
+- **Adapt to Vertical** - Rewrite content for different industries
+- **WordPress Integration** - One-click publish to client sites
+- **Unlimited Data Retention** - Keep client history forever
+
+**What's Next should emphasize:** Scale, automation, white-labeling, bulk operations
 
 ---
 

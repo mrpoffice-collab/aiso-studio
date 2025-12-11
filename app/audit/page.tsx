@@ -25,6 +25,8 @@ interface AuditResult {
   upgradePrompt: string;
 }
 
+type PersonaType = 'own_site' | 'client_site' | null;
+
 function FreeAuditContent() {
   const searchParams = useSearchParams();
   const [url, setUrl] = useState('');
@@ -32,6 +34,13 @@ function FreeAuditContent() {
   const [error, setError] = useState('');
   const [result, setResult] = useState<AuditResult | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Email capture state
+  const [email, setEmail] = useState('');
+  const [emailCaptured, setEmailCaptured] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [isCapturingEmail, setIsCapturingEmail] = useState(false);
+  const [persona, setPersona] = useState<PersonaType>(null);
 
   // Pre-fill URL from query parameter
   useEffect(() => {
@@ -98,6 +107,56 @@ function FreeAuditContent() {
       setError(err.message || 'An error occurred');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleEmailCapture = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError('');
+
+    if (!email.trim()) {
+      setEmailError('Please enter your email');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setEmailError('Please enter a valid email');
+      return;
+    }
+
+    if (!persona) {
+      setEmailError('Please select who you are auditing for');
+      return;
+    }
+
+    setIsCapturingEmail(true);
+
+    try {
+      const response = await fetch('/api/leads/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          persona,
+          source: 'free_audit',
+          domain: result?.domain,
+          url: result?.url,
+          aisoScore: result?.aisoScore,
+        }),
+      });
+
+      if (response.ok) {
+        setEmailCaptured(true);
+      } else {
+        const data = await response.json();
+        setEmailError(data.error || 'Failed to save email');
+      }
+    } catch (err) {
+      setEmailError('Failed to save email. Please try again.');
+    } finally {
+      setIsCapturingEmail(false);
     }
   };
 
@@ -247,7 +306,7 @@ function FreeAuditContent() {
         {/* Results */}
         {result && (
           <div className="space-y-6">
-            {/* Overall Score */}
+            {/* Overall Score - Always Visible */}
             <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">
@@ -298,116 +357,267 @@ function FreeAuditContent() {
               </div>
             </div>
 
-            {/* Score Breakdown */}
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* SEO Score */}
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-slate-900">SEO</h3>
-                  <span className={`text-3xl font-bold ${getScoreColor(result.scores.seo)}`}>
-                    {result.scores.seo}
-                  </span>
+            {/* Email Capture Gate - Show if not captured yet */}
+            {!emailCaptured && (
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200 p-8">
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                    <span className="text-3xl">🔓</span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                    Unlock Your Full Report
+                  </h3>
+                  <p className="text-slate-600 max-w-md mx-auto">
+                    Enter your email to see the detailed breakdown of your SEO, Readability, and Engagement scores - plus actionable recommendations.
+                  </p>
                 </div>
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
-                    style={{ width: `${result.scores.seo}%` }}
-                  />
-                </div>
-                <p className="text-sm text-slate-600 mt-2">
-                  {getScoreLabel(result.scores.seo)}
-                </p>
-              </div>
 
-              {/* Readability Score */}
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-slate-900">Readability</h3>
-                  <span className={`text-3xl font-bold ${getScoreColor(result.scores.readability)}`}>
-                    {result.scores.readability}
-                  </span>
-                </div>
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                    style={{ width: `${result.scores.readability}%` }}
-                  />
-                </div>
-                <p className="text-sm text-slate-600 mt-2">
-                  {getScoreLabel(result.scores.readability)}
-                </p>
-              </div>
+                <form onSubmit={handleEmailCapture} className="max-w-md mx-auto space-y-4">
+                  {/* Persona Selection */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Who is this audit for?
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPersona('own_site')}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          persona === 'own_site'
+                            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">🏠</div>
+                        <div className="font-semibold text-slate-900">My own site</div>
+                        <div className="text-xs text-slate-500">I want to improve my content</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPersona('client_site')}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          persona === 'client_site'
+                            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">🏢</div>
+                        <div className="font-semibold text-slate-900">A client's site</div>
+                        <div className="text-xs text-slate-500">I'm a marketer or agency</div>
+                      </button>
+                    </div>
+                  </div>
 
-              {/* Engagement Score */}
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-slate-900">Engagement</h3>
-                  <span className={`text-3xl font-bold ${getScoreColor(result.scores.engagement)}`}>
-                    {result.scores.engagement}
-                  </span>
-                </div>
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-500"
-                    style={{ width: `${result.scores.engagement}%` }}
-                  />
-                </div>
-                <p className="text-sm text-slate-600 mt-2">
-                  {getScoreLabel(result.scores.engagement)}
-                </p>
-              </div>
-            </div>
+                  {/* Email Input */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Your email
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full rounded-lg border-2 border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all"
+                    />
+                  </div>
 
-            {/* Upgrade CTA */}
-            {result.auditsRemaining <= 1 && (
-              <div className="bg-gradient-to-r from-sunset-orange to-orange-600 rounded-2xl shadow-xl p-8 text-white text-center">
-                <h3 className="text-2xl font-bold mb-2">
-                  {result.auditsRemaining === 0
-                    ? "You've Used All Your Free Audits!"
-                    : 'Only 1 Free Audit Left!'}
-                </h3>
-                <p className="text-lg mb-6 opacity-90">
-                  Sign up now to unlock unlimited audits + AI-powered content rewriting
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link
-                    href="/sign-up"
-                    className="rounded-lg bg-white px-8 py-3 font-semibold text-sunset-orange shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
+                  {emailError && (
+                    <p className="text-sm text-red-600 font-medium">{emailError}</p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isCapturingEmail}
+                    className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-semibold text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02] disabled:opacity-50"
                   >
-                    Sign Up Free
-                  </Link>
-                  <Link
-                    href="/sign-in"
-                    className="rounded-lg border-2 border-white px-8 py-3 font-semibold text-white hover:bg-white/10 transition-all duration-200"
-                  >
-                    Already Have an Account?
-                  </Link>
+                    {isCapturingEmail ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Unlocking...
+                      </span>
+                    ) : (
+                      'Unlock Full Report'
+                    )}
+                  </button>
+
+                  <p className="text-xs text-center text-slate-500">
+                    We'll send you tips to improve your score. Unsubscribe anytime.
+                  </p>
+                </form>
+
+                {/* Blurred Preview */}
+                <div className="mt-8 relative">
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-50/80 to-blue-50 z-10"></div>
+                  <div className="grid md:grid-cols-3 gap-4 blur-sm opacity-50 pointer-events-none">
+                    <div className="bg-white rounded-xl border border-slate-200 p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-slate-900">SEO</span>
+                        <span className="text-2xl font-bold text-slate-400">??</span>
+                      </div>
+                      <div className="h-2 bg-slate-200 rounded-full"></div>
+                    </div>
+                    <div className="bg-white rounded-xl border border-slate-200 p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-slate-900">Readability</span>
+                        <span className="text-2xl font-bold text-slate-400">??</span>
+                      </div>
+                      <div className="h-2 bg-slate-200 rounded-full"></div>
+                    </div>
+                    <div className="bg-white rounded-xl border border-slate-200 p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-slate-900">Engagement</span>
+                        <span className="text-2xl font-bold text-slate-400">??</span>
+                      </div>
+                      <div className="h-2 bg-slate-200 rounded-full"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Stats */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h3 className="font-bold text-slate-900 mb-4">Content Stats</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Word Count</p>
-                  <p className="text-xl font-bold text-slate-900">{result.wordCount.toLocaleString()}</p>
+            {/* Full Results - Show after email captured */}
+            {emailCaptured && (
+              <>
+                {/* Score Breakdown */}
+                <div className="grid md:grid-cols-3 gap-6">
+                  {/* SEO Score */}
+                  <div className="bg-white rounded-xl border border-slate-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-slate-900">SEO</h3>
+                      <span className={`text-3xl font-bold ${getScoreColor(result.scores.seo)}`}>
+                        {result.scores.seo}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
+                        style={{ width: `${result.scores.seo}%` }}
+                      />
+                    </div>
+                    <p className="text-sm text-slate-600 mt-2">
+                      {getScoreLabel(result.scores.seo)}
+                    </p>
+                  </div>
+
+                  {/* Readability Score */}
+                  <div className="bg-white rounded-xl border border-slate-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-slate-900">Readability</h3>
+                      <span className={`text-3xl font-bold ${getScoreColor(result.scores.readability)}`}>
+                        {result.scores.readability}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                        style={{ width: `${result.scores.readability}%` }}
+                      />
+                    </div>
+                    <p className="text-sm text-slate-600 mt-2">
+                      {getScoreLabel(result.scores.readability)}
+                    </p>
+                  </div>
+
+                  {/* Engagement Score */}
+                  <div className="bg-white rounded-xl border border-slate-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-slate-900">Engagement</h3>
+                      <span className={`text-3xl font-bold ${getScoreColor(result.scores.engagement)}`}>
+                        {result.scores.engagement}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-500"
+                        style={{ width: `${result.scores.engagement}%` }}
+                      />
+                    </div>
+                    <p className="text-sm text-slate-600 mt-2">
+                      {getScoreLabel(result.scores.engagement)}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Characters</p>
-                  <p className="text-xl font-bold text-slate-900">{result.contentLength.toLocaleString()}</p>
+
+                {/* Stats */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                  <h3 className="font-bold text-slate-900 mb-4">Content Stats</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-sm text-slate-500">Word Count</p>
+                      <p className="text-xl font-bold text-slate-900">{result.wordCount.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Characters</p>
+                      <p className="text-xl font-bold text-slate-900">{result.contentLength.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Reading Time</p>
+                      <p className="text-xl font-bold text-slate-900">{Math.ceil(result.wordCount / 200)} min</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Domain</p>
+                      <p className="text-sm font-semibold text-slate-900 truncate">{result.domain}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Reading Time</p>
-                  <p className="text-xl font-bold text-slate-900">{Math.ceil(result.wordCount / 200)} min</p>
+
+                {/* Persona-Specific CTA */}
+                <div className={`rounded-2xl shadow-xl p-8 text-white text-center ${
+                  persona === 'client_site'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600'
+                    : 'bg-gradient-to-r from-sunset-orange to-orange-600'
+                }`}>
+                  {persona === 'client_site' ? (
+                    <>
+                      <h3 className="text-2xl font-bold mb-2">
+                        Scale Your Agency with AI-Powered Audits
+                      </h3>
+                      <p className="text-lg mb-6 opacity-90">
+                        Run unlimited audits, generate proposals, and win more clients with AISO Studio.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="text-2xl font-bold mb-2">
+                        Ready to Improve Your Score?
+                      </h3>
+                      <p className="text-lg mb-6 opacity-90">
+                        Get AI-powered rewrites, content strategies, and optimization tools.
+                      </p>
+                    </>
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Link
+                      href="/sign-up"
+                      className="rounded-lg bg-white px-8 py-3 font-semibold text-slate-900 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
+                    >
+                      Start Free Trial
+                    </Link>
+                    <Link
+                      href="/pricing"
+                      className="rounded-lg border-2 border-white px-8 py-3 font-semibold text-white hover:bg-white/10 transition-all duration-200"
+                    >
+                      View Pricing
+                    </Link>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Domain</p>
-                  <p className="text-sm font-semibold text-slate-900 truncate">{result.domain}</p>
-                </div>
+              </>
+            )}
+
+            {/* Upgrade CTA for low audits remaining - show regardless of email capture */}
+            {result.auditsRemaining <= 1 && emailCaptured && (
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-6 text-center">
+                <p className="text-amber-800 font-semibold">
+                  {result.auditsRemaining === 0
+                    ? "You've used all your free audits!"
+                    : 'Only 1 free audit left!'}
+                </p>
+                <p className="text-amber-700 text-sm mt-1">
+                  Sign up to unlock unlimited audits.
+                </p>
               </div>
-            </div>
+            )}
           </div>
         )}
 

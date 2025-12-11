@@ -1,7 +1,7 @@
 # SPRINT LAUNCH TO-DO LIST
 
 **Goal:** Complete all items before final Agency tier testing
-**Last Updated:** 2025-12-10
+**Last Updated:** 2025-12-11
 
 ---
 
@@ -50,22 +50,45 @@
 - [ ] Move lead through Kanban stages
 - [ ] Send email from pipeline (if configured)
 
+### 6. AI Visibility Tracker (Admin Internal Tool)
+- [ ] Admin can access /dashboard/admin/ai-visibility
+- [ ] Non-admin gets "Page not found"
+- [ ] AI Discovery Check: Enter URL + industry, get citation results
+- [ ] Citation rate % displays correctly
+- [ ] Green list shows questions you ARE cited for
+- [ ] Red list shows questions you are NOT cited for
+- [ ] "Who Does AI Trust?" tab shows ranked domain list
+- [ ] AIVisibilityButton appears on leads/pipeline (admin only)
+- [ ] Perplexity API integration working (requires API key)
+
+### 7. Lead Capture & Email Sequences (NEW)
+- [ ] Free audit shows score teaser (overall score visible)
+- [ ] Email gate appears after score display
+- [ ] Persona selector works ("My own site" vs "A client's site")
+- [ ] Email capture saves to `captured_leads` table
+- [ ] First email sends immediately after capture
+- [ ] Email 2 sends 2 days after capture (run `/api/admin/process-email-sequences`)
+- [ ] Email 3 sends 5 days after capture
+- [ ] Solo sequence different from Agency sequence
+- [ ] Unsubscribe link works
+- [ ] Admin can view lead stats at `/api/admin/process-email-sequences` (GET)
+
 ---
 
 ## MEDIUM PRIORITY (Nice to Have)
 
-### 6. UI/UX Polish
+### 8. UI/UX Polish
 - [x] Check all gray fonts are fixed (text-slate-900)
 - [ ] Verify mobile responsiveness on key pages
 - [ ] Test loading states appear correctly
 - [x] Verify error messages are user-friendly (historical data rule added)
 
-### 7. PDF Reports
+### 9. PDF Reports
 - [ ] Audit PDF downloads correctly
 - [x] PDF has proper branding/formatting (Agency tier)
 - [ ] Comparison PDF works after rewrite
 
-### 8. Asset Vault
+### 10. Asset Vault
 - [ ] Upload test file
 - [ ] Verify storage limits by tier
 - [ ] Download uploaded file
