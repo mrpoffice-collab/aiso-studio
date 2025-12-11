@@ -10,8 +10,8 @@ import { useSubscription, TIER_INFO } from '@/hooks/useSubscription';
 type NavItem = {
   href: string;
   label: string;
-  highlight?: boolean;
-  highlightColor?: 'indigo' | 'emerald';  // Different button colors
+  icon?: string;
+  color: 'slate' | 'indigo' | 'emerald' | 'blue' | 'purple' | 'orange' | 'pink' | 'cyan';
   requiresFeature?: 'sales' | 'clients' | 'win-client' | 'multi-domain';
 };
 
@@ -30,16 +30,16 @@ export default function DashboardNav() {
     return pathname?.startsWith(path);
   };
 
-  // All nav items with their feature requirements
+  // All nav items with their feature requirements - each has a unique color like pipeline stages
   const allNavItems: NavItem[] = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/dashboard/win-client', label: 'New Business', highlight: true, highlightColor: 'indigo', requiresFeature: 'win-client' },
-    { href: '/dashboard/sales', label: 'Prospecting', highlight: true, highlightColor: 'emerald', requiresFeature: 'sales' },
-    { href: '/dashboard/clients', label: 'Clients', requiresFeature: 'clients' },
-    { href: '/dashboard/strategies', label: 'Strategies' },
-    { href: '/dashboard/posts', label: 'Posts' },
-    { href: '/dashboard/assets', label: 'Vault' },
-    { href: '/dashboard/audit', label: 'AISO Audit' },
+    { href: '/dashboard', label: 'Dashboard', icon: '📊', color: 'slate' },
+    { href: '/dashboard/win-client', label: 'New Business', icon: '🎯', color: 'indigo', requiresFeature: 'win-client' },
+    { href: '/dashboard/sales', label: 'Prospecting', icon: '🔍', color: 'emerald', requiresFeature: 'sales' },
+    { href: '/dashboard/clients', label: 'Clients', icon: '👥', color: 'purple', requiresFeature: 'clients' },
+    { href: '/dashboard/strategies', label: 'Strategies', icon: '📝', color: 'blue' },
+    { href: '/dashboard/posts', label: 'Posts', icon: '✍️', color: 'orange' },
+    { href: '/dashboard/assets', label: 'Vault', icon: '📁', color: 'cyan' },
+    { href: '/dashboard/audit', label: 'Audit', icon: '🔬', color: 'pink' },
   ];
 
   // Filter items based on tier access
@@ -75,41 +75,36 @@ export default function DashboardNav() {
             <Link href="/dashboard" className="text-2xl font-bold bg-gradient-to-r from-sunset-orange to-orange-600 bg-clip-text text-transparent">
               AISO Studio
             </Link>
-            <nav className="flex gap-6 items-center">
+            <nav className="flex gap-2 items-center">
               {/* Visible nav items */}
               {visibleNavItems.map((item) => {
-                // Determine button gradient based on color
-                const getButtonClasses = () => {
-                  if (!item.highlight) {
-                    return isActive(item.href)
-                      ? 'text-deep-indigo border-b-2 border-sunset-orange pb-1'
-                      : 'text-slate-600 hover:text-deep-indigo hover:scale-105';
-                  }
-
-                  const colorMap = {
-                    indigo: 'from-deep-indigo to-indigo-600',
-                    emerald: 'from-emerald-600 to-teal-600',
-                  };
-                  const gradient = colorMap[item.highlightColor || 'indigo'];
-
-                  return isActive(item.href)
-                    ? `bg-gradient-to-r ${gradient} text-white px-4 py-2 rounded-full shadow-lg`
-                    : `bg-gradient-to-r ${gradient} text-white px-4 py-2 rounded-full hover:shadow-lg hover:scale-105`;
+                // Color gradient map for all nav items - each has unique colors like pipeline stages
+                const colorMap: Record<string, { gradient: string; activeRing: string }> = {
+                  slate: { gradient: 'from-slate-600 to-slate-700', activeRing: 'ring-slate-400' },
+                  indigo: { gradient: 'from-deep-indigo to-indigo-600', activeRing: 'ring-indigo-400' },
+                  emerald: { gradient: 'from-emerald-600 to-teal-600', activeRing: 'ring-emerald-400' },
+                  blue: { gradient: 'from-blue-600 to-blue-700', activeRing: 'ring-blue-400' },
+                  purple: { gradient: 'from-purple-600 to-purple-700', activeRing: 'ring-purple-400' },
+                  orange: { gradient: 'from-orange-500 to-amber-600', activeRing: 'ring-orange-400' },
+                  pink: { gradient: 'from-pink-500 to-rose-600', activeRing: 'ring-pink-400' },
+                  cyan: { gradient: 'from-cyan-500 to-teal-500', activeRing: 'ring-cyan-400' },
                 };
 
-                const getIcon = () => {
-                  if (!item.highlight) return null;
-                  if (item.highlightColor === 'emerald') return '🔍 ';
-                  return '🎯 ';
-                };
+                const colors = colorMap[item.color] || colorMap.slate;
+                const active = isActive(item.href);
 
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`text-sm font-semibold transition-all duration-200 ${getButtonClasses()}`}
+                    className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full bg-gradient-to-r ${colors.gradient} text-white transition-all duration-200 ${
+                      active
+                        ? `shadow-lg ring-2 ${colors.activeRing} ring-offset-1`
+                        : 'hover:shadow-md hover:scale-105'
+                    }`}
                   >
-                    {getIcon()}{item.label}
+                    {item.icon && <span>{item.icon}</span>}
+                    {item.label}
                   </Link>
                 );
               })}
